@@ -65,8 +65,8 @@ A duty worker can see an incident generated from original monitoring data or rep
 **Pass gate:** Two independent browsers can perform full journey on one stable URL; tests pass; video uses real screens and does not depict nonexistent features.
 
 ## Build priority under deadline
-**P0 — must finish in order:** Stage 0 → Stage 1 → Stage 2 selected temperature data → Stage 3 one clear source-backed incident → Stage 5 → Stage 6 → Stage 7 minimal follow-up → Stage 8 tests + actual video.  
-**P1 — as time permits:** Stage 4 manual reporting, second source outage corroboration, better data source summaries, synthetic event replay; prioritize these as product value and do not add new pages without completing P0.  
+**P0 — must finish in order:** Stage 0 → Stage 1 → Stage 2 selected temperature data → Stage 3 one clear source-backed incident → Stage 4 manual report → Stage 5 → Stage 6 → Stage 7 minimal follow-up → Stage 8 tests + actual video.  
+**P1 — as time permits:** Second source outage corroboration, better data source summaries, synthetic event replay; prioritize these as product value and do not add new pages without completing P0.  
 **P2 — after hackathon:** true device/BMIS integrations, multi-site onboarding, monitoring reliability metrics, offline conflict resolution, performance scaling, clinical site validation, regulatory/security reviews.
 
 **Hackathon outcome:** A usable *synthetic-data incident-management system* that persists across real accounts and devices, not clinical production authorization. **Controlled real-world use** requires approved site SOP, verified equipment/unit custody, security/data protection assessment, audit/backup/restore and clinical partner evaluation.
