@@ -19,8 +19,20 @@ jobs:
           node --check src/engine.js
           node --check src/app.js
           node --check service-worker.js
+          node --check api/incidents.js
+          node --check api/session.js
+          node --check server/auth.mjs
+          node --check server/store.mjs
+          node --check workspace/workspace.js
+          node --check scripts/build_vercel_preview.mjs
       - name: Test evidence and simulated decision workflow
         run: npm test
+      - name: Verify allowlisted website and staff workspace bundle
+        run: |
+          node scripts/build_vercel_preview.mjs
+          test -f _site_vercel/workspace/auth-config.js
+          test ! -f _site_vercel/HANDOFF.md
+          test ! -f _site_vercel/db/migrations/001_initial.sql
       - name: Test traceable data cleansing without starter ZIP
         run: python3 -m unittest discover -s tests -p "test_*.py" -v
 
