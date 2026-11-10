@@ -1,0 +1,41 @@
+{
+  "dataset": "Terumo BCT Africa Hackathon 2026 synthetic starter ZIP",
+  "analyzed_at": "2026-11-10",
+  "reproducible_script": "scripts/system_pressure.py",
+  "source_warning": "Synthetic records only; descriptive retrospective outcomes, not real Kenyan healthcare statistics",
+  "red_cells_and_whole_blood": {
+    "total": 37147,
+    "expired": 4901,
+    "discarded_temperature": 3719,
+    "wasted_total": 8620,
+    "wasted_percent": 23.21
+  },
+  "transfused_with_retrospective_exposure_flag_all_components": 2119,
+  "donor_records": {
+    "all": 43363,
+    "student": 25182,
+    "student_percent": 58.07
+  },
+  "hospital_requests": {
+    "total": 17430,
+    "not_fully_fulfilled": 2241
+  },
+  "external_emergency_supply": {
+    "count_with_timing": 1796,
+    "median_request_to_last_unit_hours": 5.2
+  },
+  "facility_temperature_monitoring_gaps": {
+    "intervals": 387,
+    "missing_expected_hourly_records": 12273,
+    "next_reading_normal": 381,
+    "both_boundary_readings_normal": 375
+  },
+  "caveats": [
+    "The 2,119 is retrospective source label, NOT a model prediction and not actual patient injury.",
+    "381 gap intervals followed by normal readings are a monitor-blind-spot count, not exposed or saved blood units.",
+    "Temperature logs are facility-level; named-fridge/unit linkage is absent.",
+    "Expired versus discarded-temperature are distinct causes; data do not prove TrustLedger can prevent either.",
+    "Student donor record share is not a quantified holiday shortage; candidate donor duplicates exist.",
+    "Strong conventional gap-aware rules can detect these cases too; differentiation is in quality review and issue control."
+  ]
+}
