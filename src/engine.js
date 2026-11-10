@@ -1,4 +1,5 @@
 import { EVIDENCE_CASES } from "./source_evidence.js";
+import { CUSTODY_FIXTURES, candidateCustody } from "./custody_fixtures.js";
 
 /**
  * TrustLedger evidence engine.
@@ -32,7 +33,7 @@ export const SCENARIOS = Object.freeze([
     evidenceScope: "Source readings identify a facility, NOT a named refrigerator.",
     fixtureScope: "FR-A and DEMO units are synthetic mappings added for this prototype.",
     annotatedReviewNeeded: true,
-    units: ["DEMO-RBC-024-A", "DEMO-RBC-024-B"],
+    units: CUSTODY_FIXTURES.filter(r => r.caseId === "TL-024").map(r => r.unitId),
     readings: EVIDENCE_CASES["TL-024"].source_readings,
     powerOutages: EVIDENCE_CASES["TL-024"].overlapping_power_outages,
     confirmedDeviceUnitHistory: false,
@@ -48,7 +49,7 @@ export const SCENARIOS = Object.freeze([
     evidenceScope: "Temperature values from facility feed; no physical device ID.",
     fixtureScope: "FR-B and DEMO unit are supplemental synthetic assignments.",
     annotatedReviewNeeded: true,
-    units: ["DEMO-RBC-NBO-H1"],
+    units: CUSTODY_FIXTURES.filter(r => r.caseId === "TL-NBO-HOT").map(r => r.unitId),
     readings: EVIDENCE_CASES["TL-NBO-HOT"].source_readings,
     powerOutages: EVIDENCE_CASES["TL-NBO-HOT"].overlapping_power_outages,
     confirmedDeviceUnitHistory: false,
@@ -64,7 +65,7 @@ export const SCENARIOS = Object.freeze([
     evidenceScope: "Facility temperature feed contains an extreme outlier.",
     fixtureScope: "FR-C and DEMO unit are supplemental synthetic assignments.",
     annotatedReviewNeeded: true,
-    units: ["DEMO-RBC-NBO-G1"],
+    units: CUSTODY_FIXTURES.filter(r => r.caseId === "TL-NBO-GLITCH").map(r => r.unitId),
     readings: EVIDENCE_CASES["TL-NBO-GLITCH"].source_readings,
     powerOutages: EVIDENCE_CASES["TL-NBO-GLITCH"].overlapping_power_outages,
     confirmedDeviceUnitHistory: false,
@@ -80,7 +81,7 @@ export const SCENARIOS = Object.freeze([
     evidenceScope: "Only these four consecutive facility-level readings were evaluated.",
     fixtureScope: "FR-D and DEMO unit are supplemental synthetic assignments.",
     annotatedReviewNeeded: false,
-    units: ["DEMO-RBC-024-C1"],
+    units: CUSTODY_FIXTURES.filter(r => r.caseId === "TL-024-CONTROL").map(r => r.unitId),
     readings: EVIDENCE_CASES["TL-024-CONTROL"].source_readings,
     powerOutages: EVIDENCE_CASES["TL-024-CONTROL"].overlapping_power_outages,
     confirmedDeviceUnitHistory: false,
@@ -131,6 +132,31 @@ export function inspectEvidence(input, policy = POLICY) {
   return { kind, flags, gapHours, min: plausible.length ? Math.min(...plausible) : null,
     max: plausible.length ? Math.max(...plausible) : null, latest: readings.at(-1).value,
     count: readings.length, observed, certainty, needsReview: flags.length > 0 };
+}
+
+
+/**
+ * Illustrate the additional data model needed to trace unit occupancy.
+ * Generated source temperature records are facility-level only. The results
+ * below come EXCLUSIVELY from explicitly fictional custody fixtures and
+ * must never be displayed as confirmed physical exposure.
+ */
+export function candidateUnitContext(caseId) {
+  const s = SCENARIOS.find(x => x.id === caseId);
+  if (!s) throw new Error("Unknown synthetic case");
+  const evaluation = inspectEvidence(s.readings);
+  const evidenceFlags = evaluation.flags.filter(f =>
+    ["gap", "excursion", "implausible"].includes(f.kind));
+  const start = evidenceFlags.length ? evidenceFlags[0].at : s.readings[0].at;
+  const last = evidenceFlags.length ? evidenceFlags[evidenceFlags.length - 1] :
+    { at: s.readings[s.readings.length - 1].at };
+  const end = last.endAt || last.at;
+  const candidates = candidateCustody(caseId, start, end);
+  return {
+    start, end, candidates,
+    realUnitExposureEstablished: false,
+    justification: "Only added synthetic occupancy records overlap this evidence interval; no original named-device-to-unit custody record exists.",
+  };
 }
 
 export function latestOnlyBaseline(input, policy = POLICY) {
