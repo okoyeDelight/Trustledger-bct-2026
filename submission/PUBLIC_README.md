@@ -21,6 +21,10 @@ Next choose **TL-NBO-HOT**: an original synthetic 7.9°C facility reading overla
 
 In **Evidence lab**, view a source-preserving audit, the full-year monitoring gap result, the four-example baseline comparison and a separate transfer-documentation investigation.
 
+## Implemented exchangeable case record (synthetic only)
+
+Each investigation now offers a real downloadable JSON packet (`trustledger.synthetic-handoff.v1`) with original-source facility temperature observations, data quality findings, linked synthetic source power outages, explicitly fictional inventory candidates, reviewer outcomes and mock issuing status. This is *export only*, not a hospital-connected interface; it is not FHIR, real user authentication, clinical release authorization or a production inventory write. See `src/engine.js` function `buildHandoffPacket` and `e2e/core.spec.mjs` browser download test.
+
 ## Judging criteria: evidence, not marketing
 
 | Official criterion | Weight | Proof here |
