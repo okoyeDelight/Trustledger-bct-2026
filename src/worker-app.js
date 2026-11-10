@@ -277,6 +277,7 @@ document.addEventListener("click", ev => {
   const target = ev.target;
   const goto = target.closest("[data-go], [data-view]");
   if (goto) {
+    ev.preventDefault();
     show(goto.dataset.go || goto.dataset.view); return;
   }
   if (target.closest("[data-issue-check]")) {
