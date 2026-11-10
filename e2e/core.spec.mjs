@@ -117,3 +117,10 @@ test("quality reviewer documents restricted case closure without enabling synthe
   await page.locator('[data-nav="audit"]').click();
   await expect(page.locator("#audit-list")).toContainText("REVIEW CLOSED NO RELEASE");
 });
+
+test("full-year monitoring gap statistics remain distinct from four-case accuracy evaluation", async ({ page }) => {
+  await page.locator('[data-nav="evidence"]').click();
+  await expect(page.locator(".whole-dataset")).toContainText("381 of 387");
+  await expect(page.locator(".whole-dataset")).toContainText("12,273");
+  await expect(page.locator("#benchmark-table tr")).toHaveCount(4);
+});
