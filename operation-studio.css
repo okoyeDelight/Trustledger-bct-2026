@@ -115,3 +115,12 @@ body{background:var(--bg);color:var(--ink)}
 }
 @media(max-width:380px){.blindspot-story h2{font-size:16px}.blindspot-action{font-size:9px;padding:7px}.case-list{grid-auto-columns:minmax(160px,78%)}.page-intro h1{font-size:17px}}
 @media(prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}
+
+
+/* Screenshot review: older mobile flex-direction must not stack the two values. */
+@media(max-width:760px){
+.blindspot-proof{flex-direction:row!important;align-items:center!important;justify-content:space-between!important}
+.blindspot-proof .proof-item{width:auto!important;flex:1 1 0;text-align:left}
+.blindspot-proof .proof-separator{flex:0 0 auto;margin:0 7px}
+.blindspot-proof .proof-number{line-height:1.05}
+}
