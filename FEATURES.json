@@ -67,6 +67,14 @@
       "browser_verified": false,
       "priority": "P1",
       "next_action": "Record only after UI and flow are verified"
+    },
+    {
+      "id": "source-data-cleanup",
+      "title": "Reproducible real starter ZIP validation, facility-ID canonical names, documented sensor sentinels, gap ledger and candidate-only donor duplicates",
+      "implemented": true,
+      "browser_verified": false,
+      "priority": "P0",
+      "next_action": "Show data-quality audit section in Chrome; verify 55 sensor sentinels, 387 gaps, 1,852 name variants and raw->validated examples against source report."
     }
   ],
   "verified_browser_run": "https://github.com/okoyeDelight/Trustledger-bct-2026/actions/runs/42815304722",
