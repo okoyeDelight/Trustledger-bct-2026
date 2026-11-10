@@ -1,7 +1,7 @@
 name: Verify Claude website preview
 on:
   push:
-    branches: [preview-claude-vercel]
+    branches: [preview-claude-vercel, design/incident-workstation-v2]
   workflow_dispatch:
 
 permissions:
