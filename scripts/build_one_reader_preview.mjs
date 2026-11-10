@@ -29,6 +29,6 @@ const actual=await visit(out),expected=allowed.map(x=>x[1]).sort();
 if(JSON.stringify(actual)!==JSON.stringify(expected)) throw Error("Unexpected public files: "+actual.join(", "));
 const html=await readFile(join(out,"index.html"),"utf8");
 const app=await readFile(join(out,"src/worker-app.js"),"utf8");
-if(!html.includes("SYNTHETIC DEMO")||!app.includes("SYNTHETIC")||!app.includes("issueGuard"))
+if(!html.includes("SYNTHETIC DEMO")||!app.includes("clinical release")||!app.includes("issueGuard"))
   throw Error("Synthetic boundary or issue control missing");
 console.log("Single-source website package verified: "+actual.join(", "));
