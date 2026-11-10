@@ -49,7 +49,8 @@ test("evidence lab is honest about rule-based baseline parity", async ({ page })
   await expect(page.locator("#benchmark-summary")).toContainText("1 / 4 correct");
   await expect(page.locator("#benchmark-summary")).toContainText("4 / 4 correct");
   await expect(page.locator("#benchmark-caveat")).toContainText("no demonstrated advantage");
-  await expect(page.locator("#benchmark-table tr")).toHaveCount(5);
+  // #benchmark-table is the TBODY: four scenario rows, not four plus header.
+  await expect(page.locator("#benchmark-table tr")).toHaveCount(4);
 });
 
 test("screen is usable at the selected viewport without global overflow", async ({ page }) => {
