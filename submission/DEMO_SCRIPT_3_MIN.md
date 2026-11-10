@@ -12,7 +12,7 @@
 | 1:38–1:53 | Attempt mock issue; show BLOCKED toast | “A simulated issue attempt is blocked while evidence is unresolved.” |
 | 1:53–2:16 | Complete operator proposal, reviewer Accept/Change/Reject (one), record reason | “The operator proposes an action. A separate simulated quality-review step records the human decision and rationale. The model does not authorize clinical release.” |
 | 2:16–2:35 | Document review closure / refer to site authority; retry issue, remains blocked | “Even when review documentation is closed or escalated, the mock restriction stays enforced; missing evidence is not equivalent to clearance.” |
-| 2:35–2:50 | Show audit and conclusion | “TrustLedger's value is not a magical temperature predictor. It's reliable data, explicit uncertainty, human accountability and an enforceable workflow. This is a synthetic proof of concept, not validated clinical software.” |
+| 2:35–2:50 | Show audit, download synthetic handoff JSON and conclude | “TrustLedger turns evidence into accountable review, an enforced mock restriction and a downloadable synthetic handoff record. No real hospital system is connected; clinical benefit is not yet proven.” |
 
 ## Recording quality rules
 - Total final runtime under 180 seconds with some margin. Avoid sped-up interactions that cannot be followed.
