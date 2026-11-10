@@ -1,7 +1,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import {
-  SCENARIOS, POLICY, inspectEvidence, latestOnlyBaseline, competentRulesBaseline,
+  SCENARIOS, POLICY, inspectEvidence, candidateUnitContext, latestOnlyBaseline, competentRulesBaseline,
   benchmark, freshState, propose, review, closeReview, issueGuard, ensureState
 } from "../src/engine.js";
 import { EVIDENCE_CASES } from "../src/source_evidence.js";
@@ -148,4 +148,21 @@ test("qualified simulated review may close paperwork without silently clearing e
   assert.equal(issueGuard(s, "TL-NBO-HOT", "DEMO-RBC-NBO-H1").allowed, false);
   assert.throws(() => closeReview(s, "TL-NBO-HOT", "continued_hold",
     "Try documenting same case twice after closure"), /reviewer must authorize/i);
+});
+
+test("candidate units overlap the incident using only labelled fictional custody timeline", () => {
+  const gap = candidateUnitContext("TL-024");
+  assert.equal(gap.candidates.length, 2);
+  assert.equal(gap.realUnitExposureEstablished, false);
+  assert.match(gap.justification, /no original named-device-to-unit/i);
+  for (const c of gap.candidates) {
+    assert.equal(c.source, "ADDED_SYNTHETIC_CUSTODY_FIXTURE");
+    assert.equal(c.relation, "ILLUSTRATIVE_TIME_OVERLAP_NOT_VERIFIED_EXPOSURE");
+    assert.ok(Date.parse(c.enteredAt) <= Date.parse(gap.end));
+    assert.ok(Date.parse(c.leftAt) >= Date.parse(gap.start));
+  }
+  const hot = candidateUnitContext("TL-NBO-HOT");
+  assert.equal(hot.candidates[0].deviceId, "ILLUSTRATIVE-FR-B");
+  assert.equal(hot.realUnitExposureEstablished, false);
+  assert.throws(() => candidateUnitContext("UNKNOWN"), /Unknown synthetic case/);
 });
