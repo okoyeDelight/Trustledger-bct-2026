@@ -4,6 +4,23 @@
 
 > **Status: interactive browser prototype implemented, core decision rules passing automated tests; live deployment, broader data validation, expert review and end-user testing are still pending.** This is a hackathon prototype using synthetic data, NOT a clinically validated blood-bank system. Do not use it for real transfusion decisions.
 
+## Judge verification — start here
+
+**Run:** `python3 -m http.server 8080` then open `http://localhost:8080`. No credentials or live patient data. **Follow:** TL-024 (57 missing hourly records) → attempt blocked mock issue → operator proposal → simulated reviewer decision → documented investigation outcome → blocked issue again. TL-NBO-HOT adds independent source outage evidence and an observed 7.9°C facility-level excursion.
+
+**[Full six-criterion evidence map](docs/JUDGING_EVIDENCE_MAP.md)** · **[Implemented architecture](docs/ARCHITECTURE_FOR_JUDGES.md)** · **[Source provenance](data/PROVENANCE.md)** · **[Demo script](submission/DEMO_SCRIPT_3_MIN.md)** · **[Eight-slide narrative](submission/PITCH_8_SLIDES.md)**.
+
+| Official criteria (100 points) | Weight | Key verification |
+|---|---:|---|
+| Working end-to-end prototype | **25** | `src/app.js`, `src/engine.js`, Playwright |
+| Technical depth/architecture | **20** | Fail-closed CSV extraction, state transitions, data-flow diagram |
+| AI/data approach | **15** | Source-preserving cleanup, simple baseline 1/4 vs competent rules 4/4 and feature 4/4 (no superiority claimed) |
+| Blood-system user/problem | **15** | Duty operator and QA reviewer, named SOP/traceability limits |
+| African conditions/scale | **15** | Mobile responsive, local shell cache, offline-capable rules; not multi-device sync |
+| Demo/readiness | **10** | Real-screen script/slide outline; recorded video and public demo still pending |
+
+**Publication warning:** This *development* repository is private and its historical commits contain team-internal material. Do **not** change visibility to public without a privacy/history review and organizer guidance. A clean candidate public README and allowlisted bundle are staged under `submission/PUBLIC_README.md` and `scripts/build_judge_bundle.py`. The bundle preserves source code, not Git history.
+
 ## The problem
 Our intended user is a blood-bank duty operator investigating a temperature excursion or a gap/implausible value in monitoring records, supported by an authorized quality reviewer. The hypothesis is that assembling reliable readings, power-outage context, possible affected inventory, and documented actions in one case can reduce missed evidence and incomplete reviews. **This precise frontline bottleneck has not yet been validated with a blood-service practitioner.**
 
