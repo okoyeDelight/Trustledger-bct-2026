@@ -87,3 +87,33 @@ test("documentation gaps are not misrepresented as missing deliveries or unsafe 
   await expect(proof).toContainText("No timestamp ≠ no delivery");
   await expect(proof).toContainText("not our main clinical-safety case");
 });
+
+
+test("source-backed power outage context is auditable, not a guessed unit exposure", async ({ page }) => {
+  await page.locator('[data-case-id="TL-NBO-HOT"]').click();
+  const detail = page.locator("#case-detail");
+  await expect(detail).toContainText("OUT-00009");
+  await expect(detail).toContainText("3.83");
+  await expect(detail).toContainText("NOT engaged");
+  await expect(detail).toContainText("unit");
+  await expect(detail).toContainText("unverified");
+  await expect(detail).toContainText("7.9");
+});
+
+test("quality reviewer documents restricted case closure without enabling synthetic issue", async ({ page }) => {
+  await page.locator('[data-case-id="TL-NBO-HOT"]').click();
+  await page.locator("#operator-action").selectOption("investigate");
+  await page.locator("#operator-reason").fill("7.9C observed during a power outage; require equipment and unit trace.");
+  await page.locator("[data-propose]").click();
+  await page.locator("#reviewer-note").fill("Document the evidence and refer to the qualified site authority.");
+  await page.locator('[data-review="accept"]').click();
+  await expect(page.locator(".closure-panel")).toBeVisible();
+  await page.locator("#closure-outcome").selectOption("refer_site_authority");
+  await page.locator("#closure-note").fill("Outage 00009, recorded temperatures and absent fridge-to-unit links need local SOP review.");
+  await page.locator("[data-close-review]").click();
+  await expect(page.locator("#case-detail")).toContainText("Referred for site-authorized disposition");
+  await page.locator('button[data-issue="DEMO-RBC-NBO-H1"]').click();
+  await expect(page.locator("#toast")).toContainText("MOCK ISSUE BLOCKED");
+  await page.locator('[data-nav="audit"]').click();
+  await expect(page.locator("#audit-list")).toContainText("REVIEW CLOSED NO RELEASE");
+});
