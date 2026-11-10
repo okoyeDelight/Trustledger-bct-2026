@@ -51,6 +51,10 @@ flowchart LR
 
 Data source and invention boundary: [PROVENANCE.md](data/PROVENANCE.md). The source temperatures are **facility-level** and the named-fridge and unit assignments are deliberately created supplemental synthetic fixtures. We do not claim to have reconstructed unit exposure. This first release does not use \`power_outages.csv\`, \`transfers.csv\` or real \`units.csv\` as runtime features; future import must preserve time and location uncertainty. Standards such as ISBT 128 and HL7 FHIR are integration ideas, not implemented compliance.
 
+## Tested alternative — missing transfer receipts
+
+We investigated a potentially stronger **unit-linked** case: 1,046 of 35,181 synthetic transfers have no `received_at`. Source generator `gen.py` confirms receipts are omitted randomly with a 3% probability **after the simulated arrival is calculated**. A missing receipt means **incomplete documentation, not non-delivery**. The 873 linked units later labelled `transfused` do not establish actual patient harm, a missing physical shipment, or the legality of an issue. No trip is recorded above the source's 10°C cool-box excursion threshold. Consequently we did **not** pivot to automatic clinical holds for missing receipts. We added a small, honest provenance comparison to Evidence Lab and retained our one cold-chain evidence-to-human-review workflow. See [reproducible receipt investigation](docs/MISSING_DATA_EXPERIMENT_AND_DECISION_2026-11-10.md) and [source audit](scripts/receipt_provenance_audit.py).
+
 ## Dataset cleanup: a reproducible part of the build
 
 Hany explicitly clarified during the **10 Nov kickoff (~22:38–23:12)** that the synthetic dataset is deliberately messy and that cleaning it counts as hackathon work. We therefore implemented an independent, source-preserving **quality audit and cleaning script** (`scripts/audit_starter.py`), in addition to the interactive evidence inspector.
