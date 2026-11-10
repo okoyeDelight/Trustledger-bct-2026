@@ -15,5 +15,9 @@
   "license": "UNLICENSED",
   "devDependencies": {
     "@playwright/test": "1.64.1"
+  },
+  "dependencies": {
+    "@neondatabase/serverless": "1.2.0",
+    "jose": "6.1.0"
   }
 }
