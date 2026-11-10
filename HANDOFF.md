@@ -102,3 +102,16 @@ User supplied a KDPA/ODPC production checklist and asked what is actually releva
 **Official rule:** the assigned area (cold chain and data quality) cannot be switched to general forecasting/donor retention/redistribution after the Tue 14:00 EAT change window absent organizer permission. Keep proposed improvements within assigned scope.
 
 **Next action for BUILDER/EVALUATOR:** assess whether one transfer provenance case can be fully wired to the existing human review/guard and tested *without sacrificing* deployment, 3-minute video, eight slides and final cutoff. If not feasible, stop feature expansion and submit current tested workflow honestly.
+
+
+## Verified 10 Nov pivot experiment — missing records are NOT failed physical events
+
+The user questioned whether a blank value in the supplied data proves a physical event was missing. Inspected the organizer's **actual synthetic `gen.py`** (lines 395–405). It computes an arrival, randomly omits `received_at` in approximately 3% of transfer records and still updates the unit's destination. **1,046 / 35,181** transfers have a blank `received_at`; 873 linked units have a **later retrospective status** of `transfused`. This is intentionally incomplete documentation, **not evidence of non-delivery, unsafe issue or clinical harm**. There are **zero** recorded trip temperatures strictly over the source dictionary's **10°C** threshold.
+
+The same generator explicitly creates temperature logger-offline intervals (`gen.py` 381–386), leaving unseen measurements unknown, not inferably safe or hot.
+
+**Decision after head-to-head evidence check:** Do **not** change the core product to “missing receipt stops all blood”. That would overclaim clinical significance. Retain the tested cold-chain-data-integrity → quality-review → MOCK issue-guard story, and preserve a source-backed transfer documentation **optional disclosure** in Evidence Lab. A receiving staff member may need to reconcile missing documentation, but there is no automatic clinical hold rule without an SOP.
+
+**Implementation committed:** `scripts/receipt_provenance_audit.py`, `tests/test_receipt_provenance.py`, `data/receipt_evidence_snapshot.json`, optional UI `#receipt-evidence`, `docs/MISSING_DATA_EXPERIMENT_AND_DECISION_2026-11-10.md`, and mobile/desktop E2E tests.
+
+**Claude guidance:** Never imply 1,046 units went missing physically, or 873 were unsafely transfused. Never describe the 57-hour logger gap as a confirmed temperature excursion. Refuse to infer device-level/unit exposures from facility-only source. Do not add an entire transfer management module now. Finish public hosting, demo video, slide deck, source provenance and real README accuracy.
