@@ -19,6 +19,10 @@ jobs:
           node --check src/engine.js
           node --check src/app.js
           node --check service-worker.js
+      - name: Check step-two server and access rules syntax
+        run: |
+          node --check src/access-policy.mjs
+          node --check api/me.js
       - name: Test evidence and simulated decision workflow
         run: npm test
       - name: Test traceable data cleansing without starter ZIP
