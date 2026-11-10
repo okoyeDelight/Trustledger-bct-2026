@@ -130,8 +130,8 @@ export function inspectEvidence(input, policy = POLICY) {
       }
       if (h < 0.99) flags.push({ kind: "duplicate", detail: "Unexpected or duplicate timestamps", at: r.at });
     }
-    if (r.value < policy.minReasonableC || r.value > policy.maxReasonableC) {
-      flags.push({ kind: "implausible", detail: "Raw " + r.value + "°C is outside the sanity band; verify sensor", at: r.at, value: r.value });
+    if (r.value === 0 || r.value === -99 || r.value === 99.9 || r.value < policy.minReasonableC || r.value > policy.maxReasonableC) {
+      flags.push({ kind: "implausible", detail: "Raw " + r.value + "°C is a documented synthetic sensor sentinel or implausible value; verify sensor", at: r.at, value: r.value });
     } else {
       plausible.push(r.value);
       if (r.value < policy.minC || r.value > policy.maxC) {
