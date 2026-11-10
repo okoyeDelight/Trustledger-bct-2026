@@ -37,4 +37,5 @@ jobs:
           name: trustledger-judge-package
           path: _judge_package/
           if-no-files-found: error
+          include-hidden-files: true
           retention-days: 7
