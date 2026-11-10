@@ -95,6 +95,34 @@
           </div>
           <p class="quality-disclaimer">Other findings: 506 donor records with missing/unknown blood groups and 442 such request records, preserved for review. Counts describe the organizer's synthetic data, not real facilities. Exact name differences can be harmless abbreviations, and candidate duplicates are not confirmed identities. <a href="https://github.com/okoyeDelight/Trustledger-bct-2026/blob/main/docs/DATA_QUALITY_PIPELINE.md" target="_blank" rel="noopener noreferrer">Read the cleaning method ↗</a></p>
         </section>
+        <details class="provenance-check panel" id="receipt-evidence">
+          <summary><span class="provenance-summary-text"><span class="panel-kicker">SECOND SOURCE-BACKED CASE · NOT ANOTHER CLINICAL ALARM</span><strong>Does an empty receipt mean the blood never arrived?</strong><small>Inspect the evidence, then distinguish documentation gaps from physical events.</small></span><span class="provenance-expander" aria-hidden="true">+</span></summary>
+          <div class="provenance-inner">
+            <div class="provenance-numbers"><span><b>35,181</b> source transfers</span><span><b>1,046</b> blank receipt timestamps</span><span><b>2.97%</b> intentionally omitted in generator</span></div>
+            <div class="provenance-two-col">
+              <div class="provenance-case">
+                <div class="panel-kicker">DIRECT SOURCE RECORD · TRF-005463</div>
+                <dl>
+                  <div><dt>Unit</dt><dd><code>U2511-NKR-006818-RBC</code></dd></div>
+                  <div><dt>Route</dt><dd>RBTC-NKR → HSP-024</dd></div>
+                  <div><dt>Dispatch (EAT)</dt><dd>3 Nov 2025, 09:42</dd></div>
+                  <div><dt>Receipt timestamp</dt><dd class="uncertain">Not recorded</dd></div>
+                  <div><dt>Recorded max in cool box</dt><dd>4.9°C · not an observed &gt;10°C transport excursion</dd></div>
+                  <div><dt>Later unit status</dt><dd>Transfused · retrospective synthetic label only</dd></div>
+                </dl>
+              </div>
+              <div class="provenance-lesson">
+                <div class="panel-kicker">SOURCE GENERATOR EXPLAINS THE GAP</div>
+                <h3>No timestamp ≠ no delivery</h3>
+                <p>The synthetic generator computes arrival, then randomly removes the receipt field in about 3% of transfers. It independently assigns the unit to its destination.</p>
+                <p><strong>What we can conclude:</strong> a receiving record is incomplete and merits reconciliation.</p>
+                <p><strong>What we cannot conclude:</strong> physical non-delivery, an unsafe blood unit, a clinical hold requirement, or patient harm.</p>
+                <p class="provenance-verdict">Decision: Keep this as a data-quality example, but not our main clinical-safety case.</p>
+              </div>
+            </div>
+            <p class="data-footnote">All values are fictional organizer-generated records. The generator's internal arrival calculation would not be available as evidence to real hospital staff. No independent clinical decision is derived from this source field. <a href="https://github.com/okoyeDelight/Trustledger-bct-2026/blob/main/data/receipt_evidence_snapshot.json" target="_blank" rel="noopener noreferrer">Reproduce this audit ↗</a></p>
+          </div>
+        </details>
         <div class="explain-grid"><article class="panel explain-card"><div class="panel-kicker">WHY LATEST-ONLY MISSES IT</div><h3>Normal ≠ verified.</h3><p>For HSP-024, 3.9°C was followed 58 hours later by 4.3°C. There are 57 missing expected hourly records. The system cannot infer what happened during the gap.</p></article><article class="panel explain-card"><div class="panel-kicker">THE HONEST LIMIT</div><h3>Rules may be enough.</h3><p>A competent conventional monitor that checks gaps, outliers and excursions catches the same four cases. We do <strong>not</strong> claim an AI advantage or clinical benefit from this comparison.</p></article></div>
       </section>
 
