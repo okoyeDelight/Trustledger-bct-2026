@@ -2,6 +2,12 @@
 
 Read `PRODUCT.md`, `CONTRACT.md`, `FEATURES.json`, and `HANDOFF.md` before editing. For visual design, read `docs/DESIGN_SYSTEM.md`. This repo belongs to the Terumo BCT Africa Hackathon 2026. Work only within the official build window and with organizer-approved team arrangements.
 
+## Frontend studio skill — user may now simply ask you to start
+
+The repo now contains project-local `.claude/skills/trustledger-frontend-studio/SKILL.md` and research `docs/CLAUDE_DESIGN_RESEARCH_AND_EXECUTION.md`. **Read and execute them whenever the user asks you to start, continue or improve the website.** Do not respond with a generic frontend prompt or a speculative new app; inspect and improve the actual working UI, run tests, and commit verified changes. The project skill is self-contained. If official Anthropic frontend-design or community Impeccable is already installed and reviewed, use its critique/polish ideas as supporting guidance; don't automatically download external hooks/packages or assume they are installed. Ordinary Claude web chat with a GitHub connector might not auto-load local skills or support running/committing code; be accurate about that limitation.
+
+**Preferred first task:** compare real 360px and desktop screenshots, fix the clearest issue in the existing mobile Control room and source-evidence timeline. A 4.2°C latest reading alongside 57 missing hourly records is the signature; preserve all operating decisions and source truth. Keep public-hosting, demo-video and deadline priorities visible.
+
 ## Your assignment
 Make the **existing** one-workflow TrustLedger product look and feel exceptional on **phone and desktop**, while retaining exact evidence logic. You are refining a real interactive app, NOT inventing a landing-page concept or rebuilding a flashy medical SaaS brochure.
 
