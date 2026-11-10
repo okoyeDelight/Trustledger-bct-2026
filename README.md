@@ -10,12 +10,31 @@ Our intended user is a blood-bank duty operator investigating a temperature excu
 The organizer's synthetic Kenya-inspired dataset contains 399,280 hourly facility-level temperature readings, 2,609 power-outage records, 49,426 units, and 35,181 transfers. It contains deliberately missing/implausible records. These are SIMULATED issues, not statistics about any real facility.
 
 ## What we built
-- **Implemented:** responsive four-case cold-chain control room, source-backed evidence plots, 57-missing-hour detection, recorded synthetic excursions and sensor outlier preservation, candidate inventory fixture labels, operator proposal, separate *simulated* reviewer Accept/Change/Reject, persistent browser-local audit, a mock issue guard, benchmark screen and service-worker application-shell cache.
+- **Implemented:** responsive four-case cold-chain control room, source-backed evidence plots, 57-missing-hour detection, recorded synthetic excursions and sensor outlier preservation, candidate inventory fixture labels, operator proposal, separate *simulated* reviewer Accept/Change/Reject, persistent browser-local audit, a mock issue guard, evidence-backed outage context, explicitly invented timestamped custody fixtures, non-release investigation-closure records, benchmark screen and service-worker application-shell cache.
 - **End-to-end demo:** choose HSP-024 → inspect normal latest readings but 57 missing hourly records → attempt mock issue (blocked) → submit a hold recommendation as operator → approve or change as simulated reviewer → re-attempt mock issue (still blocked, with a logged reason). Choose the clean control case to show that a separately reviewed mock issue can be allowed; this is NOT clinical release.
 - **Tests:** [GitHub Actions](https://github.com/okoyeDelight/Trustledger-bct-2026/actions/workflows/verify.yml) runs syntax checks and Node regression assertions across data gaps, excursions, glitches, baseline behavior, review and issue guard. The initial CI run passed. Tests are not a substitute for end-user or browser QA.
 - **Not implemented:** authenticated reviewer identities, server/database, integration with hardware or a live blood system, patient/compatibility decisions, validated unit-to-fridge provenance, production-grade immutable audit, real offline synchronization, or clinical validation.
 - **Demo video (≤3 minutes):** not recorded yet.
 - **Public live demo:** not deployed yet. Browser demo has no login: two roles are simulated in one page.
+
+## Five grey areas — our evidence-backed decision
+
+The [five-grey-area review](docs/FIVE_GREY_AREAS_EVIDENCE_AND_TESTS_2026-11-10.md) distinguishes **prototype work completed** from issues that require real clinical-site evidence:
+
+- **Unit traceability:** Time-bounded `DEMO-*` unit/device occupancy comes from **additional fictional fixtures** and is explicitly labelled. The original facility logs contain no device-to-unit history, so actual exposure remains unverified.
+- **Clinical authority:** The operator, reviewer and issue desk are **browser simulations**, not authenticated clinical users. The official technical brief and WHO good-practice principles prohibit bypassing qualified review; a local SOP is required for real disposition.
+- **Baseline:** The feature ties a competent gap-aware rules monitor on four curated cases (4/4 each). The whole synthetic year has 387 monitoring gaps, 381 followed by an in-range reading; descriptive evidence of a latest-reading blind spot, **not superior ML accuracy** or reduced patient harm.
+- **Resolution vs restriction:** A reviewer can now close the *paperwork* with continued restriction or refer to site authority. That does not make abnormal evidence safe, and the simulated guard remains blocking. A separate clean negative control can be mock-permitted after review.
+- **Data lineage:** `src/source_evidence.js` is reproducibly extracted from the real starter's exact CSV rows and independently joins `power_outages.csv`. Incident `TL-NBO-HOT` includes source outage `OUT-00009` (3.83 h, backup not engaged), overlapping measured 7.9°C. Cross-table coincidence is not proof of individual unit exposure.
+
+Rebuild selected source observations with:
+~~~bash
+python3 scripts/build_source_evidence.py --source "/path/to/Hackathon Starter Dataset.zip"
+python3 -m unittest discover -s tests -p "test_*.py" -v
+npm test
+~~~
+
+**Still unverified:** actual blood-service SOP and expert user validation, clinical disposition proof, secure reviewer authentication, durable backend audit, an independent clinical outcome evaluation and production integration. No real blood is issued or released by this prototype.
 
 ## How to run it
 No installation or API keys are needed. **Do not open index.html via the file:// scheme:** browser module loading requires an HTTP server.
@@ -29,15 +48,16 @@ python3 -m http.server 8080
 
 For automated checks (Node.js 20+): \`npm test\`. The same tests and JavaScript syntax checks run automatically on pushes to \`main\`.
 
-All four demonstration windows are embedded in \`src/engine.js\` from exact temperature records in the organizer's synthetic dataset; there is no runtime fetch of patient data, no external AI API and no database. Browser state is stored under a namespaced \`localStorage\` key. **Reset demo** clears local decisions but preserves source records. After one online visit the service worker attempts to cache the static application shell for re-opening offline; device-specific offline behavior still needs browser testing.
+All four demonstration windows are generated from exact organizer temperature CSV rows into \`src/source_evidence.js\` by \`scripts/build_source_evidence.py\` (which also selects overlapping power-outage records); there is no runtime fetch of patient data, no external AI API and no database. Browser state is stored under a namespaced \`localStorage\` key. **Reset demo** clears local decisions but preserves source records. After one online visit the service worker attempts to cache the static application shell for re-opening offline; device-specific offline behavior still needs browser testing.
 
 ## Architecture
 Actual implemented architecture (browser-only MVP, not the final clinical architecture):
 
 ~~~mermaid
 flowchart LR
-  Source["Starter synthetic facility temp CSV (curated rows)"] --> Fixture["src/engine.js case evidence"]
-  Extra["Clearly labelled DEMO unit and fridge fixture"] --> Fixture
+  Source["Original synthetic temperature_logs.csv + power_outages.csv"] --> Extract["scripts/build_source_evidence.py"]
+  Extract --> Fixture["Generated src/source_evidence.js"]
+  Extra["Explicitly invented timed custody (src/custody_fixtures.js)"] --> Fixture
   Fixture --> Rules["Evidence inspector: gaps, invalid values, observed excursions"]
   Rules --> View["Responsive control room + case detail"]
   View --> Operator["Simulated operator proposal"]
@@ -49,7 +69,7 @@ flowchart LR
   Rules --> Eval["Comparison: latest-only / competent rules / evidence feature"]
 ~~~
 
-Data source and invention boundary: [PROVENANCE.md](data/PROVENANCE.md). The source temperatures are **facility-level** and the named-fridge and unit assignments are deliberately created supplemental synthetic fixtures. We do not claim to have reconstructed unit exposure. This first release does not use \`power_outages.csv\`, \`transfers.csv\` or real \`units.csv\` as runtime features; future import must preserve time and location uncertainty. Standards such as ISBT 128 and HL7 FHIR are integration ideas, not implemented compliance.
+Data source and invention boundary: [PROVENANCE.md](data/PROVENANCE.md). Source temperature and overlapping power-outage rows are facility-level and can establish temporal coincidence, not physical unit exposure or cause. Named-fridge and unit occupancy timelines come **only** from disclosed extra synthetic fixtures. This release does not use \`transfers.csv\` or real \`units.csv\` in clinical decisions; future import must preserve time and location uncertainty. Standards such as ISBT 128 and HL7 FHIR are integration ideas, not implemented compliance.
 
 ## Tested alternative — missing transfer receipts
 
