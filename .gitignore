@@ -20,3 +20,6 @@ __pycache__/
 *.wav
 *.csv
 # Deliberately checked-in fixture files may be specifically unignored after review.
+
+# Generated, review-only, allowlisted submission snapshot
+_judge_package/
