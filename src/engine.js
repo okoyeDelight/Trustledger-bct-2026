@@ -1,3 +1,5 @@
+import { EVIDENCE_CASES } from "./source_evidence.js";
+
 /**
  * TrustLedger evidence engine.
  * Hackathon demo only. All facility temperatures below are copied from the
@@ -18,8 +20,6 @@ export const POLICY = Object.freeze({
   description: "Illustrative RBC demo band (2–6°C); NOT a validated facility SOP",
 });
 
-function reading(at, c) { return { at: at.replace(" ", "T") + "+03:00", c, source: "starter:temperature_logs.csv" }; }
-
 export const SCENARIOS = Object.freeze([
   {
     id: "TL-024",
@@ -33,14 +33,9 @@ export const SCENARIOS = Object.freeze([
     fixtureScope: "FR-A and DEMO units are synthetic mappings added for this prototype.",
     annotatedReviewNeeded: true,
     units: ["DEMO-RBC-024-A", "DEMO-RBC-024-B"],
-    readings: [
-      reading("2026-09-30 07:00:00", 3.9),
-      reading("2026-09-30 08:00:00", 4.3),
-      reading("2026-09-30 09:00:00", 3.9),
-      reading("2026-10-02 19:00:00", 4.3),
-      reading("2026-10-02 20:00:00", 4.2),
-      reading("2026-10-02 21:00:00", 4.2),
-    ],
+    readings: EVIDENCE_CASES["TL-024"].source_readings,
+    powerOutages: EVIDENCE_CASES["TL-024"].overlapping_power_outages,
+    confirmedDeviceUnitHistory: false,
   },
   {
     id: "TL-NBO-HOT",
@@ -54,13 +49,9 @@ export const SCENARIOS = Object.freeze([
     fixtureScope: "FR-B and DEMO unit are supplemental synthetic assignments.",
     annotatedReviewNeeded: true,
     units: ["DEMO-RBC-NBO-H1"],
-    readings: [
-      reading("2026-10-05 23:00:00", 5.9),
-      reading("2026-10-06 00:00:00", 7.0),
-      reading("2026-10-06 01:00:00", 7.9),
-      reading("2026-10-06 02:00:00", 6.2),
-      reading("2026-10-06 03:00:00", 5.4),
-    ],
+    readings: EVIDENCE_CASES["TL-NBO-HOT"].source_readings,
+    powerOutages: EVIDENCE_CASES["TL-NBO-HOT"].overlapping_power_outages,
+    confirmedDeviceUnitHistory: false,
   },
   {
     id: "TL-NBO-GLITCH",
@@ -74,14 +65,9 @@ export const SCENARIOS = Object.freeze([
     fixtureScope: "FR-C and DEMO unit are supplemental synthetic assignments.",
     annotatedReviewNeeded: true,
     units: ["DEMO-RBC-NBO-G1"],
-    readings: [
-      reading("2026-03-27 06:00:00", 3.9),
-      reading("2026-03-27 07:00:00", 3.8),
-      reading("2026-03-27 08:00:00", 99.9),
-      reading("2026-03-27 09:00:00", 3.9),
-      reading("2026-03-27 10:00:00", 3.7),
-      reading("2026-03-27 11:00:00", 3.9),
-    ],
+    readings: EVIDENCE_CASES["TL-NBO-GLITCH"].source_readings,
+    powerOutages: EVIDENCE_CASES["TL-NBO-GLITCH"].overlapping_power_outages,
+    confirmedDeviceUnitHistory: false,
   },
   {
     id: "TL-024-CONTROL",
@@ -95,12 +81,9 @@ export const SCENARIOS = Object.freeze([
     fixtureScope: "FR-D and DEMO unit are supplemental synthetic assignments.",
     annotatedReviewNeeded: false,
     units: ["DEMO-RBC-024-C1"],
-    readings: [
-      reading("2026-10-02 19:00:00", 4.3),
-      reading("2026-10-02 20:00:00", 4.2),
-      reading("2026-10-02 21:00:00", 4.2),
-      reading("2026-10-02 22:00:00", 4.3),
-    ],
+    readings: EVIDENCE_CASES["TL-024-CONTROL"].source_readings,
+    powerOutages: EVIDENCE_CASES["TL-024-CONTROL"].overlapping_power_outages,
+    confirmedDeviceUnitHistory: false,
   },
 ]);
 
