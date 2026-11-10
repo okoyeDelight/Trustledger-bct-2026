@@ -1,4 +1,5 @@
 import { test, expect } from "@playwright/test";
+import { mkdir } from "node:fs/promises";
 
 test.beforeEach(async ({ page }) => {
   await page.goto("/pilot/");
@@ -12,6 +13,8 @@ test("one source starts as one clear incident with no live reader claims", async
   await expect(page.locator(".incident-row")).toContainText("57 expected hourly measurements");
   await expect(page.locator(".queue-top")).toContainText("No live reader connection");
   await expect(page.getByRole("button", { name: /Open incident/ })).toBeVisible();
+  await mkdir("test-results/screens", { recursive: true });
+  await page.screenshot({ path: "test-results/screens/" + test.info().project.name + "-queue.png", fullPage: true });
   const w = await page.evaluate(() => ({ width: document.documentElement.scrollWidth, client: document.documentElement.clientWidth }));
   expect(w.width).toBeLessThanOrEqual(w.client + 1);
 });
@@ -23,6 +26,8 @@ test("source-backed evidence is understandable and does not invent 57 temperatur
   await expect(page.locator(".evidence-window")).toContainText("3.9");
   await expect(page.locator(".evidence-window")).toContainText("4.3");
   await expect(page.locator(".meaning")).toContainText("do not identify a particular refrigerator");
+  await mkdir("test-results/screens", { recursive: true });
+  await page.screenshot({ path: "test-results/screens/" + test.info().project.name + "-evidence.png", fullPage: true });
   await page.getByRole("button", { name: /Start investigation/ }).click();
   await expect(page.getByRole("heading", { name: "Record your findings" })).toBeVisible();
 });
