@@ -267,6 +267,62 @@ export function issueGuard(state, caseId, unitId) {
   next.audit.unshift(stamp("Issue desk (simulated)", allowed ? "MOCK_ISSUE_ALLOWED" : "MOCK_ISSUE_BLOCKED", caseId, unitId + " · " + reason));
   return { state: next, allowed, reason };
 }
+/**
+ * A source-labelled, JSON-serializable handoff record for the synthetic demo.
+ * This is an EXPORT FORMAT, not a connected hospital API, clinical disposition,
+ * inventory write, real user authentication or a production interoperability standard.
+ * Explicitly distinguish observed facility evidence from fictional unit occupancy.
+ */
+export function buildHandoffPacket(state, caseId, generatedAt = new Date().toISOString()) {
+  const s = SCENARIOS.find(c => c.id === caseId);
+  if (!s || !state?.cases?.[caseId]) throw new Error("Unknown case or missing review state");
+  if (Number.isNaN(Date.parse(generatedAt))) throw new Error("Invalid packet timestamp");
+  const e = inspectEvidence(s.readings);
+  const c = state.cases[caseId];
+  const custody = candidateUnitContext(caseId);
+  const hasMockClearance = !e.needsReview && c.disposition === "mock_clear";
+  return {
+    schema: "trustledger.synthetic-handoff.v1",
+    classification: "SYNTHETIC_DEMO_ONLY_NOT_FOR_CLINICAL_USE",
+    generated_at: generatedAt,
+    source_case: { case_id: s.id, facility_id: s.facility, component: s.component, case_title: s.title },
+    evidence: {
+      source: "organizer synthetic temperature_logs.csv",
+      source_granularity: "FACILITY_LEVEL_NOT_NAMED_EQUIPMENT",
+      illustrative_policy: POLICY.description,
+      kind: e.kind, certainty: e.certainty, needs_review: e.needsReview,
+      missing_expected_hourly_records: e.gapHours,
+      observed_max_c: e.max, latest_recorded_c: e.latest,
+      findings: e.flags.map(f => ({ ...f })),
+      raw_source_readings: s.readings.map(r => ({ at: r.at, c: r.c, source: r.source })),
+      overlapping_power_outages: (s.powerOutages || []).map(o => ({ ...o })),
+    },
+    candidate_inventory: {
+      source: "ADDED_SYNTHETIC_CUSTODY_FIXTURE",
+      confirmed_unit_exposure: false,
+      disclaimer: custody.justification,
+      time_window: { start: custody.start, end: custody.end },
+      fictional_candidates: custody.candidates.map(x => ({ ...x })),
+    },
+    simulated_review: {
+      proposal: c.proposal, operator_rationale: c.reason,
+      reviewer_decision: c.reviewerDecision, reviewer_rationale: c.reviewerNote,
+      disposition: c.disposition, closure_outcome: c.closureOutcome || null,
+      closure_note: c.closureNote || null,
+      role_identity_verified: false,
+    },
+    simulated_issue_control: {
+      mock_issue_permitted: hasMockClearance,
+      clinical_release_authorized: false,
+      reason: hasMockClearance
+        ? "Clean limited window and simulated review only; NOT clinical release"
+        : "No mock issue permitted until the demo evidence and review conditions are met",
+      recorded_case_attempts: (state.issueAttempts || []).filter(a => a.caseId === caseId).map(a => ({ ...a })),
+    },
+    integration_status: "EXPORT_ONLY_NO_EXTERNAL_SYSTEM_CONNECTED",
+  };
+}
+
 export function ensureState(value) {
   if (!value || value.version !== STORE_VERSION || !value.cases || !SCENARIOS.every(c => value.cases[c.id]))
     return freshState();
