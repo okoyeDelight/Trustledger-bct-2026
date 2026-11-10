@@ -1,7 +1,7 @@
 import {
   POLICY, SCENARIOS, inspectEvidence, candidateUnitContext, latestOnlyBaseline,
   competentRulesBaseline, benchmark, freshState, ensureState,
-  propose, review, closeReview, issueGuard
+  propose, review, closeReview, issueGuard, buildHandoffPacket
 } from "./engine.js";
 
 const STORAGE_KEY = "trustledger-demo-state-v1";
@@ -240,6 +240,12 @@ function renderDetail() {
     reviewerDisabled + '>Reject</button></div></div>' + closurePanel +
     '<div class="review-status">CASE STATUS: <strong>' + escapeHtml(dispositionText(c.disposition)) +
     '</strong>. Unresolved or abnormal evidence always blocks the simulated issue attempt.</div>' +
+    '<section class="handoff-panel" aria-label="Synthetic incident exchange packet">' +
+    '<div><strong>Share a source-labelled case record</strong>' +
+    '<p>Export a JSON snapshot of facility readings, flagged uncertainty, simulated review and mock issue status. ' +
+    'This is an <b>export-only synthetic format</b>, not an actual hospital API or clinical authorization.</p></div>' +
+    '<button type="button" class="action-button handoff-download" data-export-handoff>Download demo handoff JSON ↧</button>' +
+    '</section>' +
     '<div class="audit-peek"><span>◷</span><span>' + (last ?
       '<b>Last action:</b> ' + escapeHtml(last.action) + ' · ' + escapeHtml(last.detail) :
       '<b>No actions yet.</b> Issue attempts and review decisions appear in Decision audit.') +
@@ -299,6 +305,23 @@ document.addEventListener("click", event => {
   if (nav) { navigate(nav.dataset.nav); return; }
   const card = target.closest("[data-case-id]");
   if (card) { selectedId = card.dataset.caseId; renderCaseList(); renderDetail(); return; }
+  if (target.closest("[data-export-handoff]")) {
+    try {
+      const packet = buildHandoffPacket(state, selectedId);
+      const blob = new Blob([JSON.stringify(packet, null, 2) + "\n"], { type: "application/json" });
+      const href = URL.createObjectURL(blob);
+      const anchor = document.createElement("a");
+      anchor.href = href;
+      anchor.download = "trustledger-" + selectedId.toLowerCase() + "-synthetic-handoff.json";
+      anchor.style.display = "none";
+      document.body.appendChild(anchor);
+      anchor.click();
+      anchor.remove();
+      window.setTimeout(() => URL.revokeObjectURL(href), 1000);
+      announce("Synthetic-only case handoff exported. No real hospital system was contacted.", "good");
+    } catch (err) { announce(err.message, "error"); }
+    return;
+  }
   const issue = target.closest("[data-issue]");
   if (issue) {
     try {
