@@ -1,7 +1,7 @@
 import {
   POLICY, SCENARIOS, inspectEvidence, latestOnlyBaseline,
   competentRulesBaseline, benchmark, freshState, ensureState,
-  propose, review, issueGuard
+  propose, review, closeReview, issueGuard
 } from "./engine.js";
 
 const STORAGE_KEY = "trustledger-demo-state-v1";
@@ -48,6 +48,8 @@ function dispositionText(disposition) {
     awaiting_reviewer: "Awaiting quality review",
     authorized_hold: "Authorized hold recorded",
     authorized_investigation: "Investigation authorized",
+    review_documented_hold: "Review documented · restriction continues",
+    referred_site_authority: "Referred for site-authorized disposition",
     returned_to_operator: "Returned for correction",
     mock_clear: "Mock clear (control case only)"
   })[disposition] || "Unknown state";
@@ -164,6 +166,30 @@ function renderDetail() {
         " to " + escapeHtml(sensorDate(f.endAt)) : f.at ? " · " + escapeHtml(sensorDate(f.at)) : "") +
         '</li>').join("")
     : '<li class="clear">No missing, implausible or out-of-demo-band readings in this limited window. Not a clinical clearance.</li>';
+  const outageContext = '<section class="source-context"><div class="panel-kicker">SOURCE-VERIFIED POWER CONTEXT</div>' +
+    (s.powerOutages?.length ? s.powerOutages.map(o =>
+      '<p><strong>' + escapeHtml(o.outage_id) + '</strong> · ' +
+      escapeHtml(o.start_time.replace(" ", " ") + " EAT") + ' to ' + escapeHtml(o.end_time + " EAT") +
+      ' · ' + escapeHtml(o.duration_hours) + ' hours · backup power ' +
+      (o.backup_power_engaged ? '<strong>engaged</strong>' : '<strong>NOT engaged</strong>') +
+      ' · <code>power_outages.csv</code></p>').join("") +
+      '<p>Measured out-of-band temperatures overlap the documented outage in this facility. This temporal association is not proof of a specific unit’s exposure or a validated causal diagnosis.</p>' :
+      '<p>No overlapping power-outage record was supplied for this excerpt. This does not establish why any logger readings are absent.</p>') +
+    '<p><strong>Inventory provenance:</strong> the temperature source is facility-level. It contains no named-fridge-to-unit custody timeline. Unit IDs below are explicit supplemental synthetic fixtures; real affected-unit identification remains <strong>unverified</strong>.</p></section>';
+  const canClose = e.needsReview && ["authorized_hold", "authorized_investigation"].includes(c.disposition);
+  const closurePanel = canClose
+    ? '<div class="form-card closure-panel"><div class="form-head"><b>Document investigation outcome</b><span class="role-tag reviewer">REVIEWER · SIMULATED</span></div>' +
+      '<p>Close the paperwork or escalate to a site authority. These actions <strong>do not clear the underlying evidence or permit mock issue</strong>. A clinically valid disposition needs equipment/unit history, corroborating records and site SOP.</p>' +
+      '<label class="field-label" for="closure-outcome">Administrative outcome</label><select id="closure-outcome">' +
+      '<option value="continued_hold">Document review; restriction continues</option>' +
+      '<option value="refer_site_authority">Refer to qualified site authority</option></select>' +
+      '<label class="field-label" for="closure-note">Evidence considered and next action</label>' +
+      '<textarea id="closure-note" placeholder="e.g. Logger readings absent; named equipment and unit locations not verified; request calibration logs and site review."></textarea>' +
+      '<div class="form-actions"><button class="action-button" data-close-review>Record investigation outcome →</button></div></div>'
+    : c.closureOutcome
+      ? '<div class="review-status"><strong>DOCUMENTED REVIEW:</strong> ' + escapeHtml(dispositionText(c.disposition)) +
+        ' · ' + escapeHtml(c.closureNote) + '. No clinical release was authorized.</div>'
+      : '';
   const proposalOptions = e.needsReview
     ? '<option value="hold">Propose temporary hold for review</option><option value="investigate">Investigate / request more evidence</option>'
     : '<option value="clear_mock">Propose mock issue clearance (clean demo only)</option><option value="hold">Propose temporary hold</option><option value="investigate">Investigate / request more evidence</option>';
@@ -186,7 +212,7 @@ function renderDetail() {
     '<div class="fact"><label>Data certainty</label><strong style="font-size:10px">' +
     escapeHtml(e.certainty) + '</strong></div></div><div class="section-divider">02 / EXPLANATION <small>' +
     e.flags.length + ' finding(s)</small></div><ul class="finding-list">' + evidenceDetails +
-    '</ul><p class="data-footnote">*Max excludes clearly implausible raw values, which remain listed in the evidence. ' +
+    '</ul>' + outageContext + '<p class="data-footnote">*Max excludes clearly implausible raw values, which remain listed in the evidence. ' +
     escapeHtml(s.evidenceScope) + '</p>' +
     '<div class="section-divider">03 / CANDIDATE INVENTORY <small>Added synthetic mapping</small></div>' +
     '<p class="data-footnote">' + escapeHtml(s.fixtureScope) + ' Candidate only: no actual unit exposure proven.</p>' +
@@ -208,7 +234,7 @@ function renderDetail() {
     reviewerDisabled + '></textarea><div class="form-actions"><button class="action-button" data-review="accept"' +
     reviewerDisabled + '>Accept</button><button class="action-button warning" data-review="change"' +
     reviewerDisabled + '>Change → hold</button><button class="action-button danger" data-review="reject"' +
-    reviewerDisabled + '>Reject</button></div></div>' +
+    reviewerDisabled + '>Reject</button></div></div>' + closurePanel +
     '<div class="review-status">CASE STATUS: <strong>' + escapeHtml(dispositionText(c.disposition)) +
     '</strong>. Unresolved or abnormal evidence always blocks the simulated issue attempt.</div>' +
     '<div class="audit-peek"><span>◷</span><span>' + (last ?
@@ -284,6 +310,14 @@ document.addEventListener("click", event => {
     try {
       state = propose(state, selectedId, $("operator-action").value, $("operator-reason").value);
       save(); render(); announce("Operator proposal saved. Switch to the reviewer panel to decide.", "good");
+    } catch (err) { announce(err.message, "error"); }
+    return;
+  }
+  if (target.closest("[data-close-review]")) {
+    try {
+      state = closeReview(state, selectedId, $("closure-outcome").value, $("closure-note").value);
+      save(); render();
+      announce("Incident review recorded; mock issue remains blocked. Site clinical disposition is outside this demo.", "good");
     } catch (err) { announce(err.message, "error"); }
     return;
   }
