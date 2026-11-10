@@ -25,9 +25,14 @@ Readings preserve original raw values and source row/timestamp. Incident evidenc
 
 ## Deployment prerequisites
 - New or appropriate dedicated Clerk app for TrustLedger (do not reuse StandPilot's app or staff membership).
-- `DATABASE_URL` Neon pooled TLS URL configured as **server-only secret** in TrustLedger Vercel environment; never print, commit or send it in chat.
-- `CLERK_SECRET_KEY` server-only secret; `CLERK_PUBLISHABLE_KEY` public config.
-- Narrow Vercel API endpoints and verified server-side auth before enabling incident writes.
+- **Already configured:** `DATABASE_URL` in the dedicated TrustLedger Vercel project for preview/production, using restricted `trustledger_api` (not database owner). Database grants allow read access and insert-only on incidents/events; no staff membership editing or audit-event rewriting.
+- **Already configured:** production-only `TRUSTLEDGER_PUBLIC_ORIGIN=https://trustledger-bct-2026.vercel.app`. Only this origin may make staff incident POST requests.
+- **Owner action:** create a separate TrustLedger application at https://dashboard.clerk.com/ (do not reuse StandPilot application). Copy its **publishable** key (`pk_test_*` during sandbox evaluation). It is not secret; never share `sk_*` or any secret key.
+- **After public key exists:** set `TRUSTLEDGER_CLERK_PUBLISHABLE_KEY` on the TrustLedger Vercel project (production, and controlled preview if needed), and `TRUSTLEDGER_CLERK_ISSUER` to the `https://<frontend-api-domain>` for that same Clerk application, without slash/path. Add the TrustLedger site as an allowed sign-in origin in Clerk. Redeploy to generate `/workspace/auth-config.js`, which exposes only the publishable key.
+- Backend verifies signed Clerk session JWT with JWKS and matches the `azp` claim to the configured public origin. No Clerk secret key is required by these endpoints.
+- `GET /api/session` lists the authenticated user's server-approved facility memberships. `GET/POST /api/incidents?facility=<uuid>` lists and creates staff reports, with membership/role checks on every request. The `/workspace/` page is fail-closed without Clerk configuration.
+- Facility and staff bootstrap must be performed by an administrator (out-of-band via Neon with verified Clerk IDs). **Never** auto-grant admin to the first person who signs up.
+- This branch is not merged, the real database is empty, and live multi-user login is not yet verified.
 - Security test with two identities and two browser sessions, including denial tests.
 - Only eligible synthetic data; no actual clinical operational decisions.
 
