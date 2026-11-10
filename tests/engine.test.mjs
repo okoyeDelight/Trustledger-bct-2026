@@ -2,7 +2,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import {
   SCENARIOS, POLICY, inspectEvidence, candidateUnitContext, latestOnlyBaseline, competentRulesBaseline,
-  benchmark, freshState, propose, review, closeReview, issueGuard, ensureState
+  benchmark, freshState, propose, review, closeReview, issueGuard, buildHandoffPacket, ensureState
 } from "../src/engine.js";
 import { EVIDENCE_CASES } from "../src/source_evidence.js";
 
@@ -165,4 +165,53 @@ test("candidate units overlap the incident using only labelled fictional custody
   assert.equal(hot.candidates[0].deviceId, "ILLUSTRATIVE-FR-B");
   assert.equal(hot.realUnitExposureEstablished, false);
   assert.throws(() => candidateUnitContext("UNKNOWN"), /Unknown synthetic case/);
+});
+
+
+test("synthetic case handoff contains original source evidence and no invented verified exposure", () => {
+  const state = freshState();
+  const p = buildHandoffPacket(state, "TL-024", "2026-11-10T12:05:00.000Z");
+  assert.equal(p.schema, "trustledger.synthetic-handoff.v1");
+  assert.equal(p.classification, "SYNTHETIC_DEMO_ONLY_NOT_FOR_CLINICAL_USE");
+  assert.equal(p.source_case.facility_id, "HSP-024");
+  assert.equal(p.evidence.source_granularity, "FACILITY_LEVEL_NOT_NAMED_EQUIPMENT");
+  assert.equal(p.evidence.missing_expected_hourly_records, 57);
+  assert.equal(p.evidence.latest_recorded_c, 4.2);
+  assert.equal(p.evidence.raw_source_readings[0].source, "starter:temperature_logs.csv");
+  assert.equal(p.candidate_inventory.confirmed_unit_exposure, false);
+  assert.ok(p.candidate_inventory.fictional_candidates.length);
+  assert.ok(p.candidate_inventory.fictional_candidates.every(x =>
+    x.source === "ADDED_SYNTHETIC_CUSTODY_FIXTURE"));
+  assert.equal(p.simulated_review.role_identity_verified, false);
+  assert.equal(p.simulated_issue_control.mock_issue_permitted, false);
+  assert.equal(p.simulated_issue_control.clinical_release_authorized, false);
+  assert.equal(p.integration_status, "EXPORT_ONLY_NO_EXTERNAL_SYSTEM_CONNECTED");
+  assert.throws(() => buildHandoffPacket(state, "NO-CASE"), /Unknown case/);
+  assert.throws(() => buildHandoffPacket(state, "TL-024", "invalid"), /Invalid packet timestamp/);
+});
+
+test("export reflects real local review and issue history, without upgrading to clinical release", () => {
+  let state = freshState();
+  state = propose(state, "TL-NBO-HOT", "investigate",
+    "Power source and real equipment-to-unit movement history need review");
+  state = review(state, "TL-NBO-HOT", "accept",
+    "Escalate synthetic case to qualified review; nothing is clinically cleared");
+  state = closeReview(state, "TL-NBO-HOT", "refer_site_authority",
+    "Recorded power event overlaps 7.9C; refer local SOP and unit provenance");
+  state = issueGuard(state, "TL-NBO-HOT", "DEMO-RBC-NBO-H1").state;
+  const packet = buildHandoffPacket(state, "TL-NBO-HOT", "2026-11-10T13:00:00.000Z");
+  assert.equal(packet.evidence.overlapping_power_outages[0].outage_id, "OUT-00009");
+  assert.equal(packet.simulated_review.disposition, "referred_site_authority");
+  assert.equal(packet.simulated_issue_control.recorded_case_attempts.length, 1);
+  assert.equal(packet.simulated_issue_control.recorded_case_attempts[0].allowed, false);
+  assert.equal(packet.simulated_issue_control.mock_issue_permitted, false);
+  assert.equal(packet.simulated_issue_control.clinical_release_authorized, false);
+  assert.doesNotMatch(JSON.stringify(packet), /clinical_release_authorized":true/);
+  const clean = "TL-024-CONTROL";
+  let state2 = freshState();
+  state2 = propose(state2, clean, "clear_mock", "Clean synthetic window only; not a hospital release");
+  state2 = review(state2, clean, "accept", "Reviewer accepts demo case sign-off only");
+  const cleanPacket = buildHandoffPacket(state2, clean);
+  assert.equal(cleanPacket.simulated_issue_control.mock_issue_permitted, true);
+  assert.equal(cleanPacket.simulated_issue_control.clinical_release_authorized, false);
 });
