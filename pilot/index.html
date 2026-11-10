@@ -1,0 +1,47 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#132c30">
+  <meta name="description" content="TrustLedger — a synthetic one-source cold-chain incident investigation demo.">
+  <title>TrustLedger — One-source incident pilot</title>
+  <link rel="stylesheet" href="./pilot.css">
+  <script type="module" src="./pilot.js"></script>
+</head>
+<body>
+  <div class="shell">
+    <aside class="rail" aria-label="Workspace identity">
+      <a href="./" class="brand" aria-label="TrustLedger, go to incidents">
+        <span class="brand-mark" aria-hidden="true"><span></span><span></span><span></span><span></span></span>
+        <span class="brand-words"><b>trustledger</b><small>COLD-CHAIN OPERATIONS</small></span>
+      </a>
+      <div class="rail-label">WORKSPACE</div>
+      <div class="rail-current" aria-current="page"><span class="rail-icon">◫</span> Incidents <span class="rail-one">1</span></div>
+      <div class="rail-space"></div>
+      <div class="rail-foot">
+        <span class="rail-dot" aria-hidden="true"></span>
+        <strong>One-source pilot</strong>
+        <p>Organizer-supplied synthetic records. No live device, staff login or clinical authorization.</p>
+      </div>
+    </aside>
+    <div class="content-shell">
+      <header class="topbar">
+        <span class="breadcrumb">COLD CHAIN <span aria-hidden="true">/</span> <strong id="breadcrumb-current">INCIDENTS</strong></span>
+        <div class="header-actions">
+          <span class="demo-pill">SYNTHETIC DEMO</span>
+          <button type="button" id="reset-demo" class="text-button" title="Clear only this pilot's local demonstration progress">Reset pilot</button>
+        </div>
+      </header>
+      <main id="app" class="content" tabindex="-1" aria-live="off">
+        <div class="loading">Loading source evidence…</div>
+      </main>
+      <footer class="bottom-note">
+        <span><strong>Prototype:</strong> one static facility monitoring feed, simulated operator and reviewer, browser-local decisions.</span>
+        <details><summary>What is real here?</summary><p>Temperature observations are from the organizer's synthetic dataset. The case-management software functions locally; the staff identities, equipment-to-unit mappings and issuing desk are simulations. No hospital system is connected.</p></details>
+      </footer>
+    </div>
+  </div>
+  <div id="announcement" role="status" aria-live="polite" class="toast" hidden></div>
+</body>
+</html>
