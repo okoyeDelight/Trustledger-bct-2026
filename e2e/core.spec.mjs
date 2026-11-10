@@ -61,3 +61,15 @@ test("screen is usable at the selected viewport without global overflow", async 
   expect(sizes.scroll).toBeLessThanOrEqual(sizes.inner + 2);
   await expect(page.locator("#case-detail [data-propose]")).toBeVisible();
 });
+
+
+test("source-preserving data-quality audit is visible and correctly qualified", async ({ page }) => {
+  await page.locator('[data-nav="evidence"]').click();
+  const audit = page.locator("#quality-audit");
+  await expect(audit).toBeVisible();
+  await expect(audit).toContainText("55");
+  await expect(audit).toContainText("1,852");
+  await expect(audit).toContainText("12,273");
+  await expect(audit).toContainText("Validated: unknown");
+  await expect(audit).toContainText("candidate duplicates are not confirmed identities");
+});
