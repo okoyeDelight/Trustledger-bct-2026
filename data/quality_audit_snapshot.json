@@ -1,0 +1,52 @@
+{
+  "source": "Hackathon Starter Dataset (1).zip (user-provided original organizer synthetic archive)",
+  "inspected_on": "2026-11-10",
+  "algorithm": "scripts/audit_starter.py",
+  "note": "Observed outputs from running Python script over full original synthetic ZIP; no real clinical data.",
+  "facilities": 47,
+  "source_records": {
+    "temperature_logs": 399280,
+    "requests": 17430,
+    "donors": 43363
+  },
+  "indicators": {
+    "documented_sensor_glitches": 55,
+    "sentinel_breakdown": {
+      "-99.0": 17,
+      "99.9": 16,
+      "0.0": 22
+    },
+    "missing_monitoring_intervals": 387,
+    "missing_expected_hourly_readings": 12273,
+    "facility_name_non_exact_to_id_canonical": 1852,
+    "donor_blood_group_missing_or_unknown": 506,
+    "request_patient_group_missing_or_unknown": 442,
+    "candidate_duplicate_donor_groups": 452,
+    "candidate_duplicate_extra_donor_records": 452
+  },
+  "example_reconciliations": [
+    {
+      "source_table": "requests.csv",
+      "request_id": "REQ-003044",
+      "facility_id": "HSP-005",
+      "raw_name": "Kiambu CRH",
+      "canonical_by_id": "Kiambu County Referral Hospital",
+      "resolution": "safe canonical display from verified ID; raw retained"
+    },
+    {
+      "source_table": "temperature_logs.csv",
+      "facility_id": "RBTC-NBO",
+      "at": "2026-03-27 08:00:00 EAT",
+      "raw_temp_c": 99.9,
+      "validated_temp_c": null,
+      "resolution": "documented sensor sentinel; preserve original and require review"
+    }
+  ],
+  "limitations": [
+    "The 1,852 names are exact string differences, including harmless capitalization/abbreviations; not all are wrong.",
+    "Candidate duplicate donor matches use DOB, sex, county and synthetic phone suffix; identity is not proven, no auto-merging.",
+    "Missing temperature hours are detected between consecutive readings in each facility; boundary gaps are not included.",
+    "Do not infer named blood unit-to-refrigerator relationships or validate clinical cold-chain dispositions.",
+    "Site-specific equipment SOPs are required for clinical interpretation."
+  ]
+}
