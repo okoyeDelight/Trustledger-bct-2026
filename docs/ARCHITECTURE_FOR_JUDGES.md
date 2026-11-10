@@ -81,6 +81,10 @@ flowchart LR
 
 A review can be *documented* or referred without making storage history safe. A reviewer cannot override missing temperature evidence into clinical clearance using a note. The demo's action labels remain **simulated**.
 
+## Implemented export-only case handoff
+
+The browser interface now has **Download demo handoff JSON**. `buildHandoffPacket(state, caseId)` in `src/engine.js` outputs versioned `trustledger.synthetic-handoff.v1` with source-labelled facility temperatures, contextual outage records, interpreted flags, fictional unit timeline, mock review/disposition, and recorded mock issuing attempts. It explicitly includes `integration_status: EXPORT_ONLY_NO_EXTERNAL_SYSTEM_CONNECTED`, `role_identity_verified: false`, and `clinical_release_authorized: false`. This is a **real JSON download from a real browser**, not a FHIR-compliant API, authenticated hospital integration, production transfer protocol or recipient inventory write. It demonstrates the boundary a future verified BBIS adapter would need to cross.
+
 ## Baselines, limitations and future directions
 
 - **Latest-only simple alert:** on four deliberately chosen examples, **1/4 correct**; misses the 57-hour monitoring gap despite a normal latest reading.
