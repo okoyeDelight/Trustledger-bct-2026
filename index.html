@@ -1,0 +1,83 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#071923">
+  <meta name="description" content="TrustLedger: evidence-led cold-chain exception to authorized review, built for the Terumo BCT Africa Hackathon 2026. Synthetic prototype only.">
+  <title>TrustLedger · Cold-chain evidence to action</title>
+  <link rel="stylesheet" href="./styles.css">
+</head>
+<body>
+  <div class="app-shell">
+    <aside class="sidebar">
+      <a class="brand" href="./" aria-label="TrustLedger home">
+        <span class="brand-icon" aria-hidden="true"><span></span><span></span><span></span><span></span></span>
+        <span class="brand-word"><strong>TrustLedger</strong><small>BLOOD SYSTEMS INTELLIGENCE</small></span>
+      </a>
+      <div class="sidebar-section-label">WORKSPACE</div>
+      <nav aria-label="Workspace navigation">
+        <button class="nav-link active" data-nav="overview" aria-current="page"><span class="nav-glyph">▦</span> Control room <span class="nav-arrow">›</span></button>
+        <button class="nav-link" data-nav="evidence"><span class="nav-glyph">◈</span> Evidence lab</button>
+        <button class="nav-link" data-nav="audit"><span class="nav-glyph">≡</span> Decision audit <span class="nav-count" id="audit-count">0</span></button>
+        <button class="nav-link" data-nav="methods"><span class="nav-glyph">◎</span> Methods & limits</button>
+      </nav>
+      <div class="sidebar-bottom">
+        <div class="deployment-note"><span class="status-dot"></span><div><strong>Demo environment</strong><small>Local browser state · No clinical connection</small></div></div>
+        <p>Terumo BCT Africa Hackathon 2026<br>Team TrustLedger · Cold chain + data quality</p>
+      </div>
+    </aside>
+    <main class="main">
+      <div class="topbar">
+        <div class="topbar-location"><span class="crumb">Workspace</span><span class="crumb-separator">/</span><strong id="view-name">Control room</strong></div>
+        <div class="topbar-actions"><span class="connection-pill" id="connection-pill"><span class="status-dot"></span><span id="connection-text">Online</span></span><span class="demo-pill">SYNTHETIC DATA ONLY</span><button class="small-button" id="reset-demo" title="Clear local demo decisions and audit entries">Reset demo</button></div>
+      </div>
+
+      <section class="content-section visible" id="section-overview" aria-labelledby="page-title">
+        <div class="page-intro">
+          <div class="eyebrow"><span class="eyebrow-line"></span> COLD-CHAIN CONTROL SYSTEM · PROTOTYPE 01</div>
+          <div class="page-title-row"><div><h1 id="page-title">From uncertainty<br><em>to accountable action.</em></h1><p class="page-subtitle">A missing reading is not a safe reading. Make the evidence visible, route the exception to a person, and prevent an unreviewed mock issue.</p></div><div class="hero-orb" aria-hidden="true"><span>◉</span><div>evidence<br>first</div></div></div>
+        </div>
+        <div class="stat-grid" id="stat-grid" aria-label="Demo case statistics"></div>
+        <div class="workflow-band"><div class="workflow-label">THE CONTROL LOOP</div><div class="workflow-steps"><span><b>01</b> Detect</span><i></i><span><b>02</b> Explain</span><i></i><span><b>03</b> Propose</span><i></i><span><b>04</b> Authorize</span><i></i><span><b>05</b> Guard issue</span></div></div>
+        <div class="workspace-grid">
+          <section class="case-list-card panel" aria-label="Synthetic cases">
+            <div class="panel-heading"><div><div class="panel-kicker">MONITORED EXCEPTIONS</div><h2>Review queue</h2></div><span id="case-count" class="item-count">04 cases</span></div>
+            <p class="panel-help">Select a case to investigate its evidence and simulate review.</p>
+            <div id="case-list" class="case-list"></div>
+            <div class="queue-footnote"><span>ⓘ</span> The four curated windows are demo examples, not a representative sample.</div>
+          </section>
+          <section class="case-detail-card panel" aria-label="Selected case details" id="case-detail"></section>
+        </div>
+        <p class="bottom-disclaimer"><strong>Safety boundary:</strong> This is a synthetic decision-support prototype, not clinical software. “Permitted” and “blocked” refer only to the simulated issue desk; no blood is released, and no compatibility decision is made.</p>
+      </section>
+
+      <section class="content-section" id="section-evidence" aria-labelledby="evidence-title">
+        <div class="eyebrow"><span class="eyebrow-line"></span> EVALUATE, DON'T OVERCLAIM</div>
+        <h1 id="evidence-title" class="section-title">Evidence lab<span class="title-accent">.</span></h1>
+        <p class="page-subtitle">An inspectable comparison on four preselected synthetic dataset windows. This is a functional smoke test, <strong>not</strong> independent clinical validation.</p>
+        <div class="panel lab-hero"><div><div class="panel-kicker">THE BLIND-SPOT TEST</div><h2 id="lab-headline"></h2><p id="lab-explanation"></p></div><span class="large-metric" id="lab-gap">57<span>missing hours</span></span></div>
+        <div class="panel"><div class="panel-heading"><div><div class="panel-kicker">FIXED SCENARIOS · REPRODUCIBLE</div><h2>Baseline comparison</h2></div><span class="item-count">4 demo windows</span></div><div id="benchmark-summary" class="benchmark-summary"></div><div class="table-wrap"><table class="benchmark-table"><thead><tr><th>Case</th><th>Manual review label</th><th>Latest-value baseline</th><th>Competent rule baseline</th><th>TrustLedger evidence feature</th></tr></thead><tbody id="benchmark-table"></tbody></table></div><p id="benchmark-caveat" class="method-warning"></p></div>
+        <div class="explain-grid"><article class="panel explain-card"><div class="panel-kicker">WHY LATEST-ONLY MISSES IT</div><h3>Normal ≠ verified.</h3><p>For HSP-024, 3.9°C was followed 58 hours later by 4.3°C. There are 57 missing expected hourly records. The system cannot infer what happened during the gap.</p></article><article class="panel explain-card"><div class="panel-kicker">THE HONEST LIMIT</div><h3>Rules may be enough.</h3><p>A competent conventional monitor that checks gaps, outliers and excursions catches the same four cases. We do <strong>not</strong> claim an AI advantage or clinical benefit from this comparison.</p></article></div>
+      </section>
+
+      <section class="content-section" id="section-audit" aria-labelledby="audit-title">
+        <div class="eyebrow"><span class="eyebrow-line"></span> ACCOUNTABILITY, NOT AUTOMATION</div>
+        <h1 id="audit-title" class="section-title">Decision audit<span class="title-accent">.</span></h1>
+        <p class="page-subtitle">Every simulated proposal, reviewer decision and issue attempt is recorded with a timestamp in this browser. For the hackathon demo only; this is <strong>not</strong> a tamper-proof regulated audit system.</p>
+        <div class="panel"><div class="panel-heading"><div><div class="panel-kicker">LOCAL SESSION HISTORY</div><h2>Action log</h2></div><span class="item-count" id="audit-total">0 events</span></div><div id="audit-list" class="audit-list"></div></div>
+      </section>
+
+      <section class="content-section" id="section-methods" aria-labelledby="methods-title">
+        <div class="eyebrow"><span class="eyebrow-line"></span> DATA LINEAGE & SAFETY</div>
+        <h1 id="methods-title" class="section-title">What this does.<br><em>What it doesn't.</em></h1>
+        <div class="methods-grid"><article class="panel method-card"><div class="method-number">01 / SOURCE</div><h2>Verified synthetic temperature rows</h2><p>Case readings are copied from the organizers' supplied <code>temperature_logs.csv</code>. HSP-024's gap, RBTC-NBO's documented 7.9°C reading and the 99.9°C sentinel can be cross-checked in that file. All timestamps use East Africa Time (UTC+3).</p></article><article class="panel method-card"><div class="method-number">02 / THE MISSING LINK</div><h2>Unit assignments are added fixtures</h2><p>The starter temperature feed is <strong>facility-level</strong>, not named-fridge telemetry. <code>DEMO-*</code> identifiers and FR-A/B/C/D equipment associations are added synthetic examples. These associations do not establish any real unit's exposure or actual disposition.</p></article><article class="panel method-card"><div class="method-number">03 / HUMAN CONTROL</div><h2>No autonomous clinical release</h2><p>An operator may propose an action. A simulated quality reviewer must Accept, Change or Reject it. Mock issues stay blocked for unresolved evidence. This browser demo simulates roles; it does not provide production authentication or lab authorization.</p></article><article class="panel method-card"><div class="method-number">04 / FALLBACK</div><h2>Auditable deterministic checks</h2><p>The inspection rules run in the browser with no AI endpoint. A service worker caches the application after the first successful visit; local decisions persist in this browser. This is a demonstrable offline-capable prototype, not synchronized multi-device storage.</p></article></div>
+        <div class="panel endnote"><strong>Site-specific policy required:</strong> The demo's 2–6°C RBC comparison and −10 to 25°C sanity band are illustrative engineering settings, not transfusion SOPs. This interface does not assess platelets, plasma, compatibility, viability or patient priority.</div>
+      </section>
+      <footer class="main-footer"><span>TRUSTLEDGER / TERUMO BCT AFRICA HACKATHON 2026</span><span>DESIGN FOR UNCERTAINTY · DEMO ONLY</span></footer>
+    </main>
+  </div>
+  <div class="toast" id="toast" role="status" aria-live="polite" hidden></div>
+  <script type="module" src="./src/app.js"></script>
+</body>
+</html>
