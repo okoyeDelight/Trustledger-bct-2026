@@ -65,3 +65,18 @@ Our GitHub repo is the shared source of truth. ChatGPT and Claude do **not** dir
 **Team issue:** no solo approval spoken in meeting. Hany promised follow-up by email; an end-of-meeting answer from the user indicated comfort with assigned team, despite later emailed solo request. Current roster remains pending organizer response; do not claim solo approval.
 
 **Next owner:** Build/deploy owner: ship accessible hosted demo and record 3-minute walkthrough. Research/QA: verify longer baseline against supplied synthetic dataset; record failure modes. Designer: support clear captures, not a distracting redesign. GitHub repository remains private until visibility deliberately changed before final submission.
+
+
+## New evidence from Hany: data cleanup explicitly counts (10 Nov)
+
+Kickoff transcript at ~22:38–23:12: the organizers **intentionally made the synthetic data messy**; they count meaningful cleaning as hackathon work. We previously underweighted this instruction. Implementation added without broadening the one cold-chain workflow:
+- `scripts/audit_starter.py`: source-preserving canonical ID names, documented sensor glitches `-99.0`, `99.9`, `0.0`, missing-hour ledger, missing blood groups, candidate-only donor duplicates.
+- `tests/test_audit_starter.py`: no imputation, source retained, confirmed ID reconciliation, donor-not-merged checks; now tested in GitHub Actions `verify.yml`.
+- `data/quality_audit_snapshot.json`: verified full original ZIP figures **55 glitches** (17 negative, 16 high, 22 zero), **387 gap intervals**, **12,273 expected readings absent**, **1,852 different facility-name strings** (not all spelling mistakes), **506 missing/unknown donor groups**, **442 request missing/unknown patient groups**, **452 candidate donor duplicate groups** (unconfirmed identities).
+- `docs/DATA_QUALITY_PIPELINE.md`: methodology, exact commands and limitations. `README.md`: judging narrative.
+- `src/engine.js`: corrected critical bug: treat the source-defined **0°C sensor glitch as untrusted** and not a verified observed excursion. Corresponding Node regression test.
+- `index.html` Evidence Lab: source-backed audit summary and raw-vs-validated examples.
+
+**Consequence for Claude:** present `raw source → validate/flag → reviewer decision`, not a generic "clean the data" badge. Show an actual raw value and transformed field; never imply inferred temperatures or verified equipment-to-unit links. Preserve all exact observed audit counts and their caveats. Broad model-training claims remain unsupported. Reproduce full audit by running script on provided external ZIP, not by relying only on screenshots.
+
+**Verified CI:** `verify.yml` run [42820713434](https://github.com/okoyeDelight/Trustledger-bct-2026/actions/runs/42820713434) completed successfully, including Node logic tests and Python cleaning regression tests. Browser evaluator run for the newest UI was in progress at the time of this handoff; inspect latest Actions before marking visual verification completed.
