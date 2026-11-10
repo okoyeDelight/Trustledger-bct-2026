@@ -1,5 +1,5 @@
 import {
-  POLICY, SCENARIOS, inspectEvidence, latestOnlyBaseline,
+  POLICY, SCENARIOS, inspectEvidence, candidateUnitContext, latestOnlyBaseline,
   competentRulesBaseline, benchmark, freshState, ensureState,
   propose, review, closeReview, issueGuard
 } from "./engine.js";
@@ -156,6 +156,7 @@ function plot(s) {
 function renderDetail() {
   const s = SCENARIOS.find(c => c.id === selectedId);
   const e = inspectEvidence(s.readings), c = state.cases[s.id];
+  const custody = candidateUnitContext(s.id);
   const kind = kindInfo(e.kind);
   const warning = e.needsReview ? "REVIEW REQUIRED · No verified safe conclusion"
     : "NO FLAGS IN THIS WINDOW · Human sign-off still required";
@@ -215,10 +216,12 @@ function renderDetail() {
     '</ul>' + outageContext + '<p class="data-footnote">*Max excludes clearly implausible raw values, which remain listed in the evidence. ' +
     escapeHtml(s.evidenceScope) + '</p>' +
     '<div class="section-divider">03 / CANDIDATE INVENTORY <small>Added synthetic mapping</small></div>' +
-    '<p class="data-footnote">' + escapeHtml(s.fixtureScope) + ' Candidate only: no actual unit exposure proven.</p>' +
-    s.units.map(u => '<div class="unit-row"><div><code>' + escapeHtml(u) +
-      '</code><br><small>SUPPLEMENTAL DEMO UNIT · RBC</small></div><button data-issue="' +
-      escapeHtml(u) + '">Attempt mock issue ↗</button></div>').join("") +
+    '<p class="data-footnote">' + escapeHtml(s.fixtureScope) + ' ' + escapeHtml(custody.justification) + ' Candidate only: no original device-to-unit exposure is verified.</p>' +
+    custody.candidates.map(r => '<div class="unit-row"><div><code>' + escapeHtml(r.unitId) +
+      '</code><br><small>FICTIONAL TIMED OCCUPANCY · ' + escapeHtml(r.deviceId) +
+      ' · ' + escapeHtml(sensorDate(r.enteredAt)) + ' – ' + escapeHtml(sensorDate(r.leftAt)) +
+      '</small></div><button data-issue="' + escapeHtml(r.unitId) +
+      '">Attempt mock issue ↗</button></div>').join("") +
     '<div class="section-divider">04 / HUMAN DECISION <small>' + escapeHtml(dispositionText(c.disposition)) +
     '</small></div><div class="form-card"><div class="form-head"><b>Operator proposal</b><span class="role-tag">OPERATOR · SIMULATED</span></div>' +
     '<p>Summarize the evidence and recommend a next step. The proposal does not change real blood inventory.</p>' +
