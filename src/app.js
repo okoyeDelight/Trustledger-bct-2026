@@ -196,14 +196,14 @@ function renderDetail() {
     '<div class="section-divider">04 / HUMAN DECISION <small>' + escapeHtml(dispositionText(c.disposition)) +
     '</small></div><div class="form-card"><div class="form-head"><b>Operator proposal</b><span class="role-tag">OPERATOR · SIMULATED</span></div>' +
     '<p>Summarize the evidence and recommend a next step. The proposal does not change real blood inventory.</p>' +
-    '<label class="visually-hidden" for="operator-action">Proposed action</label><select id="operator-action">' +
-    proposalOptions + '</select><label class="visually-hidden" for="operator-reason">Operator rationale</label>' +
+    '<label class="field-label" for="operator-action">Proposed action</label><select id="operator-action">' +
+    proposalOptions + '</select><label class="field-label" for="operator-reason">Operator rationale</label>' +
     '<textarea id="operator-reason" placeholder="e.g. 57 readings absent; fridge identity and unit history require verification."></textarea>' +
     '<div class="form-actions"><button class="action-button" data-propose>Submit for review →</button></div></div>' +
     '<div class="form-card"><div class="form-head"><b>Quality reviewer decision</b><span class="role-tag reviewer">REVIEWER · SIMULATED</span></div>' +
     (c.proposal ? '<p><strong>Submitted:</strong> ' + escapeHtml(c.proposal) + ' · ' +
       escapeHtml(c.reason) + '</p>' : '<p>No operator proposal yet. The reviewer cannot decide until one is recorded.</p>') +
-    '<label class="visually-hidden" for="reviewer-note">Reviewer rationale</label>' +
+    '<label class="field-label" for="reviewer-note">Reviewer rationale</label>' +
     '<textarea id="reviewer-note" placeholder="Document the reason for your approval, change or rejection." ' +
     reviewerDisabled + '></textarea><div class="form-actions"><button class="action-button" data-review="accept"' +
     reviewerDisabled + '>Accept</button><button class="action-button warning" data-review="change"' +
