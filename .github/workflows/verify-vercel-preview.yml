@@ -36,6 +36,16 @@ jobs:
         run: npx playwright install --with-deps chromium
       - name: Test Claude branch desktop and mobile UX
         run: npx playwright test
+      - name: Upload real Playwright browser screenshots
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: claude-website-browser-screenshots
+          path: |
+            test-results/
+            playwright-report/
+          if-no-files-found: ignore
+          retention-days: 3
       - name: Upload only safe site files for owner review
         uses: actions/upload-artifact@v4
         with:
