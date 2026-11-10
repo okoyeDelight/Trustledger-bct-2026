@@ -73,3 +73,17 @@ test("source-preserving data-quality audit is visible and correctly qualified", 
   await expect(audit).toContainText("Validated: unknown");
   await expect(audit).toContainText("candidate duplicates are not confirmed identities");
 });
+
+
+test("documentation gaps are not misrepresented as missing deliveries or unsafe units", async ({ page }) => {
+  await page.locator('[data-nav="evidence"]').click();
+  const proof = page.locator("#receipt-evidence");
+  await expect(proof.locator("summary")).toBeVisible();
+  await proof.locator("summary").click();
+  await expect(proof).toHaveAttribute("open", "");
+  await expect(proof).toContainText("TRF-005463");
+  await expect(proof).toContainText("U2511-NKR-006818-RBC");
+  await expect(proof).toContainText("1,046");
+  await expect(proof).toContainText("No timestamp ≠ no delivery");
+  await expect(proof).toContainText("not our main clinical-safety case");
+});
