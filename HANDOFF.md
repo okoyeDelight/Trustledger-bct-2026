@@ -115,3 +115,16 @@ The same generator explicitly creates temperature logger-offline intervals (`gen
 **Implementation committed:** `scripts/receipt_provenance_audit.py`, `tests/test_receipt_provenance.py`, `data/receipt_evidence_snapshot.json`, optional UI `#receipt-evidence`, `docs/MISSING_DATA_EXPERIMENT_AND_DECISION_2026-11-10.md`, and mobile/desktop E2E tests.
 
 **Claude guidance:** Never imply 1,046 units went missing physically, or 873 were unsafely transfused. Never describe the 57-hour logger gap as a confirmed temperature excursion. Refuse to infer device-level/unit exposures from facility-only source. Do not add an entire transfer management module now. Finish public hosting, demo video, slide deck, source provenance and real README accuracy.
+
+
+## Five-grey-area closure verified; move to submission (10 Nov, afternoon WAT)
+
+Summary: [docs/FIVE_GREY_AREAS_EVIDENCE_AND_TESTS_2026-11-10.md](docs/FIVE_GREY_AREAS_EVIDENCE_AND_TESTS_2026-11-10.md). The strongest source-backed case is **TL-NBO-HOT** with facility readings up to 7.9°C coinciding with source outage OUT-00009 (3.83h, no backup engaged). Case TL-024 shows 57 absent expected hourly readings; **do not fabricate outage cause for TL-024**. Both case types draw from source-generated `src/source_evidence.js`. Extra fictional unit/device occupancy in `src/custody_fixtures.js` is explicitly time bounded, never real exposure. A reviewer may document continued restriction or refer to site authority, but unresolved abnormal evidence is never mock-cleared. Whole-year descriptive counts are shown separately from four-case benchmark; no superior AI accuracy claims.
+
+**Last verified browser run:** [42829892728](https://github.com/okoyeDelight/Trustledger-bct-2026/actions/runs/42829892728), **39 passing desktop/mobile checks** across three Chromium viewport projects; GitHub Node and Python workflow tests pass. `README.md`, `PRODUCT.md`, `data/PROVENANCE.md` reflect these changes.
+
+### New deployment staging (public exposure NOT yet authorized)
+
+Added opt-in GitHub Pages workflow `.github/workflows/deploy-pages.yml` that deploys **only** `index.html`, `styles.css`, `service-worker.js`, and the four runtime `src/*.js` modules. It excludes internal `docs/`, `HANDOFF.md`, research meeting notes and other source files from the hosted *website bundle*. **The repo itself is still private**; enabling Pages and publishing the repository are distinct decisions. The repository contains internal kickoff discussion and roster concerns, so publishing its full history without proper permission/review would be inappropriate. Obtain explicit approval before changing repo visibility. Public source deliverable may require a separate sanitized repository or audited Git history, because deleting private notes in a new commit would not erase their commit history.
+
+**Next:** Review public-sharing boundaries; configure GitHub Pages if user authorizes, run website-only deploy workflow, confirm public HTTPS works in unauthenticated mobile browser, then capture genuine ≤3min screen walkthrough and up to eight final slides. Submission due 11 Nov 10:00 WAT. No real health data or secrets are used.
