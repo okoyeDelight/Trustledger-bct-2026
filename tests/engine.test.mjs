@@ -95,3 +95,17 @@ test("role steps require text justifications and known unit associations", () =>
   assert.throws(() => issueGuard(freshState(), "TL-024", "UNKNOWN-UNIT"), /not in this synthetic/);
   assert.equal(ensureState({ version: -2 }).version, 1);
 });
+
+
+test("documented zero-C sentinel is an untrusted reading, not proof of a measured excursion", () => {
+  const evidence = inspectEvidence([
+    { at: "2026-01-01T10:00:00+03:00", c: 4.1 },
+    { at: "2026-01-01T11:00:00+03:00", c: 0.0 },
+    { at: "2026-01-01T12:00:00+03:00", c: 4.3 }
+  ]);
+  assert.equal(evidence.kind, "implausible");
+  assert.equal(evidence.observed, 0);
+  assert.equal(evidence.needsReview, true);
+  assert.equal(evidence.min, 4.1);
+  assert.equal(evidence.flags.some(f => f.kind === "implausible" && f.value === 0), true);
+});
