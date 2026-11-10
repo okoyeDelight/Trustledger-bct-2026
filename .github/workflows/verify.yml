@@ -21,3 +21,5 @@ jobs:
           node --check service-worker.js
       - name: Test evidence and simulated decision workflow
         run: npm test
+      - name: Test traceable data cleansing without starter ZIP
+        run: python3 -m unittest discover -s tests -p "test_audit_starter.py" -v
