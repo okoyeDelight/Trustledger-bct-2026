@@ -128,3 +128,22 @@ Summary: [docs/FIVE_GREY_AREAS_EVIDENCE_AND_TESTS_2026-11-10.md](docs/FIVE_GREY_
 Added opt-in GitHub Pages workflow `.github/workflows/deploy-pages.yml` that deploys **only** `index.html`, `styles.css`, `service-worker.js`, and the four runtime `src/*.js` modules. It excludes internal `docs/`, `HANDOFF.md`, research meeting notes and other source files from the hosted *website bundle*. **The repo itself is still private**; enabling Pages and publishing the repository are distinct decisions. The repository contains internal kickoff discussion and roster concerns, so publishing its full history without proper permission/review would be inappropriate. Obtain explicit approval before changing repo visibility. Public source deliverable may require a separate sanitized repository or audited Git history, because deleting private notes in a new commit would not erase their commit history.
 
 **Next:** Review public-sharing boundaries; configure GitHub Pages if user authorizes, run website-only deploy workflow, confirm public HTTPS works in unauthenticated mobile browser, then capture genuine ≤3min screen walkthrough and up to eight final slides. Submission due 11 Nov 10:00 WAT. No real health data or secrets are used.
+
+
+## Frontend phase is active — keep the tested logic stable (10 Nov 2026)
+
+**User decision:** team collaboration is established; proceed with WEBSITE/FRONTEND refinement. Be honest: the hackathon code is a deterministic browser-first prototype, NOT a production backend. Do NOT pitch server authentication, real fridge feed, immutable audit or database as implemented.
+
+**Existing website:** `index.html` / `styles.css` / `src/app.js` — Control room, Evidence lab, Decision audit, Methods & limits, source-backed evidence hero, operator → QA simulation and mock issue guard. It is not a blank-slate design request. Aim for judge-friendly proof and high-craft usability, **not** a new React rewrite or feature sprawl.
+
+**Screenshot insight:** the old 360×800 first viewport showed branding, nav and a large introductory heading but no 4.2°C vs 57h comparison. The frontend update reduces mobile header/introduction height and makes the hero claim precise: “A normal reading. 57 hours unknown.” `styles.css` and `index.html` changed; verify new browser screenshots/artifacts before declaring the fold solved.
+
+**Frontend pass order:**
+1. **Above-fold proof on 360×800:** the investigator can see *4.2°C vs 57h unknown* as soon as possible, with a 44px investigation CTA. Avoid confetti, heavy 3D and dashboard vanity stats.
+2. **Real task usability:** TL-024 57h case and TL-NBO-HOT outage 7.9°C evidence, source/fictional custody provenance, operator proposal, reviewer Accept/Change/Reject, administrative outcome and mock issue state are readable and tappable.
+3. **Explainable uncertainty:** never show a smooth temperature line across a gap, and preserve source-defined sensor glitches as raw/unknown. Every source unit/fridge association is clearly invented.
+4. **Accessibility and African conditions:** 360/390px responsive, no horizontal scrolling, keyboard focus, readable type, reduced motion, visible labels, deterministic offline-capable logic. Do not assert offline multi-device sync.
+5. **Evaluation clarity:** full-year dataset audit and four handpicked-case comparison must remain separate; 4/4 evidence feature **TIES** 4/4 competent rules. No made-up AI win or real patient outcomes.
+6. **Submission readiness:** priority now is **safe public website hosting**, actual <=3 minute video and eight-slide pitch. Publishing Git history is a separate privacy/organizer issue. Repo remains private until explicitly approved.
+
+**Change discipline for Claude/team:** Treat `src/engine.js`, `src/source_evidence.js`, `src/custody_fixtures.js`, and the Python source-analysis tools as *frozen contracts* for frontend-only design. Before changing them, establish a testable correctness bug and update tests. For visual-only changes, touch `index.html` and `styles.css`, and run the existing Playwright workflow. Never claim new backend/API/auth features without real implementation.
