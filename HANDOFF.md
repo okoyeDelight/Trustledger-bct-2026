@@ -90,3 +90,15 @@ User supplied a KDPA/ODPC production checklist and asked what is actually releva
 **Stay focused:** privacy-by-design slide/README note is enough for submission; consent logs, donor "My Data" screens, SMS/Oracle contracts, and real clinician access control are deliberately **out of hackathon MVP scope**.
 
 **Next actual owner task (highest priority):** public HTTPS deployment (current repo is private and has no live URL). Then run e2e smoke-test on deployed URL, capture <=3-minute demo and compile eight pitch slides; prepare tonight's organizer check-in by **20:00 EAT (18:00 WAT)** and final submission Wed **12:00 EAT (10:00 WAT)**. Do not let paperwork displace the working demo.
+
+
+## Scope is NOT frozen if evidence identifies a stronger problem
+**10 Nov user direction:** discard weaker ideas if a materially stronger and more relevant opportunity emerges. Earlier “scope lock” documents are hypotheses, not binding commands. Follow the explicit evidence-led comparison in `docs/OPPORTUNITY_REASSESSMENT_2026-11-10.md`.
+
+**New verified source finding:** `transfers.csv` has 35,181 transfers, **1,046 with blank received_at** linked to 1,046 actual synthetic `unit_id` values, of which **873 have a later retrospective status of transfused**. This is a missing documentation / traceability link, NOT proof of physical non-arrival, clinical harm, or an illegal issue. Sample `TRF-005463` linked to `U2511-NKR-006818-RBC`. The same transfer feed shows **zero** trip maxima above the dictionary's **>10°C** excursion threshold, so DO NOT invent a cool-box heat anomaly. This may be a stronger unit-level evidence story than the hypothetical fridge-to-unit mapping.
+
+**Prototype direction to challenge:** a single **cold-chain + custody/provenance exception-to-human-review-to-mock-issue workflow**, with one strongly source-backed transfer receipt case and one monitoring-gap counterexample, if this stays comprehensible and is tested in time. Do not expand into all hospital inventory features or claim stock reduction. Do not automatically put real blood on clinical hold for missing receipt absent facility SOP. Preserve a working current demo as fallback.
+
+**Official rule:** the assigned area (cold chain and data quality) cannot be switched to general forecasting/donor retention/redistribution after the Tue 14:00 EAT change window absent organizer permission. Keep proposed improvements within assigned scope.
+
+**Next action for BUILDER/EVALUATOR:** assess whether one transfer provenance case can be fully wired to the existing human review/guard and tested *without sacrificing* deployment, 3-minute video, eight slides and final cutoff. If not feasible, stop feature expansion and submit current tested workflow honestly.
