@@ -124,3 +124,12 @@ test("full-year monitoring gap statistics remain distinct from four-case accurac
   await expect(page.locator(".whole-dataset")).toContainText("12,273");
   await expect(page.locator("#benchmark-table tr")).toHaveCount(4);
 });
+
+
+test("candidate units are from time-bounded fictional custody, not claimed from sensor data", async ({ page }) => {
+  await expect(page.locator("#case-detail")).toContainText("FICTIONAL TIMED OCCUPANCY");
+  await expect(page.locator("#case-detail")).toContainText("ILLUSTRATIVE-FR-A");
+  await expect(page.locator("#case-detail")).toContainText("no original device-to-unit exposure is verified");
+  await page.locator('[data-case-id="TL-NBO-HOT"]').click();
+  await expect(page.locator("#case-detail")).toContainText("ILLUSTRATIVE-FR-B");
+});
