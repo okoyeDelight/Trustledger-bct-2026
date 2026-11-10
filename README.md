@@ -12,7 +12,7 @@ The organizer's synthetic Kenya-inspired dataset contains 399,280 hourly facilit
 ## What we built
 - **Implemented:** responsive four-case cold-chain control room, source-backed evidence plots, 57-missing-hour detection, recorded synthetic excursions and sensor outlier preservation, candidate inventory fixture labels, operator proposal, separate *simulated* reviewer Accept/Change/Reject, persistent browser-local audit, a mock issue guard, benchmark screen and service-worker application-shell cache.
 - **End-to-end demo:** choose HSP-024 → inspect normal latest readings but 57 missing hourly records → attempt mock issue (blocked) → submit a hold recommendation as operator → approve or change as simulated reviewer → re-attempt mock issue (still blocked, with a logged reason). Choose the clean control case to show that a separately reviewed mock issue can be allowed; this is NOT clinical release.
-- **Tests:** [GitHub Actions](https://github.com/okoyeDelight/Trustledger-bct-2026/actions/workflows/verify.yml) runs syntax checks and 10 Node assertions across data gaps, excursions, glitches, baseline behavior, review and issue guard. The initial CI run passed. Tests are not a substitute for end-user or browser QA.
+- **Tests:** [GitHub Actions](https://github.com/okoyeDelight/Trustledger-bct-2026/actions/workflows/verify.yml) runs syntax checks and Node regression assertions across data gaps, excursions, glitches, baseline behavior, review and issue guard. The initial CI run passed. Tests are not a substitute for end-user or browser QA.
 - **Not implemented:** authenticated reviewer identities, server/database, integration with hardware or a live blood system, patient/compatibility decisions, validated unit-to-fridge provenance, production-grade immutable audit, real offline synchronization, or clinical validation.
 - **Demo video (≤3 minutes):** not recorded yet.
 - **Public live demo:** not deployed yet. Browser demo has no login: two roles are simulated in one page.
@@ -50,6 +50,23 @@ flowchart LR
 ~~~
 
 Data source and invention boundary: [PROVENANCE.md](data/PROVENANCE.md). The source temperatures are **facility-level** and the named-fridge and unit assignments are deliberately created supplemental synthetic fixtures. We do not claim to have reconstructed unit exposure. This first release does not use \`power_outages.csv\`, \`transfers.csv\` or real \`units.csv\` as runtime features; future import must preserve time and location uncertainty. Standards such as ISBT 128 and HL7 FHIR are integration ideas, not implemented compliance.
+
+## Dataset cleanup: a reproducible part of the build
+
+Hany explicitly clarified during the **10 Nov kickoff (~22:38–23:12)** that the synthetic dataset is deliberately messy and that cleaning it counts as hackathon work. We therefore implemented an independent, source-preserving **quality audit and cleaning script** (`scripts/audit_starter.py`), in addition to the interactive evidence inspector.
+
+**Verified on the entire organizer-supplied synthetic ZIP:** 399,280 facility temperature records, including **55 documented sensor-glitch sentinels** (`-99.0`, `99.9`, and `0.0`); **387 monitoring gap intervals** containing **12,273 expected hourly readings not present**; and **1,852 raw request-facility names** that differ from the canonical name for their stable facility ID (some differences are harmless capitalization/abbreviation). The script also flags **506 donor records with missing/unknown blood groups**, **442 requests with missing/unknown patient groups**, and **452 candidate duplicate-donor pairs** without merging identities.
+
+**Actual transformations:** keep raw data; use a verified facility ID to add a canonical display name, mark source-defined glitches as unknown in a separate validated-temperature column, and write explicit gap intervals. We **never invent readings or blood groups**, and duplicate candidates remain for human review. Counts are synthetic, not real Kenyan healthcare outcomes.
+
+Reproduce with your own downloaded original starter ZIP (not committed here):
+
+~~~bash
+python3 scripts/audit_starter.py --source "/path/to/Hackathon Starter Dataset.zip" --out ./derived
+python3 -m unittest discover -s tests -p "test_audit_starter.py" -v
+~~~
+
+Outputs: `derived/quality_report.json`, `derived/temperature_validated.csv`, `derived/missing_temperature_intervals.csv`, `derived/requests_reconciled.csv`. See [method and scope](docs/DATA_QUALITY_PIPELINE.md), [verified snapshot](data/quality_audit_snapshot.json), and the **Evidence Lab** view for the before/after explanation. This is a useful data-quality foundation, **not a claim of superior machine-learning accuracy or clinical validation**.
 
 ## AI and data
 - **Implemented data feature:** deterministic evidence-quality analysis detects observed 2–6°C demo-band breaches, expected hourly monitoring gaps and obviously implausible raw values. It shows exact provenance, timestamps and the difference between an observed incident and an **unknown** monitoring interval. No trained ML model or LLM is needed for this critical function.
