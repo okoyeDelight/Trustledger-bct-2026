@@ -147,3 +147,8 @@ Added opt-in GitHub Pages workflow `.github/workflows/deploy-pages.yml` that dep
 6. **Submission readiness:** priority now is **safe public website hosting**, actual <=3 minute video and eight-slide pitch. Publishing Git history is a separate privacy/organizer issue. Repo remains private until explicitly approved.
 
 **Change discipline for Claude/team:** Treat `src/engine.js`, `src/source_evidence.js`, `src/custody_fixtures.js`, and the Python source-analysis tools as *frozen contracts* for frontend-only design. Before changing them, establish a testable correctness bug and update tests. For visual-only changes, touch `index.html` and `styles.css`, and run the existing Playwright workflow. Never claim new backend/API/auth features without real implementation.
+
+
+## 10 Nov afternoon update — concrete connected-systems demo, not pretend backend
+
+`src/engine.js` now exports `buildHandoffPacket` for `trustledger.synthetic-handoff.v1`: exact source readings, power context, uncertainty flags, *fictional* unit occupancy, mock reviewer disposition and issue attempts. `src/app.js` adds real JSON download from any selected case. Tests in `tests/engine.test.mjs` and `e2e/core.spec.mjs` verify source fidelity, `clinical_release_authorized: false`, and `EXPORT_ONLY_NO_EXTERNAL_SYSTEM_CONNECTED`. It does NOT call an external hospital system. Frontend design may polish the new `.handoff-panel`, but do not add staff login UI without real authentication. Eight-slide factual pitch has been rendered in editable PPTX and PDF locally; source `submission/PITCH_8_SLIDES.md` remains the storyline. Still need public HTTPS demo, recorded screen video, organizer-approved public code access.
