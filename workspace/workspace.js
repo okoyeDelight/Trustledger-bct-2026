@@ -9,10 +9,11 @@ let active = '';
 let signInMounted = false;
 
 const setStatus = message => {status.textContent = message;};
-function script(src) {
+function script(src,publishableKey='') {
   return new Promise((resolve,reject)=>{
     const element=document.createElement('script');
     element.src=src;element.async=true;element.crossOrigin='anonymous';
+    if(publishableKey)element.setAttribute('data-clerk-publishable-key',publishableKey);
     element.onload=resolve;element.onerror=()=>reject(new Error('Authentication services could not load'));
     document.head.appendChild(element);
   });
@@ -33,7 +34,7 @@ async function clerkSetup() {
   }
   try {
     await script('https://'+host+'/npm/@clerk/ui@1/dist/ui.browser.js');
-    await script('https://'+host+'/npm/@clerk/clerk-js@6/dist/clerk.browser.js');
+    await script('https://'+host+'/npm/@clerk/clerk-js@6/dist/clerk.browser.js',key);
     clerk=window.Clerk;
     if(!clerk)throw Error('Clerk failed to start');
     await clerk.load({ui:{ClerkUI:window.__internal_ClerkUICtor}});
