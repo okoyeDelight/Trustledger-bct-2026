@@ -2,8 +2,9 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import {
   SCENARIOS, POLICY, inspectEvidence, latestOnlyBaseline, competentRulesBaseline,
-  benchmark, freshState, propose, review, issueGuard, ensureState
+  benchmark, freshState, propose, review, closeReview, issueGuard, ensureState
 } from "../src/engine.js";
+import { EVIDENCE_CASES } from "../src/source_evidence.js";
 
 const scenario = id => SCENARIOS.find(s => s.id === id);
 
@@ -108,4 +109,43 @@ test("documented zero-C sentinel is an untrusted reading, not proof of a measure
   assert.equal(evidence.needsReview, true);
   assert.equal(evidence.min, 4.1);
   assert.equal(evidence.flags.some(f => f.kind === "implausible" && f.value === 0), true);
+});
+
+
+test("source-linked outage and measured excursion are shown without fabricated unit mapping", () => {
+  const hot = scenario("TL-NBO-HOT");
+  assert.equal(hot.readings.length, 5);
+  assert.equal(hot.powerOutages.length, 1);
+  assert.equal(hot.powerOutages[0].outage_id, "OUT-00009");
+  assert.equal(hot.powerOutages[0].backup_power_engaged, false);
+  assert.equal(hot.powerOutages[0].duration_hours, 3.83);
+  assert.equal(inspectEvidence(hot.readings).max, 7.9);
+  assert.equal(hot.confirmedDeviceUnitHistory, false);
+  assert.match(EVIDENCE_CASES["TL-NBO-HOT"].exposure_provenance, /NO named fridge-to-unit/);
+  const gap = scenario("TL-024");
+  assert.equal(gap.powerOutages.length, 0);
+  assert.equal(inspectEvidence(gap.readings).gapHours, 57);
+  assert.ok(SCENARIOS.every(s => s.readings.every(r => r.source === "starter:temperature_logs.csv")));
+});
+
+test("source-backed values are not hardcoded as guessed temperature data", () => {
+  for (const sc of SCENARIOS) {
+    assert.deepEqual(sc.readings, EVIDENCE_CASES[sc.id].source_readings);
+    assert.equal(sc.facility, EVIDENCE_CASES[sc.id].facility_id);
+  }
+});
+
+test("qualified simulated review may close paperwork without silently clearing evidence or mock issue", () => {
+  let s = freshState();
+  assert.throws(() => closeReview(s, "TL-NBO-HOT", "continued_hold",
+    "Check site logs before any release"), /reviewer must authorize/i);
+  s = propose(s, "TL-NBO-HOT", "investigate", "Investigate power outage and recorded 7.9C source reading");
+  s = review(s, "TL-NBO-HOT", "accept", "Refer to the responsible person for site-specific SOP");
+  s = closeReview(s, "TL-NBO-HOT", "refer_site_authority",
+    "Power outage OUT-00009 overlaps observed 7.9C; named equipment and unit linkage are unknown.");
+  assert.equal(s.cases["TL-NBO-HOT"].disposition, "referred_site_authority");
+  assert.equal(s.audit[0].action, "REVIEW_CLOSED_NO_RELEASE");
+  assert.equal(issueGuard(s, "TL-NBO-HOT", "DEMO-RBC-NBO-H1").allowed, false);
+  assert.throws(() => closeReview(s, "TL-NBO-HOT", "continued_hold",
+    "Try documenting same case twice after closure"), /reviewer must authorize/i);
 });
