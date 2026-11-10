@@ -1,0 +1,51 @@
+name: Publish TrustLedger judge demo
+
+# Deliberate manual dispatch: do not expose the private project by mistake.
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: "pages"
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - name: Checkout audited source
+        uses: actions/checkout@v4
+      - name: Validate application logic
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Run unit checks before publication
+        run: npm test
+      - name: Stage only the standalone web application
+        run: |
+          mkdir -p _site/src
+          cp index.html styles.css service-worker.js _site/
+          cp src/app.js src/engine.js src/source_evidence.js src/custody_fixtures.js _site/src/
+          test -f _site/src/engine.js
+          test -f _site/index.html
+          if grep -R -E 'BEGIN (RSA |OPENSSH |EC )?PRIVATE KEY|AKIA[0-9A-Z]{16}' _site; then
+            echo "Potential secret-like content in deployment bundle"; exit 1
+          fi
+          echo 'Published assets only:'
+          find _site -type f -maxdepth 2 | sort
+      - name: Configure GitHub Pages
+        uses: actions/configure-pages@v5
+      - name: Upload static site only
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: _site
+      - name: Deploy GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4
