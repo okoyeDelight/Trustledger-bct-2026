@@ -1,0 +1,43 @@
+{
+  "source": "Original organizer synthetic starter ZIP, 'transfers.csv' + 'units.csv' + 'gen.py'",
+  "report_script": "scripts/receipt_provenance_audit.py",
+  "source_mechanism": "gen.py line 400 deliberately sets received_at=None with 0.03 probability after calculating synthetic arrival time; line 403 updates unit destination independently",
+  "total_transfers": 35181,
+  "receipt_timestamp_blank": 1046,
+  "percent_blank": 2.97,
+  "unique_unit_ids_for_blank_receipts": 1046,
+  "missing_receipt_by_transfer_type": {
+    "routine": 882,
+    "emergency_request": 111,
+    "emergency_cross_region": 49,
+    "inter_centre_rebalancing": 4
+  },
+  "retrospective_status_of_linked_units": {
+    "transfused": 873,
+    "expired": 104,
+    "discarded_temperature": 42,
+    "in_stock": 27
+  },
+  "recorded_coolbox_maximum_c": 10,
+  "recorded_coolbox_excursions_strictly_above_10c": 0,
+  "example": {
+    "transfer_id": "TRF-005463",
+    "unit_id": "U2511-NKR-006818-RBC",
+    "origin": "RBTC-NKR",
+    "destination": "HSP-024",
+    "dispatched_at_eat": "2025-11-03 09:42:45",
+    "received_at": null,
+    "coolbox_max_temp_c": 4.9,
+    "later_retrospective_unit_status": "transfused",
+    "later_status_date": "2025-11-04",
+    "retrospective_temperature_exposed": false
+  },
+  "interpretation": [
+    "Blank received_at proves absence of recorded receipt timestamp, NOT absence of physical delivery.",
+    "The synthetic generator's arrival is not an observation presented to a real receiving clerk.",
+    "Later transfused status is retrospective and not an at-decision-time correctness label.",
+    "No source evidence of >10C transport excursion, so do not invent a hot coolbox.",
+    "This offers a documentation-quality challenge but a weaker source-backed clinical-safety trigger than a logger-offline cold-chain gap.",
+    "Never automatically quarantine or clinically release a unit solely because a field is blank."
+  ]
+}
