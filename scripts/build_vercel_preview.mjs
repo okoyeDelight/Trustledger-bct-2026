@@ -6,7 +6,7 @@
  * Intentionally avoid copying arbitrary directories or using the repository
  * root as a static output folder.
  */
-import { mkdir, rm, copyFile, readdir, readFile, stat } from "node:fs/promises";
+import { mkdir, rm, copyFile, readdir, readFile, writeFile, stat } from "node:fs/promises";
 import { resolve, join, dirname } from "node:path";
 
 const out = resolve("_site_vercel");
@@ -18,6 +18,9 @@ const sourceFiles = Object.freeze([
   "src/engine.js",
   "src/source_evidence.js",
   "src/custody_fixtures.js",
+  "workspace/index.html",
+  "workspace/workspace.css",
+  "workspace/workspace.js",
 ]);
 
 await rm(out, { recursive: true, force: true });
@@ -41,7 +44,13 @@ async function walk(dir, relative = "") {
   }
   return results.sort();
 }
-const expected = [...sourceFiles].sort();
+// Publish only the Clerk publishable key, which is public by design.
+const rawKey = process.env.TRUSTLEDGER_CLERK_PUBLISHABLE_KEY || "";
+if (rawKey && !/^pk_(test|live)_[A-Za-z0-9_-]+$/.test(rawKey))
+  throw Error("Invalid Clerk publishable key configuration (value not printed)");
+await writeFile(join(out, "workspace/auth-config.js"),
+  "window.TRUSTLEDGER_CLERK_PUBLISHABLE_KEY = " + JSON.stringify(rawKey) + ";\\n");
+const expected = [...sourceFiles, "workspace/auth-config.js"].sort();
 const actual = await walk(out);
 if (JSON.stringify(actual) !== JSON.stringify(expected)) {
   throw Error("Unexpected public-site output. Expected " + expected + "; got " + actual);
