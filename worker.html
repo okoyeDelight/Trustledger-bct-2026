@@ -1,0 +1,43 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#142f33">
+  <meta name="description" content="TrustLedger: one cold-chain monitoring source, one guided incident journey. Synthetic demonstration only.">
+  <title>TrustLedger · Incident workspace</title>
+  <link rel="stylesheet" href="./worker.css">
+  <script type="module" src="./src/worker-app.js"></script>
+</head>
+<body>
+  <a class="skip-link" href="#screen">Skip to case</a>
+  <div class="shell">
+    <header class="site-header">
+      <a class="brand" href="./worker.html" aria-label="TrustLedger incident workspace home">
+        <span class="brand-mark" aria-hidden="true"><span></span><span></span><span></span><span></span></span>
+        <span>trustledger<span class="brand-period">.</span></span>
+      </a>
+      <div class="header-right">
+        <span class="synthetic-label">SYNTHETIC DEMO</span>
+        <span class="source-label">HSP-024</span>
+      </div>
+    </header>
+    <div class="workspace">
+      <nav class="primary-nav" aria-label="Main navigation">
+        <button type="button" class="nav-item active" data-view="inbox" aria-current="page">Incidents</button>
+        <button type="button" class="nav-item" data-view="history">History</button>
+        <button type="button" class="nav-item" data-view="about">About this demo</button>
+      </nav>
+      <main id="screen" tabindex="-1" aria-live="polite" aria-atomic="false">
+        <h1>Incidents</h1>
+        <p>Loading your synthetic monitoring case…</p>
+      </main>
+    </div>
+    <footer class="site-footer">
+      <span>TrustLedger · cold-chain incident workflow</span>
+      <span>One source · locally saved demo · not clinical software</span>
+    </footer>
+  </div>
+  <div id="notice" role="status" aria-live="polite" class="notice" hidden></div>
+</body>
+</html>
