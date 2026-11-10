@@ -49,7 +49,7 @@ const rawKey = process.env.TRUSTLEDGER_CLERK_PUBLISHABLE_KEY || "";
 if (rawKey && !/^pk_(test|live)_[A-Za-z0-9_-]+$/.test(rawKey))
   throw Error("Invalid Clerk publishable key configuration (value not printed)");
 await writeFile(join(out, "workspace/auth-config.js"),
-  "window.TRUSTLEDGER_CLERK_PUBLISHABLE_KEY = " + JSON.stringify(rawKey) + ";\\n");
+  "window.TRUSTLEDGER_CLERK_PUBLISHABLE_KEY = " + JSON.stringify(rawKey) + ";\n");
 const expected = [...sourceFiles, "workspace/auth-config.js"].sort();
 const actual = await walk(out);
 if (JSON.stringify(actual) !== JSON.stringify(expected)) {
