@@ -1,0 +1,45 @@
+name: Verify Claude website preview
+on:
+  push:
+    branches: [preview-claude-vercel]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  verify-preview:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - name: Install pinned project dependencies
+        run: npm ci --no-audit --no-fund
+      - name: Test cold-chain engine and simulated decisions
+        run: npm test
+      - name: Verify Python source audit
+        run: python3 -m unittest discover -s tests -p "test_*.py" -v
+      - name: Validate Vercel config and stage allowlisted website
+        run: |
+          node --check scripts/build_vercel_preview.mjs
+          node -e 'const c=require("./vercel.json");if(c.outputDirectory!=="_site_vercel"||c.buildCommand!=="node scripts/build_vercel_preview.mjs")process.exit(1)'
+          node scripts/build_vercel_preview.mjs
+          test ! -e _site_vercel/HANDOFF.md
+          test ! -e _site_vercel/docs
+          test ! -e _site_vercel/.git
+          test -e _site_vercel/src/source_evidence.js
+      - name: Install Chromium browser for real visual tests
+        run: npx playwright install --with-deps chromium
+      - name: Test Claude branch desktop and mobile UX
+        run: npx playwright test
+      - name: Upload only safe site files for owner review
+        uses: actions/upload-artifact@v4
+        with:
+          name: claude-vercel-website-only
+          path: _site_vercel/
+          if-no-files-found: error
+          retention-days: 3
