@@ -54,3 +54,14 @@ Our GitHub repo is the shared source of truth. ChatGPT and Claude do **not** dir
 6. Once organizer expert feedback or the meeting recording is actually accessible, review it and adjust workflow only on verified evidence.
 
 **Urgent product action:** record demo and finalize up to eight slides before Wed 11 Nov 10:00 WAT; repo must be public by final submission. Solo/team approval must come from Hany; this development work does not settle roster status.
+
+
+## Audio-level kickoff audit completed (10 Nov 2026)
+
+**Source:** `docs/KICKOFF_AUDIO_REQUIREMENTS_AND_DECISIONS_2026-11-10.md` is based on a successful Descript timestamped transcription of the actual user-uploaded 35m36s kickoff. Inspect the meeting's Descript project for full context: https://web.descript.com/e189198b-2409-4b80-a35b-033c0e066c8a/a5dbd
+
+**Changes to our priority:** Hany says video demo is the **first judging touchpoint** (~18:45), and judges want a working potential solution rather than a polished shell (~15:36). Another source says README first, so finish both. Stick to eight slides due written/oral limit conflict. Avoid spending more time on micro-animations until deployed URL, video, slides exist. Keep current workflow, but frame patient/clinical and facility status data strictly as synthetic. Her cited 2,119 synthetic at-risk issues is a candidate raw-data validation task, NOT a validated performance claim.
+
+**Team issue:** no solo approval spoken in meeting. Hany promised follow-up by email; an end-of-meeting answer from the user indicated comfort with assigned team, despite later emailed solo request. Current roster remains pending organizer response; do not claim solo approval.
+
+**Next owner:** Build/deploy owner: ship accessible hosted demo and record 3-minute walkthrough. Research/QA: verify longer baseline against supplied synthetic dataset; record failure modes. Designer: support clear captures, not a distracting redesign. GitHub repository remains private until visibility deliberately changed before final submission.
