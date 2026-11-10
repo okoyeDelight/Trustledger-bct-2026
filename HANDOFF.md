@@ -80,3 +80,13 @@ Kickoff transcript at ~22:38–23:12: the organizers **intentionally made the sy
 **Consequence for Claude:** present `raw source → validate/flag → reviewer decision`, not a generic "clean the data" badge. Show an actual raw value and transformed field; never imply inferred temperatures or verified equipment-to-unit links. Preserve all exact observed audit counts and their caveats. Broad model-training claims remain unsupported. Reproduce full audit by running script on provided external ZIP, not by relying only on screenshots.
 
 **Verified CI:** `verify.yml` run [42820713434](https://github.com/okoyeDelight/Trustledger-bct-2026/actions/runs/42820713434) completed successfully, including Node logic tests and Python cleaning regression tests. Browser evaluator run for the newest UI was in progress at the time of this handoff; inspect latest Actions before marking visual verification completed.
+
+
+## Privacy-by-design scope (added 10 Nov 2026)
+User supplied a KDPA/ODPC production checklist and asked what is actually relevant to our synthetic hackathon build. Source-checked with Kenya Law and ODPC. Added `docs/PRIVACY_BY_DESIGN_AND_DEPLOYMENT_GATES.md` including a **current-state data map**, realistic access/storage boundaries, documented missing security controls, legal gates for a future Kenyan health-provider deployment and the **section 43 correction: 48h processor-to-controller / 72h qualifying controller-to-ODPC**, not "36/72". Added `.gitignore` to reduce accidental future commits of credentials, raw archives, CSV exports, recordings and derived files.
+
+**Do not claim KDPA compliance or ODPC registration.** Current app has simulated roles, browser-local editable audit and synthetic data, not clinical authorization or real RBAC. Real free-text can be typed in browser localStorage; warn users not to insert personal/health details. Third-party Google Fonts CSS may trigger external resource requests: not a no-network-requests design. Refactor or self-host only after testing a change and confirming browser improvements.
+
+**Stay focused:** privacy-by-design slide/README note is enough for submission; consent logs, donor "My Data" screens, SMS/Oracle contracts, and real clinician access control are deliberately **out of hackathon MVP scope**.
+
+**Next actual owner task (highest priority):** public HTTPS deployment (current repo is private and has no live URL). Then run e2e smoke-test on deployed URL, capture <=3-minute demo and compile eight pitch slides; prepare tonight's organizer check-in by **20:00 EAT (18:00 WAT)** and final submission Wed **12:00 EAT (10:00 WAT)**. Do not let paperwork displace the working demo.
