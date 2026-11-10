@@ -1,0 +1,23 @@
+name: Verify TrustLedger prototype
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Check JavaScript syntax
+        run: |
+          node --check src/engine.js
+          node --check src/app.js
+          node --check service-worker.js
+      - name: Test evidence and simulated decision workflow
+        run: npm test
