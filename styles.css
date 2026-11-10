@@ -126,3 +126,40 @@
 .dataset-stats strong{font-size:27px;color:#087f7c}
 .dataset-stats span{font-size:10px;color:#5c7879}
 @media(max-width:640px){.whole-dataset-grid{grid-template-columns:1fr}.dataset-stats{border-left:0;border-top:1px solid #d2e6de}}
+
+
+/* 360–520px: make the working cold-chain evidence visible above the fold.
+   Preserve 44px interactive targets and an actual accessible page heading. */
+@media(max-width:520px){
+  .sidebar{padding:10px 12px 9px}
+  .sidebar .brand{gap:8px;margin-bottom:6px;padding:0 3px}
+  .brand-icon{width:29px;height:29px;border-radius:9px;grid-template-columns:repeat(2,6px);grid-template-rows:repeat(2,6px);gap:3px}
+  .brand-word strong{font-size:17px;letter-spacing:-.6px}
+  .brand-word small{font-size:7px;letter-spacing:.75px}
+  .sidebar nav{gap:5px}
+  .nav-link{min-height:44px;font-size:10px;padding:7px 9px;gap:6px}
+  .nav-glyph{font-size:15px;width:16px}
+  .topbar{height:50px}
+  .topbar-location{font-size:9px}
+  .crumb-separator{padding:0 6px}
+  .connection-pill{padding:6px 7px;font-size:8px;gap:5px}
+  .topbar-actions{gap:4px}
+  .small-button{min-height:44px;padding:5px 7px;font-size:9px}
+  .page-intro{padding-top:13px}
+  .page-intro .eyebrow{font-size:8px;letter-spacing:.7px}
+  .page-intro h1{font-size:24px;letter-spacing:-1px;line-height:1.16;margin:7px 0 7px}
+  .page-intro h1 br{display:none}
+  .page-intro .page-subtitle{font-size:10px;line-height:1.55;margin:0 0 10px}
+  .blindspot-hero{margin:4px 0 11px;border-radius:13px}
+  .blindspot-story{padding:15px 15px 12px}
+  .blindspot-kicker{font-size:8px;letter-spacing:.5px}
+  .blindspot-story h2{font-size:22px;letter-spacing:-.6px;line-height:1.2;margin:9px 0 7px}
+  .blindspot-story p{font-size:10px;line-height:1.5;margin:0 0 11px}
+  .blindspot-action{min-height:44px;padding:9px 12px;font-size:10px}
+  .blindspot-proof{padding:13px 15px;row-gap:6px}
+  .proof-number{font-size:30px}
+  .proof-number span{font-size:15px}
+  .proof-title{font-size:10px}
+  .proof-caption{font-size:9px}
+  .proof-result{padding-top:9px;margin-top:0}
+}
