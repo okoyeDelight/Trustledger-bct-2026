@@ -1,0 +1,52 @@
+name: Verify one-source worker journey
+on:
+  push:
+    branches: [design/one-reader-journey-v1]
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  guided-prototype:
+    runs-on: ubuntu-latest
+    timeout-minutes: 16
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Install current pinned test dependencies
+        run: npm install --no-audit --no-fund
+      - name: Deterministic engine checks
+        run: npm test
+      - name: Python source and provenance tests
+        run: python3 -m unittest discover -s tests -p "test_*.py" -v
+      - name: Verify site-only deployment bundle
+        run: |
+          node --check src/worker-app.js
+          node --check scripts/build_one_reader_preview.mjs
+          node scripts/build_one_reader_preview.mjs
+          test ! -e _site_one_reader/HANDOFF.md
+          test ! -e _site_one_reader/docs
+          test ! -e _site_one_reader/.github
+      - name: Install Chromium for real phone and desktop journeys
+        run: npx playwright install --with-deps chromium
+      - name: Test one-reader worker workflow
+        run: npx playwright test e2e/worker.spec.mjs
+      - name: Upload real screenshot and failure traces
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: one-reader-worker-screens
+          path: |
+            test-results/
+            playwright-report/
+          if-no-files-found: ignore
+          retention-days: 5
+      - name: Upload only approved public site files
+        if: success()
+        uses: actions/upload-artifact@v4
+        with:
+          name: one-reader-static-site-only
+          path: _site_one_reader/
+          if-no-files-found: error
+          retention-days: 5
