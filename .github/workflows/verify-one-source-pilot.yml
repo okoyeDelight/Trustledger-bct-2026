@@ -1,0 +1,37 @@
+name: Verify one-source worker journey
+on:
+  push:
+    branches: [pilot/one-source-journey]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  worker-pilot:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: npm install --no-audit --no-fund
+      - name: Engine regression checks
+        run: npm test
+      - name: Synthetic data regression checks
+        run: python3 -m unittest discover -s tests -p "test_*.py" -v
+      - name: Chromium setup
+        run: npx playwright install --with-deps chromium
+      - name: Test worker pilot on desktop and two phone viewports
+        run: npx playwright test e2e/pilot.spec.mjs
+      - name: Preserve real screenshots and browser traces for review
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: one-source-pilot-browser-checks
+          path: |
+            test-results/
+            playwright-report/
+          if-no-files-found: ignore
+          retention-days: 3
