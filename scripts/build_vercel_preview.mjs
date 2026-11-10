@@ -13,6 +13,7 @@ const out = resolve("_site_vercel");
 const sourceFiles = Object.freeze([
   "index.html",
   "styles.css",
+  "operation-studio.css",
   "service-worker.js",
   "src/app.js",
   "src/engine.js",
