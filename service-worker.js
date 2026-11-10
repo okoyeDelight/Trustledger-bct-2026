@@ -1,6 +1,6 @@
 /* TrustLedger local-first shell cache. No third-party resources are cached. */
-const CACHE = "trustledger-demo-v1";
-const ASSETS = ["./", "./index.html", "./styles.css", "./src/app.js", "./src/engine.js"];
+const CACHE = "trustledger-demo-v2";
+const ASSETS = ["./", "./index.html", "./styles.css", "./src/app.js", "./src/engine.js", "./src/source_evidence.js"];
 self.addEventListener("install", event => {
   event.waitUntil(caches.open(CACHE).then(cache => cache.addAll(ASSETS)).then(() => self.skipWaiting()));
 });
