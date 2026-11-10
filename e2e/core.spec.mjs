@@ -1,4 +1,5 @@
 import { test, expect } from "@playwright/test";
+import { readFile } from "node:fs/promises";
 
 test.beforeEach(async ({ page }) => {
   await page.goto("/");
@@ -132,4 +133,23 @@ test("candidate units are from time-bounded fictional custody, not claimed from 
   await expect(page.locator("#case-detail")).toContainText("no original device-to-unit exposure is verified");
   await page.locator('[data-case-id="TL-NBO-HOT"]').click();
   await expect(page.locator("#case-detail")).toContainText("ILLUSTRATIVE-FR-B");
+});
+
+
+test("synthetic handoff downloads genuine source evidence, while explicitly denying live BBIS integration", async ({ page }) => {
+  await expect(page.locator("[data-export-handoff]")).toBeVisible();
+  const [download] = await Promise.all([
+    page.waitForEvent("download"),
+    page.locator("[data-export-handoff]").click()
+  ]);
+  expect(download.suggestedFilename()).toContain("tl-024-synthetic-handoff.json");
+  const data = JSON.parse(await readFile(await download.path(), "utf8"));
+  expect(data.classification).toBe("SYNTHETIC_DEMO_ONLY_NOT_FOR_CLINICAL_USE");
+  expect(data.source_case.case_id).toBe("TL-024");
+  expect(data.evidence.missing_expected_hourly_records).toBe(57);
+  expect(data.evidence.raw_source_readings[0].source).toBe("starter:temperature_logs.csv");
+  expect(data.candidate_inventory.confirmed_unit_exposure).toBe(false);
+  expect(data.simulated_issue_control.clinical_release_authorized).toBe(false);
+  expect(data.integration_status).toBe("EXPORT_ONLY_NO_EXTERNAL_SYSTEM_CONNECTED");
+  await expect(page.locator("#toast")).toContainText("No real hospital system was contacted");
 });
