@@ -1,0 +1,22 @@
+# Locally generated files and credentials — never include in public hackathon repo
+.env
+.env.*
+!.env.example
+node_modules/
+derived/
+playwright-report/
+test-results/
+.DS_Store
+__pycache__/
+*.pyc
+
+# Raw imported archives, databases, recordings and donor/patient exports:
+*.zip
+*.sqlite
+*.sqlite3
+*.db
+*.mp4
+*.m4a
+*.wav
+*.csv
+# Deliberately checked-in fixture files may be specifically unignored after review.
