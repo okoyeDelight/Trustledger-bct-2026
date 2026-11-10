@@ -44,6 +44,9 @@ test("guided case runs from real source evidence through operator, reviewer, out
   await expect(page.locator("#audit-list")).toContainText("PROPOSAL");
   await expect(page.locator("#audit-list")).toContainText("ACCEPT");
   await page.reload();
+  await expect(page.getByRole("heading",{name:"Incidents"})).toBeVisible();
+  await expect(page.locator(".issue-card")).toContainText("Investigation ongoing");
+  await page.getByRole("button",{name:"History"}).click();
   await expect(page.locator("#audit-list")).toContainText("PROPOSAL");
   await expect(page.locator("#audit-list")).toContainText("ACCEPT");
 });
