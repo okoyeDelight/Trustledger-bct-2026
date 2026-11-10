@@ -1,7 +1,3 @@
--- TrustLedger Step 2: portable PostgreSQL schema for SYNTHETIC DATA ONLY.
--- Auth provider is Clerk; server validates JWTs and enforces role and facility access.
--- Never expose DATABASE_URL or this owner connection to the browser.
-BEGIN;
 CREATE TABLE IF NOT EXISTS tl_facilities (
   id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
   code text NOT NULL UNIQUE,
@@ -56,7 +52,8 @@ CREATE TABLE IF NOT EXISTS tl_temperature_readings (
   quality_flag text NOT NULL DEFAULT 'valid' CHECK (quality_flag IN ('valid','missing','invalid','sensor_glitch')),
   ingested_at timestamptz NOT NULL DEFAULT now(),
   FOREIGN KEY (import_id,facility_id) REFERENCES tl_imports(id,facility_id),
-  UNIQUE (import_id,source_row)
+  UNIQUE (import_id,source_row),
+  UNIQUE (id,facility_id)
 );
 CREATE INDEX IF NOT EXISTS tl_temperature_facility_time_idx ON tl_temperature_readings(facility_id,recorded_at DESC);
 CREATE TABLE IF NOT EXISTS tl_incidents (
@@ -83,14 +80,15 @@ CREATE TABLE IF NOT EXISTS tl_incident_evidence (
   id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
   facility_id uuid NOT NULL REFERENCES tl_facilities(id),
   incident_id uuid NOT NULL,
-  reading_id uuid REFERENCES tl_temperature_readings(id),
+  reading_id uuid,
   import_id uuid,
   evidence_kind text NOT NULL CHECK (evidence_kind IN ('raw_reading','gap_interval','outage_record','staff_observation','document_reference')),
   source_locator text,
   evidence_json jsonb NOT NULL DEFAULT '{}'::jsonb,
   created_at timestamptz NOT NULL DEFAULT now(),
   FOREIGN KEY (incident_id,facility_id) REFERENCES tl_incidents(id,facility_id),
-  FOREIGN KEY (import_id,facility_id) REFERENCES tl_imports(id,facility_id)
+  FOREIGN KEY (import_id,facility_id) REFERENCES tl_imports(id,facility_id),
+  FOREIGN KEY (reading_id,facility_id) REFERENCES tl_temperature_readings(id,facility_id)
 );
 CREATE INDEX IF NOT EXISTS tl_evidence_incident_idx ON tl_incident_evidence(incident_id,created_at);
 CREATE TABLE IF NOT EXISTS tl_incident_events (
@@ -117,7 +115,3 @@ CREATE TABLE IF NOT EXISTS tl_followups (
   FOREIGN KEY (incident_id,facility_id) REFERENCES tl_incidents(id,facility_id)
 );
 CREATE INDEX IF NOT EXISTS tl_followups_facility_idx ON tl_followups(facility_id,status,due_at);
--- Ordinary API code must never UPDATE or DELETE the incident event log.
--- Staff privileges are verified on the SERVER from Clerk session and membership.
--- This migration does NOT authorize clinical blood release or real patient data.
-COMMIT;
