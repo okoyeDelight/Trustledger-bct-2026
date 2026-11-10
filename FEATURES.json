@@ -1,0 +1,72 @@
+{
+  "project": "TrustLedger UI refinement",
+  "date": "2026-11-10",
+  "method": "Designer -> Builder -> Browser Evaluator",
+  "truthfulness": "Statuses below indicate repo implementation vs visual browser verification, not clinical validation.",
+  "features": [
+    {
+      "id": "core-evidence",
+      "title": "Facility synthetic case evidence & deterministic flagging",
+      "implemented": true,
+      "browser_verified": false,
+      "priority": "P0",
+      "next_action": "Run full Playwright journey and inspect chart readability"
+    },
+    {
+      "id": "human-review",
+      "title": "Operator proposal and reviewer accept/change/reject",
+      "implemented": true,
+      "browser_verified": false,
+      "priority": "P0",
+      "next_action": "Verify state persists and failure messages are usable on mobile"
+    },
+    {
+      "id": "mock-guard",
+      "title": "Simulated issue attempt and restriction",
+      "implemented": true,
+      "browser_verified": false,
+      "priority": "P0",
+      "next_action": "Test blocked before/after hold, mock-clear only on clean case"
+    },
+    {
+      "id": "high-craft-design",
+      "title": "Clinical-grade operational visual design",
+      "implemented": false,
+      "browser_verified": false,
+      "priority": "P0",
+      "next_action": "Redesign styling and hierarchy without rewriting engine"
+    },
+    {
+      "id": "mobile-accessibility",
+      "title": "360/390px responsive layout, real labels, tap sizes, reduced motion",
+      "implemented": false,
+      "browser_verified": false,
+      "priority": "P0",
+      "next_action": "Run evaluator; fix overflow and label/focus/contrast defects"
+    },
+    {
+      "id": "evidence-hero",
+      "title": "Visual 57h blind-spot explanation and decision consequence",
+      "implemented": false,
+      "browser_verified": false,
+      "priority": "P0",
+      "next_action": "Design crisp visual comparison of latest reading vs missing timeline"
+    },
+    {
+      "id": "microinteraction",
+      "title": "Meaningful brief transitions and feedback states",
+      "implemented": false,
+      "browser_verified": false,
+      "priority": "P2",
+      "next_action": "Only after core browser tests and accessibility pass"
+    },
+    {
+      "id": "demo-capture",
+      "title": "Polished <=3min demo walkthrough and annotated screenshots",
+      "implemented": false,
+      "browser_verified": false,
+      "priority": "P1",
+      "next_action": "Record only after UI and flow are verified"
+    }
+  ]
+}
