@@ -66,3 +66,33 @@
 .quality-disclaimer a{color:#0a7674;font-weight:800}
 @media(max-width:1100px){.quality-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
 @media(max-width:600px){.quality-examples{grid-template-columns:1fr}.quality-metric{padding:13px 10px}.quality-metric strong{font-size:23px}.quality-metric small{font-size:9px}}
+
+
+/* Case comparison deliberately collapsed to preserve the ONE main review workflow. */
+.provenance-check{margin-top:17px;padding:0;overflow:hidden}
+.provenance-check>summary{display:flex;align-items:center;justify-content:space-between;gap:15px;padding:19px 21px;cursor:pointer;list-style:none;min-height:70px}
+.provenance-check>summary::-webkit-details-marker{display:none}
+.provenance-summary-text{display:flex;flex-direction:column;gap:5px}
+.provenance-summary-text strong{font-size:14px;line-height:1.4;letter-spacing:-.2px}
+.provenance-summary-text small{font-size:10px;color:#7c9397;line-height:1.65}
+.provenance-expander{height:32px;width:32px;display:grid;place-items:center;border:1px solid #d0e2df;border-radius:9px;color:#097d73;flex-shrink:0;font-weight:800;font-size:18px}
+.provenance-check[open] .provenance-expander{transform:rotate(45deg)}
+.provenance-inner{border-top:1px solid #e4efed;padding:19px 21px 23px}
+.provenance-numbers{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;margin-bottom:17px}
+.provenance-numbers span{border-radius:8px;background:#eff7f3;padding:11px;font-size:9px;color:#54757b;line-height:1.6}
+.provenance-numbers b{display:block;font-size:19px;line-height:1.15;letter-spacing:-.5px;color:#0d5e58}
+.provenance-two-col{display:grid;grid-template-columns:1fr 1fr;gap:15px}
+.provenance-case,.provenance-lesson{padding:15px;border:1px solid #e0eae8;border-radius:11px;background:#f9fcfa;min-width:0}
+.provenance-case dl{margin:12px 0 0}
+.provenance-case dl div{display:flex;justify-content:space-between;gap:10px;padding:8px 0;border-bottom:1px solid #e9efee;align-items:baseline}
+.provenance-case dt{font-size:9px;color:#789095}
+.provenance-case dd{margin:0;text-align:right;font-size:10px;font-weight:800;color:#244b53;overflow-wrap:anywhere}
+.provenance-case dd.uncertain{color:#a66b19}
+.provenance-case code{font-size:9px;overflow-wrap:anywhere}
+.provenance-lesson h3{margin:10px 0;font-size:16px}
+.provenance-lesson p{font-size:10px;line-height:1.75;color:#647f83;margin:8px 0}
+.provenance-lesson p strong{color:#315e62}
+.provenance-lesson .provenance-verdict{font-weight:800;color:#9a651f;background:#fff2d9;padding:9px;border-radius:8px;margin-top:13px}
+.provenance-inner>.data-footnote a{color:#0b817a;font-weight:800}
+.provenance-check summary:focus-visible{outline:3px solid #29a797;outline-offset:-3px;border-radius:10px}
+@media(max-width:670px){.provenance-two-col{grid-template-columns:1fr}.provenance-numbers{grid-template-columns:1fr 1fr}.provenance-numbers span:last-child{grid-column:1/-1}}
