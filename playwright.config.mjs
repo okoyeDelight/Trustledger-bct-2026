@@ -17,6 +17,7 @@ export default defineConfig({
   projects: [
     { name: "desktop-chromium", use: { ...devices["Desktop Chrome"] } },
     { name: "mobile-chromium", use: { ...devices["Pixel 7"] } },
+    { name: "mobile-small-chromium", use: { ...devices["Pixel 7"], viewport: { width: 360, height: 800 } } },
   ],
   webServer: {
     command: "python3 -m http.server 8080",
