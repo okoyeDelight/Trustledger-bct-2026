@@ -16,3 +16,34 @@
 @media(max-width:1150px){.main{padding:0 23px}.sidebar{width:220px}.app-shell{grid-template-columns:220px minmax(0,1fr)}.workspace-grid{grid-template-columns:minmax(230px,36%) 1fr}.stat-grid{gap:9px}.stat{padding:15px}.hero-orb{width:100px;height:100px}.hero-orb div{display:none}}
 @media(max-width:880px){.app-shell{display:block}.sidebar{position:relative;width:100%;min-height:0;height:auto;padding:14px 18px;display:block}.sidebar-section-label,.sidebar-bottom{display:none}.sidebar .brand{margin-bottom:10px}.sidebar nav{display:flex;flex-direction:row;overflow-x:auto;gap:8px}.nav-link{white-space:nowrap;width:auto;padding:10px 12px;flex-shrink:0}.nav-arrow{display:none}.topbar{height:66px}.main{padding:0 18px}.page-intro{padding-top:30px}.stat-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.workspace-grid{grid-template-columns:1fr}.case-list{display:grid;grid-template-columns:repeat(2,minmax(0,1fr))}.hero-orb{display:none}}
 @media(max-width:520px){.main{padding:0 12px}.topbar-location{font-size:10px}.demo-pill{display:none}.topbar-actions{gap:5px}.small-button{font-size:9px;padding:7px}.page-intro h1,.section-title{letter-spacing:-1.5px}.page-subtitle{font-size:11px}.panel{padding:16px}.case-list{grid-template-columns:1fr}.stat-grid{gap:8px}.stat{padding:14px;min-height:99px}.stat-value{font-size:25px}.workflow-band{padding:11px}.detail-head h2{font-size:18px}.evidence-facts{gap:6px}.fact{padding:8px}.fact strong{font-size:13px}.benchmark-summary{grid-template-columns:1fr}.explain-grid,.methods-grid{grid-template-columns:1fr}.large-metric{font-size:39px}.lab-hero{padding:17px}.lab-hero h2{font-size:18px}.lab-hero p{font-size:10px}.main-footer{font-size:7px}.audit-row{grid-template-columns:25px 1fr}.audit-row time{grid-column:2;grid-row:2}.unit-row{flex-wrap:wrap}.unit-row button{width:100%}}
+
+
+/* Evidence-first hero: the core clinical-operations proof, not a marketing carousel. */
+.blindspot-hero{display:grid;grid-template-columns:minmax(0,1fr) minmax(295px,.9fr);gap:20px;background:#0b2732;border:1px solid #234752;border-radius:17px;color:#edf9f5;overflow:hidden;margin:8px 0 18px;box-shadow:0 18px 35px #102e3620}
+.blindspot-story{padding:28px 28px 30px}
+.blindspot-kicker{font-size:9px;font-weight:800;letter-spacing:1.4px;color:#91d7c8;display:flex;align-items:center;gap:9px}
+.pulse-pin{height:8px;width:8px;background:#5bc8b4;border-radius:50%;display:inline-block;box-shadow:0 0 0 4px #5bc8b420}
+.blindspot-story h2{font-size:clamp(22px,2.45vw,35px);font-weight:800;line-height:1.22;letter-spacing:-1.5px;margin:19px 0 11px}
+.blindspot-story h2 em{color:#a7e8d9;font-style:normal}
+.blindspot-story p{font-size:11px;line-height:1.85;color:#b5cfd0;max-width:460px;margin:0 0 16px}
+.blindspot-story p strong{color:#fff}
+.blindspot-action{display:inline-flex;align-items:center;justify-content:space-between;gap:19px;min-height:44px;border-radius:8px;background:#b6eedd;color:#093f41;padding:11px 14px;text-decoration:none;font-size:11px;font-weight:800;transition:background .2s ease,transform .2s ease}
+.blindspot-action:hover{background:#e2fff4;transform:translateY(-1px)}
+.blindspot-proof{display:flex;flex-direction:column;justify-content:center;padding:22px 24px;background:linear-gradient(135deg,#153c46,#102e3b);border-left:1px solid #2c5760}
+.proof-item{padding:4px 2px}.proof-number{font-size:35px;font-weight:800;letter-spacing:-1.8px;line-height:1}
+.proof-number span{font-size:18px;letter-spacing:-.4px;margin-left:3px;color:#a7c2c3}
+.proof-title{font-size:11px;font-weight:800;margin-top:6px}.proof-caption{font-size:9px;color:#9ebabe;margin-top:4px}
+.proof-separator{height:28px;display:flex;align-items:center;gap:11px;color:#93b7b8;font-weight:800;margin:5px 0}
+.proof-separator:before,.proof-separator:after{content:"";height:1px;background:#456570;flex:1}
+.evidence-gap .proof-number,.evidence-gap .proof-number span{color:#f1ca84}
+.proof-result{border-top:1px solid #34535f;margin-top:17px;padding-top:16px;display:flex;align-items:center;gap:11px}
+.proof-lock{font-size:23px;color:#efa68b}.proof-result strong,.proof-result small{display:block}.proof-result strong{font-size:11px}.proof-result small{font-size:9px;line-height:1.6;color:#a8bfc3;margin-top:4px}
+/* Legible, accessible form controls and tap targets. No fake loading animations. */
+.field-label{font-size:10px;color:#496c72;display:block;font-weight:800;letter-spacing:.15px;margin:11px 0 6px}
+.nav-link,.action-button,.unit-row button,.case-option,.small-button{min-height:44px;touch-action:manipulation}
+.form-card textarea{margin-top:0}
+.blindspot-action:focus-visible{outline:3px solid #a9f7da;outline-offset:3px}
+@media(max-width:1120px){.blindspot-hero{grid-template-columns:1fr 1fr}}
+@media(max-width:760px){.blindspot-hero{grid-template-columns:1fr}.blindspot-story{padding:23px 21px 16px}.blindspot-proof{border-left:0;border-top:1px solid #2c5760;padding:22px 21px;display:grid;grid-template-columns:1fr 25px 1fr;column-gap:10px;row-gap:12px}.proof-separator{height:auto;display:block;text-align:center;margin:18px 0}.proof-separator:before,.proof-separator:after{display:none}.proof-result{grid-column:1/-1;margin-top:3px}.blindspot-story h2{font-size:27px}}
+@media(max-width:385px){.blindspot-story h2{font-size:24px}.proof-number{font-size:31px}.proof-title{font-size:10px}.proof-caption{font-size:8px}}
+@media(prefers-reduced-motion:reduce){*,*::before,*::after{scroll-behavior:auto!important;animation-duration:.01ms!important;animation-iteration-count:1!important;transition-duration:.01ms!important}}
