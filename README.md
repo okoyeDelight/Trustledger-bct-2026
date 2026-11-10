@@ -21,6 +21,10 @@
 
 **Publication warning:** This *development* repository is private and its historical commits contain team-internal material. Do **not** change visibility to public without a privacy/history review and organizer guidance. A clean candidate public README and allowlisted bundle are staged under `submission/PUBLIC_README.md` and `scripts/build_judge_bundle.py`. The bundle preserves source code, not Git history.
 
+### Synthetic incident handoff — an actual export, not a connected API
+
+Every case now has a **Download demo handoff JSON** button. The generated `trustledger.synthetic-handoff.v1` record includes original facility-level temperature readings, overlapping source power outages, data-quality flags, separately labelled fictional candidate-unit custody, simulated operator/reviewer decisions and a mock issuing restriction. `src/engine.js::buildHandoffPacket` produces the packet with explicit `EXPORT_ONLY_NO_EXTERNAL_SYSTEM_CONNECTED` and `clinical_release_authorized: false`. A real blood-bank system has **not** been connected; the JSON is an integration-readiness illustration, not FHIR or a clinical standard. Unit and browser-download tests enforce these caveats.
+
 ## The problem
 Our intended user is a blood-bank duty operator investigating a temperature excursion or a gap/implausible value in monitoring records, supported by an authorized quality reviewer. The hypothesis is that assembling reliable readings, power-outage context, possible affected inventory, and documented actions in one case can reduce missed evidence and incomplete reviews. **This precise frontline bottleneck has not yet been validated with a blood-service practitioner.**
 
