@@ -42,6 +42,7 @@ function announce(message, error = false) {
   status.className = "toast" + (error ? " error" : "");
 }
 function currentScreen() {
+  if (view === "queue") return "queue";
   if (cased().closureOutcome) return "done";
   const disposition = cased().disposition;
   if (disposition === "awaiting_reviewer") return "review";
