@@ -80,6 +80,21 @@
         <p class="page-subtitle">An inspectable comparison on four preselected synthetic dataset windows. This is a functional smoke test, <strong>not</strong> independent clinical validation.</p>
         <div class="panel lab-hero"><div><div class="panel-kicker">THE BLIND-SPOT TEST</div><h2 id="lab-headline"></h2><p id="lab-explanation"></p></div><span class="large-metric" id="lab-gap">57<span>missing hours</span></span></div>
         <div class="panel"><div class="panel-heading"><div><div class="panel-kicker">FIXED SCENARIOS · REPRODUCIBLE</div><h2>Baseline comparison</h2></div><span class="item-count">4 demo windows</span></div><div id="benchmark-summary" class="benchmark-summary"></div><div class="table-wrap"><table class="benchmark-table"><thead><tr><th>Case</th><th>Manual review label</th><th>Latest-value baseline</th><th>Competent rule baseline</th><th>TrustLedger evidence feature</th></tr></thead><tbody id="benchmark-table"></tbody></table></div><p id="benchmark-caveat" class="method-warning"></p></div>
+        <section class="panel quality-audit" aria-label="Full synthetic dataset data-quality audit" id="quality-audit">
+          <div class="panel-heading"><div><div class="panel-kicker">FULL STARTER DATASET · REPRODUCED AUDIT</div><h2>Data-quality work, not just anomaly alerts</h2></div><span class="item-count">Source-preserving</span></div>
+          <p class="panel-help">The organizers deliberately included messy synthetic records. We ran a reproducible cleaning pipeline and preserved every raw value, rather than silently guessing missing information.</p>
+          <div class="quality-grid">
+            <div class="quality-metric"><strong>55</strong><span>Documented sensor glitches</span><small>-99, 99.9 and 0°C flagged as untrusted</small></div>
+            <div class="quality-metric"><strong>387</strong><span>Monitoring gap intervals</span><small>12,273 missing expected hourly readings; never filled</small></div>
+            <div class="quality-metric"><strong>1,852</strong><span>Non-canonical facility names</span><small>Reconciled using verified facility ID; raw retained</small></div>
+            <div class="quality-metric"><strong>452</strong><span>Candidate duplicate donor pairs</span><small>Human verification needed; not merged</small></div>
+          </div>
+          <div class="quality-examples">
+            <div class="quality-example"><b>Safe reconciliation</b><span><code>Kiambu CRH</code> <span aria-hidden="true">→</span> <code>Kiambu County Referral Hospital</code></span><small>Stable ID HSP-005 verifies this display name. The typed name remains in the raw column.</small></div>
+            <div class="quality-example"><b>Unresolved sensor evidence</b><span><code>Raw 99.9°C</code> <span aria-hidden="true">→</span> <code>Validated: unknown</code></span><small>Flagged as a dataset-defined glitch; we do not invent a replacement temperature or infer unit exposure.</small></div>
+          </div>
+          <p class="quality-disclaimer">Other findings: 506 donor records with missing/unknown blood groups and 442 such request records, preserved for review. Counts describe the organizer's synthetic data, not real facilities. Exact name differences can be harmless abbreviations, and candidate duplicates are not confirmed identities. <a href="https://github.com/okoyeDelight/Trustledger-bct-2026/blob/main/docs/DATA_QUALITY_PIPELINE.md" target="_blank" rel="noopener noreferrer">Read the cleaning method ↗</a></p>
+        </section>
         <div class="explain-grid"><article class="panel explain-card"><div class="panel-kicker">WHY LATEST-ONLY MISSES IT</div><h3>Normal ≠ verified.</h3><p>For HSP-024, 3.9°C was followed 58 hours later by 4.3°C. There are 57 missing expected hourly records. The system cannot infer what happened during the gap.</p></article><article class="panel explain-card"><div class="panel-kicker">THE HONEST LIMIT</div><h3>Rules may be enough.</h3><p>A competent conventional monitor that checks gaps, outliers and excursions catches the same four cases. We do <strong>not</strong> claim an AI advantage or clinical benefit from this comparison.</p></article></div>
       </section>
 
