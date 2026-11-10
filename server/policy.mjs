@@ -1,4 +1,4 @@
-export const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{12}$/i;
+export const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 export const ROLES = Object.freeze(['operator','reviewer','admin']);
 export const MANUAL_CATEGORIES = Object.freeze(['equipment_problem','temperature_excursion','monitoring_gap','sensor_anomaly','other']);
 export const canRead = role => ROLES.includes(role);
