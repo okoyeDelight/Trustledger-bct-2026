@@ -1,5 +1,5 @@
 @import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700;800&family=Manrope:wght@400;500;600;700;800&display=swap');
-:root{--bg:#f3f7f6;--ink:#102932;--muted:#607680;--panel:#fff;--line:#e1eaeb;--teal:#087f7c;--teal-dark:#075d61;--mint:#dff4ed;--amber:#aa6a16;--amber-bg:#fff3dc;--red:#b74737;--red-bg:#fff0eb;--navy:#091e29;--navy2:#102d37;--shadow:0 12px 40px rgba(19,49,56,.045);font-family:Manrope,'DM Sans',system-ui,-apple-system,sans-serif;color:var(--ink)}
+:root{--bg:#f1f5f4;--ink:#08212b;--muted:#4c666e;--t3:#526b74;--panel:#fff;--line:#dce7e5;--line-soft:#e9efed;--teal:#0b7a73;--teal-dark:#0a5e5b;--teal-deep:#0f514f;--mint:#dff4ed;--amber:#8c5712;--amber-bg:#fff3dc;--amber-line:#e0b264;--red:#a33f31;--red-bg:#fceeea;--green:#1b6f55;--green-bg:#e4f3ec;--navy:#071a23;--navy2:#0e2c38;--shadow:0 12px 40px rgba(19,49,56,.045);--ease:cubic-bezier(.2,.7,.3,1);font-family:Manrope,'DM Sans',system-ui,-apple-system,sans-serif;color:var(--ink)}
 *{box-sizing:border-box}html{min-width:320px}body{margin:0;background:var(--bg)}button,input,textarea,select{font:inherit}button{cursor:pointer}button:disabled{cursor:not-allowed;opacity:.53}button:focus-visible,input:focus-visible,textarea:focus-visible{outline:3px solid #59c4b7;outline-offset:2px}
 .app-shell{display:grid;grid-template-columns:252px minmax(0,1fr);min-height:100vh}.sidebar{background:var(--navy);color:#f4fbfa;display:flex;flex-direction:column;min-height:100vh;position:sticky;top:0;height:100vh;padding:33px 17px 25px}.brand{color:inherit;text-decoration:none;display:flex;align-items:center;gap:12px;padding:0 10px}.brand-icon{width:37px;height:37px;border-radius:12px;background:#167e7a;display:grid;grid-template-columns:repeat(2,8px);grid-template-rows:repeat(2,8px);gap:4px;place-content:center;transform:rotate(-12deg);box-shadow:0 0 18px rgba(22,126,122,.25)}.brand-icon span{border-radius:3px;background:#adede0}.brand-icon span:nth-child(2){opacity:.5}.brand-icon span:nth-child(3){opacity:.78}.brand-icon span:nth-child(4){background:white}.brand-word strong{font-size:20px;font-weight:800;letter-spacing:-1.2px;display:block;line-height:1.2}.brand-word small{font-size:8px;letter-spacing:1.2px;color:#83b2b7;font-weight:800}.sidebar-section-label{font-size:10px;color:#77969d;letter-spacing:1.7px;font-weight:800;margin:52px 17px 13px}.sidebar nav{display:flex;flex-direction:column;gap:7px}.nav-link{border:1px solid transparent;border-radius:10px;background:transparent;color:#a7c0c5;display:flex;gap:12px;align-items:center;width:100%;text-align:left;padding:13px 12px;font-size:12px;font-weight:800;transition:.15s}.nav-link:hover{background:#183540;color:#fff}.nav-link.active{background:#1b3a43;color:#d7fff5;border-color:#36525b}.nav-glyph{font-family:system-ui;font-size:18px;width:21px;text-align:center;font-weight:500}.nav-arrow{margin-left:auto;font-size:20px}.nav-count{margin-left:auto;border-radius:7px;padding:2px 7px;background:#25444b;color:#a9dbd5}.sidebar-bottom{margin-top:auto;padding:0 9px}.deployment-note{border:1px solid #35505b;background:#153440;border-radius:13px;padding:12px 10px;display:flex;align-items:flex-start;gap:10px}.status-dot{width:7px;height:7px;border-radius:50%;background:#4ec4a5;display:inline-block;box-shadow:0 0 0 3px rgba(78,196,165,.12);margin-top:4px;flex-shrink:0}.deployment-note strong{font-size:11px;display:block}.deployment-note small{font-size:9px;display:block;margin-top:5px;line-height:1.5;color:#9fb9bf}.sidebar-bottom p{font-size:9px;color:#6e949d;line-height:1.9;margin:20px 5px 0}
 .main{min-width:0;padding:0 38px}.topbar{height:82px;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid #e4ebed;gap:12px}.topbar-location{font-size:12px;color:#617981}.topbar-location strong{color:#153944}.crumb-separator{padding:0 12px;color:#afbec3}.topbar-actions{display:flex;gap:10px;align-items:center}.connection-pill,.demo-pill{font-size:9px;font-weight:800;letter-spacing:.5px;display:inline-flex;align-items:center;gap:8px;border-radius:7px;padding:8px 10px;color:#347061;background:#e0f0ea}.connection-pill.offline{color:#966325;background:#fff1d8}.connection-pill.offline .status-dot{background:#d68c31}.demo-pill{background:#e7eeef;color:#516d71}.small-button{border:1px solid #cbdadb;border-radius:8px;padding:8px 11px;background:#fff;font-size:10px;font-weight:800;color:#365b66}.small-button:hover{border-color:#15837d}.content-section{display:none;max-width:1420px;margin:auto;padding-bottom:45px}.content-section.visible{display:block}.page-intro{padding-top:41px}.eyebrow,.panel-kicker{font-size:9px;font-weight:800;letter-spacing:1.6px;color:#2a827d}.eyebrow{display:flex;align-items:center;gap:10px}.eyebrow-line{display:inline-block;width:23px;height:2px;background:#1c9790}.page-title-row{display:flex;align-items:center;justify-content:space-between}.page-intro h1,.section-title{font-weight:800;letter-spacing:-2.5px;line-height:1.12;font-size:clamp(32px,3.55vw,56px);margin:17px 0 13px}.page-intro h1 em,.section-title em{font-style:normal;color:#08847e}.page-subtitle{font-size:12px;max-width:645px;line-height:1.85;color:var(--muted);margin:0 0 24px}.hero-orb{width:134px;height:134px;border-radius:50%;background:radial-gradient(circle at 30% 30%,#26696b,#082d3c 62%,#061d2a);display:flex;align-items:center;justify-content:center;gap:9px;color:#a4ebd9;flex-shrink:0;box-shadow:0 16px 30px rgba(0,46,46,.14);transform:rotate(-12deg)}.hero-orb span{font-size:35px}.hero-orb div{font-weight:800;font-size:10px;line-height:1.55;text-transform:uppercase;letter-spacing:1px}
@@ -149,6 +149,7 @@
   .page-intro .eyebrow{font-size:8px;letter-spacing:.7px}
   .page-intro h1{font-size:24px;letter-spacing:-1px;line-height:1.16;margin:7px 0 7px}
   .page-intro h1 br{display:none}
+.page-intro h1 em::before{content:" "}
   .page-intro .page-subtitle{font-size:10px;line-height:1.55;margin:0 0 10px}
   .blindspot-hero{margin:4px 0 11px;border-radius:13px}
   .blindspot-story{padding:15px 15px 12px}
@@ -172,3 +173,234 @@
 .handoff-panel p b{color:#28675e}
 .handoff-download{flex-shrink:0;min-height:44px;padding:11px 14px}
 @media(max-width:700px){.handoff-panel{align-items:stretch;flex-direction:column}.handoff-download{width:100%;white-space:normal}}
+
+
+/* ============================================================================
+   v2 REFINEMENT LAYER — 10 Nov 2026
+   Goals: legible type (no 8–9px body copy), stronger contrast, a work-first
+   fold on phones, a discoverable mobile nav, and brief purposeful motion.
+   Evidence logic, status wording and provenance caveats are unchanged.
+   ========================================================================= */
+
+/* --- 1. Type scale: raise micro-copy to readable sizes -------------------- */
+.page-subtitle{font-size:13px;line-height:1.75;color:var(--muted)}
+.panel-help{font-size:11.5px;color:var(--t3);line-height:1.65}
+.panel-kicker,.eyebrow{font-size:10px;letter-spacing:1.5px;color:var(--teal-dark)}
+.case-id{font-size:11px;color:var(--muted)}
+.case-title{font-size:13px}
+.case-sub{font-size:11px;color:var(--muted)}
+.case-bottom{font-size:10.5px;color:var(--t3)}
+.flag-badge{font-size:10px;padding:5px 8px}
+.queue-footnote{font-size:10.5px;color:var(--t3);line-height:1.75}
+.item-count{font-size:10px;color:var(--muted)}
+.stat-head{font-size:10px;color:var(--muted)}
+.stat-foot{font-size:10.5px;color:var(--t3)}
+.fact label{font-size:9.5px;color:var(--muted)}
+.fact small{font-size:9.5px;color:var(--t3)}
+.finding-list li{font-size:11.5px;color:#3f5a61;line-height:1.7}
+.data-footnote{font-size:10.5px;color:var(--t3);line-height:1.75}
+.unit-row code{font-size:11px}
+.unit-row small{font-size:10px;color:var(--t3)}
+.unit-row button{font-size:10.5px}
+.form-card p{font-size:11.5px;color:var(--muted)}
+.form-card select,.form-card textarea{font-size:12px}
+.field-label{font-size:11px;color:#3f5f67}
+.action-button{font-size:11px}
+.review-status{font-size:11px;line-height:1.75}
+.audit-peek{font-size:10.5px;color:var(--muted);line-height:1.75}
+.bottom-disclaimer{font-size:11px;color:var(--muted);line-height:1.85}
+.benchmark-table th{font-size:10px;color:var(--muted)}
+.benchmark-table td{font-size:11px}
+.table-tag{font-size:9.5px}
+.method-warning{font-size:11px;color:#7d4f12}
+.explain-card p,.method-card p{font-size:11.5px;color:#48646b}
+.audit-row h3{font-size:12px}
+.audit-row p{font-size:11px;color:var(--muted)}
+.audit-row time{font-size:10px;color:var(--t3)}
+.chart-legend{font-size:10.5px;color:var(--muted)}
+.chart-top{font-size:10.5px;color:var(--muted)}
+.main-footer{font-size:10px;color:var(--t3);letter-spacing:.8px}
+.deployment-note strong{font-size:11.5px}
+.deployment-note small{font-size:10px;color:#9db7bd}
+.brand-word small{font-size:9px;letter-spacing:1.1px}
+.proof-caption{font-size:10px;color:#a8c3c7}
+.proof-title{font-size:11.5px}
+.blindspot-story p{font-size:12px;line-height:1.8}
+.blindspot-kicker{font-size:10px}
+.quality-metric span{font-size:10.5px}
+.quality-metric small{font-size:10px;color:#5d777c;line-height:1.7}
+.quality-disclaimer{font-size:11px;color:var(--muted);line-height:1.85}
+.quality-example b{font-size:11px}
+.quality-example>span,.quality-example code{font-size:11px}
+.quality-example small{font-size:10px;color:var(--t3);line-height:1.75}
+.decision-banner strong{font-size:12px}
+.decision-banner p{font-size:11px;line-height:1.75}
+.role-tag{font-size:9.5px}
+.provenance-summary-text small{font-size:11px;color:var(--t3)}
+.connection-pill,.demo-pill{font-size:10px}
+.small-button{font-size:11px}
+.workflow-steps span{font-size:11px}
+.workflow-steps b{font-size:10px}
+.workflow-label{font-size:10px}
+.sidebar-section-label{font-size:10px;color:#86a4ab}
+.nav-link{font-size:12.5px}
+
+/* --- 2. Cull the control-room fold: the page title is a label, not a slogan */
+.page-intro{padding-top:26px}
+.page-intro h1{font-size:clamp(20px,1.9vw,28px);letter-spacing:-.9px;line-height:1.2;margin:12px 0 8px;max-width:30ch}
+.page-intro h1 br{display:none}
+.page-intro h1 em::before{content:" "}
+.page-title-row{align-items:flex-end}
+.page-intro .page-subtitle{margin-bottom:18px}
+.blindspot-hero{margin-top:4px}
+
+/* --- 1b. Remaining micro-copy and low-contrast stragglers ---------------- */
+.sidebar-bottom p{font-size:10px;line-height:1.75}
+.section-divider small{font-size:10px}
+.chart-top b{font-size:10px}
+.proof-result small{font-size:10.5px;color:#aac4c8}
+.large-metric span{font-size:10px}
+.benchmark-metric b{font-size:10.5px;color:var(--muted)}
+.benchmark-metric small{font-size:10.5px;color:var(--t3)}
+.method-number{font-size:10px}
+.role-tag{font-size:10px}
+.fact label{font-size:10px}
+.brand-word small{font-size:10px}
+.topbar-location{color:var(--muted)}
+.topbar-location strong{color:var(--ink)}
+.empty-audit{color:var(--muted)}
+
+/* --- 1c. Final contrast pass: every remaining sub-4.5:1 label ------------ */
+.detail-head p{color:var(--muted)}
+.section-divider small{color:var(--t3)}
+.unit-row small{color:var(--t3)}
+.chart-top b{color:var(--teal-dark)}
+.role-tag{color:var(--teal-dark)}
+.role-tag.reviewer{color:#6b3f7d}
+.handoff-panel p{color:var(--muted)}
+
+/* --- 2b. Work-first fold at every width ----------------------------------
+   The review queue and the open case are the product. The summary counters
+   and the control-loop diagram are orientation, so they follow the work
+   instead of pushing it under the fold. DOM order is unchanged for
+   assistive tech reading order parity with the visual order below. */
+#section-overview.visible{display:flex;flex-direction:column}
+#section-overview .page-intro{order:1}
+#section-overview .blindspot-hero{order:2}
+#section-overview .workspace-grid{order:3}
+#section-overview .stat-grid{order:4;margin-top:17px}
+#section-overview .workflow-band{order:5}
+#section-overview .bottom-disclaimer{order:6}
+
+/* --- 2c. Trim the signature hero so the queue clears a 900px-tall laptop -- */
+.blindspot-story{padding:23px 26px 24px}
+.blindspot-story h2{font-size:clamp(21px,2.15vw,31px);margin:14px 0 9px}
+.blindspot-story p{margin-bottom:14px}
+.blindspot-proof{padding:19px 22px}
+.proof-number{font-size:32px}
+
+/* --- 3. Status colour discipline (icon + word always, never colour alone) - */
+.flag-badge.gap,.flag-badge.glitch{color:var(--amber);background:var(--amber-bg)}
+.flag-badge.excursion{color:var(--red);background:var(--red-bg)}
+.flag-badge.clear{color:var(--green);background:var(--green-bg)}
+.table-tag.yes{color:var(--amber);background:var(--amber-bg)}
+.table-tag.no{color:var(--green);background:var(--green-bg)}
+.table-tag.missed{color:var(--red);background:var(--red-bg)}
+.case-option.selected{border-color:var(--teal);background:#eef9f6;box-shadow:inset 3px 0 var(--teal)}
+
+/* --- 4. Case rows read as rows of work ------------------------------------ */
+.case-option{transition:border-color .16s var(--ease),background .16s var(--ease),transform .16s var(--ease)}
+.case-option:hover{border-color:#8dcfbb;background:#fcfffe}
+.case-option:active{transform:translateY(1px)}
+
+/* --- 5. Status toast is an announcement, never an obstacle ---------------
+   role="status" is not interactive, so it must never swallow a tap meant for
+   the reviewer buttons underneath it on a small screen. */
+.toast{pointer-events:none}
+@media(max-width:520px){
+  .toast{left:12px;right:12px;bottom:12px;max-width:none;padding:14px 16px;font-size:12.5px}
+}
+
+/* ============================ RESPONSIVE ================================= */
+@media(max-width:880px){
+  /* 4a. Compact, sticky header so nav is always reachable on a phone */
+  .sidebar{position:sticky;top:0;z-index:30;padding:10px 14px 11px;box-shadow:0 6px 18px rgba(7,26,35,.14)}
+  .sidebar .brand{margin-bottom:9px}
+  .brand-icon{width:31px;height:31px}
+  .brand-word strong{font-size:17px}
+
+  /* 4b. Nav scroll affordance: the edge fades and the next item peeks in */
+  .sidebar nav{scroll-snap-type:x proximity;scrollbar-width:none;-webkit-overflow-scrolling:touch;
+    -webkit-mask-image:linear-gradient(90deg,#000 calc(100% - 26px),rgba(0,0,0,.12));
+    mask-image:linear-gradient(90deg,#000 calc(100% - 26px),rgba(0,0,0,.12))}
+  .sidebar nav::-webkit-scrollbar{display:none}
+  .nav-link{scroll-snap-align:start;font-size:12px;padding:10px 11px}
+
+  .page-intro{padding-top:18px}
+  .page-intro h1{font-size:21px;letter-spacing:-.6px;margin:10px 0 6px}
+  .stat-grid{margin-top:4px}
+}
+
+@media(max-width:520px){
+  .main{padding:0 14px}
+  /* On a phone the control-room intro only repeats what the hero says next,
+     so the decorative eyebrow and the duplicated subtitle give way to the
+     evidence. The heading itself stays for orientation and screen readers. */
+  #section-overview .page-intro .eyebrow,
+  #section-overview .page-intro .page-subtitle{display:none}
+  #section-overview .page-intro h1{font-size:18px;margin:0 0 4px;letter-spacing:-.4px}
+  #section-overview .page-intro{padding-top:14px}
+  /* Keep the top bar on one line: trim the crumb, never the status wording. */
+  .topbar{gap:8px}
+  .crumb,.crumb-separator{display:none}
+  .topbar-location strong{font-size:12px;white-space:nowrap}
+  .connection-pill,.small-button{white-space:nowrap;flex-shrink:0;padding:7px 9px}
+  .connection-pill{font-size:9.5px}
+  /* Tagline is decoration at this width; the wordmark carries the identity. */
+  .brand-word small{display:none}
+  .page-intro h1{font-size:20px}
+  .page-subtitle{font-size:12.5px}
+  .blindspot-story{padding:19px 17px 15px}
+  .blindspot-story h2{font-size:25px}
+  .blindspot-proof{padding:18px 17px}
+  .stat{min-height:0;padding:13px 14px}
+  .stat-value{font-size:24px}
+  .stat-icon{width:25px;height:25px;font-size:13px}
+  .panel{padding:15px}
+  /* Keep every status chip and reading legible rather than shrinking them. */
+  .case-title{font-size:12.5px}
+  .benchmark-table td,.benchmark-table th{padding:11px 8px}
+}
+
+@media(max-width:385px){
+  .main{padding:0 12px}
+  .nav-link{padding:10px 9px;gap:8px}
+  .nav-glyph{font-size:16px;width:17px}
+  .blindspot-story h2{font-size:23px}
+}
+
+/* ============================ MOTION =====================================
+   Brief, state-confirming only. Nothing animates before a state transition
+   succeeds, and nothing celebrates a blood-safety outcome.
+   Reduced motion is the safe default: these rules never apply under it.
+   ======================================================================== */
+@media(prefers-reduced-motion:no-preference){
+  @keyframes tl-rise{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
+  @keyframes tl-toast{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:none}}
+  @keyframes tl-gap{from{opacity:0;transform:scaleX(.86)}to{opacity:1;transform:none}}
+
+  /* Case switch: confirms the detail pane reloaded for the row you picked. */
+  #case-detail.is-switching{animation:tl-rise 200ms var(--ease) both}
+
+  /* The 57h void expands into place so the absence is what draws the eye. */
+  .evidence-chart .gap-zone{transform-box:fill-box;transform-origin:center;
+    animation:tl-gap 260ms var(--ease) both}
+
+  /* Shown only after a decision is recorded, never in anticipation of one. */
+  .decision-banner{animation:tl-rise 220ms var(--ease) both}
+  .toast:not([hidden]){animation:tl-toast 220ms var(--ease) both}
+
+  .nav-link,.action-button,.small-button,.unit-row button{transition:background .15s var(--ease),
+    color .15s var(--ease),border-color .15s var(--ease),transform .15s var(--ease)}
+  .action-button:active,.unit-row button:active{transform:translateY(1px)}
+}

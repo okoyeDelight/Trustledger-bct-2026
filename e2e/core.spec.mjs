@@ -54,6 +54,21 @@ test("evidence lab is honest about rule-based baseline parity", async ({ page })
   await expect(page.locator("#benchmark-table tr")).toHaveCount(4);
 });
 
+test("navigating away hides the previous section instead of stacking routes", async ({ page }) => {
+  // Regression guard: a layout rule on #section-overview once outranked
+  // .content-section{display:none}, leaving the control room on screen
+  // underneath every other route while its own assertions still passed.
+  const sections = ["overview", "evidence", "audit", "methods"];
+  for (const name of sections) {
+    if (name !== "overview") await page.locator(`[data-nav="${name}"]`).click();
+    for (const other of sections) {
+      const locator = page.locator(`#section-${other}`);
+      if (other === name) await expect(locator).toBeVisible();
+      else await expect(locator).toBeHidden();
+    }
+  }
+});
+
 test("screen is usable at the selected viewport without global overflow", async ({ page }) => {
   const sizes = await page.evaluate(() => ({
     scroll: document.documentElement.scrollWidth,

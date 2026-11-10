@@ -152,3 +152,98 @@ Added opt-in GitHub Pages workflow `.github/workflows/deploy-pages.yml` that dep
 ## 10 Nov afternoon update — concrete connected-systems demo, not pretend backend
 
 `src/engine.js` now exports `buildHandoffPacket` for `trustledger.synthetic-handoff.v1`: exact source readings, power context, uncertainty flags, *fictional* unit occupancy, mock reviewer disposition and issue attempts. `src/app.js` adds real JSON download from any selected case. Tests in `tests/engine.test.mjs` and `e2e/core.spec.mjs` verify source fidelity, `clinical_release_authorized: false`, and `EXPORT_ONLY_NO_EXTERNAL_SYSTEM_CONNECTED`. It does NOT call an external hospital system. Frontend design may polish the new `.handoff-panel`, but do not add staff login UI without real authentication. Eight-slide factual pitch has been rendered in editable PPTX and PDF locally; source `submission/PITCH_8_SLIDES.md` remains the storyline. Still need public HTTPS demo, recorded screen video, organizer-approved public code access.
+
+
+## Frontend refinement pass — 10 Nov 2026, Claude Code (branch `ccr-4df49a1d-bwkn1s`)
+
+**Scope:** colour system, type legibility, work-first fold, mobile navigation
+affordance and brief purposeful motion. **No change to evidence logic.**
+`src/engine.js`, `src/source_evidence.js`, `src/custody_fixtures.js`, every
+data script and all status/provenance wording are untouched.
+
+### Files edited
+- `styles.css` — new `:root` token values plus an appended, commented "v2
+  refinement layer". No existing rule was deleted.
+- `index.html` — removed the decorative `.hero-orb` only.
+- `src/app.js` — three presentation-only edits: `gap-zone` class on the chart's
+  missing-interval rect/label, an `is-switching` class on case switch, and SVG
+  axis labels raised from 9px to 10px.
+- `e2e/core.spec.mjs` — **added** one regression test (nothing removed/skipped).
+
+### What changed and why
+1. **Work-first fold.** `#section-overview` is now a flex column that orders the
+   review queue and open case *above* the summary counters and the control-loop
+   diagram. DOM order is unchanged, so reading order for assistive tech still
+   matches the source. At 1440×900 the queue, the open case, the REVIEW REQUIRED
+   banner and the 57h gap are all above the fold; previously the first case row
+   sat at roughly 1,150px.
+2. **Mobile intro culled.** At ≤520px the decorative eyebrow and the subtitle
+   (which only repeats the hero paragraph below it) are hidden and the heading
+   drops to 18px. The `#page-title` text is unchanged and still present.
+3. **Legibility.** Minimum rendered body text went from **9px to 10px**, and
+   measured colour-contrast failures on the control room went from **29 to 0**
+   (see audit method below). `--t3` was darkened to `#526b74`.
+4. **Mobile nav discoverability.** The nav strip now has a right-edge fade mask
+   plus scroll-snap, so the truncated fourth item reads as scrollable, and the
+   header is sticky so the audit route stays reachable while scrolling.
+5. **Motion.** Added `tl-rise`, `tl-gap` and `tl-toast` keyframes, all 200–260ms,
+   all nested inside `@media(prefers-reduced-motion:no-preference)` so reduced
+   motion is the safe default rather than an override. Motion only confirms a
+   state that already changed; nothing celebrates a safety outcome.
+6. **Toast hardened.** `.toast` is now `pointer-events:none` (it is `role=status`,
+   never interactive) and spans the width at ≤520px, so it cannot swallow a tap
+   meant for the reviewer buttons underneath it.
+
+### Bug found and fixed during visual review
+`#section-overview{display:flex}` (an ID selector) outranked
+`.content-section{display:none}`, so **the control room stayed rendered
+underneath every other route**. The existing suite did not catch this because
+each route's assertions still passed against its own visible content. Fixed by
+scoping the rule to `#section-overview.visible`, and a regression test was added:
+`navigating away hides the previous section instead of stacking routes`.
+The test was confirmed to **fail** against the reintroduced bug and pass after
+the fix, so it is a real guard and not a tautology.
+
+### Tests actually run (all local, this container)
+| Command | Result |
+|---|---|
+| `npm test` | **17 passed, 0 failed** |
+| `python3 -m unittest discover -s tests -p "test_*.py"` | **9 passed (OK)** |
+| `npx playwright test` (3 Chromium projects) | **45 passed** (42 pre-existing + 1 new × 3 projects) |
+
+**Playwright infrastructure note:** the repo pins `@playwright/test` 1.64.1,
+which expects browser build `chromium_headless_shell-1248`. This container only
+provides build 1243 at `/opt/pw-browsers/`, so `npx playwright test` with the
+committed config fails to launch with *"Executable doesn't exist"* — 42 failed
+before any page load. The runs above used a local-only config overriding
+`launchOptions.executablePath` to `/opt/pw-browsers/chromium`. **The committed
+`playwright.config.mjs` was deliberately left unchanged** so GitHub Actions, which
+installs its own browsers, is unaffected. Anyone reproducing locally in this
+image needs the same override. **GitHub Actions has not been re-run for this
+commit at the time of writing — check the latest run before claiming CI green.**
+
+### Verification evidence
+- Screenshots captured at **1440×900, 390×844 and 360×800** for the control
+  room, plus evidence lab / decision audit / methods at 1440×900 and 360×800.
+- `document.scrollWidth - clientWidth === 0` at all three viewports.
+- Click-through on desktop and 360px: case switch, blocked mock issue
+  (`MOCK ISSUE BLOCKED`), operator proposal, reviewer accept
+  (`Authorized hold recorded`). **0 console errors.**
+- Contrast audited by computing WCAG ratios on rendered colours against the
+  nearest opaque ancestor background for every visible text node.
+
+### Not done / still open
+- **Contrast was audited on the control room only.** The evidence lab, audit and
+  methods sections were inspected visually but not measured. Do that next.
+- **No screen-reader pass and no keyboard tab-order audit.** Accessibility is
+  still not sign-off ready.
+- The flex `order` property creates a visual order that differs from DOM order
+  for sighted keyboard users; tab sequence follows DOM. This is a known
+  trade-off, not yet user-tested.
+- Hero still occupies most of the first screen at 360px; the queue header is
+  reached but individual case rows need one short scroll.
+- Demo video, slides and public hosting remain the critical path before the
+  11 Nov 10:00 WAT deadline. This pass did not touch them.
+
+**Next owner:** record the demo against this UI. Do not start another visual
+pass until the video, slides and hosted URL exist.

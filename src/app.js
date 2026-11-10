@@ -137,19 +137,19 @@ function plot(s) {
       : '<circle cx="' + x(p.t) + '" cy="' + y(p.v) + '" r="5" fill="' +
         (bad ? "#c15d49" : "#0d978b") + '" stroke="#fff" stroke-width="2"/>';
   }).join("");
-  const gapOverlay = gap ? '<rect x="' + (gap.from + 11) + '" y="20" width="' +
+  const gapOverlay = gap ? '<rect class="gap-zone" x="' + (gap.from + 11) + '" y="20" width="' +
     Math.max(0, gap.to - gap.from - 22) +
-    '" height="104" rx="6" fill="#faeedb" opacity=".8"/><text x="' +
-    ((gap.from + gap.to) / 2) + '" y="76" font-size="12" text-anchor="middle" font-weight="800" fill="#a77731">57h no readings</text>' : "";
+    '" height="104" rx="6" fill="#faeedb" opacity=".8"/><text class="gap-zone" x="' +
+    ((gap.from + gap.to) / 2) + '" y="76" font-size="12" text-anchor="middle" font-weight="800" fill="#8c5712">57h no readings</text>' : "";
   return '<div class="evidence-chart"><div class="chart-top"><span>Temperature readings (°C)</span><b>ILLUSTRATIVE 2–6°C BAND</b></div>' +
     '<svg viewBox="0 0 640 147" role="img" aria-label="Temperature evidence for ' + escapeHtml(s.title) +
     '. Breaks indicate missing readings."><rect x="26" y="' + y(6) + '" width="588" height="' +
     (y(2) - y(6)) + '" fill="#dcefe8" opacity=".5"/>' +
     vertical + horizontal + gapOverlay + lines + dots +
-    '<text x="2" y="' + (y(6) + 3) + '" fill="#8ca5a2" font-size="9">6°</text>' +
-    '<text x="2" y="' + (y(2) + 3) + '" fill="#8ca5a2" font-size="9">2°</text>' +
-    '<text x="26" y="143" fill="#82979a" font-size="9">' + escapeHtml(sensorDate(s.readings[0].at)) +
-    '</text><text x="614" y="143" text-anchor="end" fill="#82979a" font-size="9">' +
+    '<text x="2" y="' + (y(6) + 3) + '" fill="#8ca5a2" font-size="10">6°</text>' +
+    '<text x="2" y="' + (y(2) + 3) + '" fill="#8ca5a2" font-size="10">2°</text>' +
+    '<text x="26" y="143" fill="#82979a" font-size="10">' + escapeHtml(sensorDate(s.readings[0].at)) +
+    '</text><text x="614" y="143" text-anchor="end" fill="#82979a" font-size="10">' +
     escapeHtml(sensorDate(s.readings.at(-1).at)) + '</text></svg>' +
     '<div class="chart-legend"><span><span class="legend-dot"></span>Plausible reading</span><span><span class="legend-dot bad"></span>Out-of-band</span><span><span class="legend-dot unknown"></span>Missing/invalid data</span></div></div>';
 }
@@ -304,7 +304,18 @@ document.addEventListener("click", event => {
   const nav = target.closest("[data-nav]");
   if (nav) { navigate(nav.dataset.nav); return; }
   const card = target.closest("[data-case-id]");
-  if (card) { selectedId = card.dataset.caseId; renderCaseList(); renderDetail(); return; }
+  if (card) {
+    selectedId = card.dataset.caseId;
+    renderCaseList();
+    renderDetail();
+    const detail = $("case-detail");
+    if (detail) {
+      detail.classList.remove("is-switching");
+      void detail.offsetWidth;
+      detail.classList.add("is-switching");
+    }
+    return;
+  }
   if (target.closest("[data-export-handoff]")) {
     try {
       const packet = buildHandoffPacket(state, selectedId);

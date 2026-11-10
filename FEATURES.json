@@ -32,9 +32,9 @@
       "id": "high-craft-design",
       "title": "Clinical-grade operational visual design",
       "implemented": true,
-      "browser_verified": false,
+      "browser_verified": true,
       "priority": "P0",
-      "next_action": "Claude: inspect screenshot artifact and improve small-text density, information hierarchy and visual finesse; visual sign-off remains pending"
+      "next_action": "Control-room fold, colour tokens, type scale and motion refined and browser-verified at 1440x900/390x844/360x800. Next: measure contrast on evidence lab, audit and methods sections."
     },
     {
       "id": "mobile-accessibility",
@@ -42,7 +42,7 @@
       "implemented": false,
       "browser_verified": false,
       "priority": "P0",
-      "next_action": "Browser responsive/overflow test passes at 360px; improve horizontal navigation discoverability and complete contrast/keyboard/screen-reader audit"
+      "next_action": "Min body text raised 9px->10px; control-room contrast failures 29->0; nav fade/scroll-snap affordance and sticky header added; no horizontal overflow at 360px. Still outstanding: screen-reader pass, keyboard tab-order audit, contrast on remaining sections."
     },
     {
       "id": "evidence-hero",
@@ -50,15 +50,15 @@
       "implemented": true,
       "browser_verified": true,
       "priority": "P0",
-      "next_action": "Reduce mobile first-fold height without losing 4.2°C vs 57h contrast"
+      "next_action": "Mobile first-fold reduced: duplicated intro culled and queue ordered above summary counters; 4.2C vs 57h contrast preserved. Queue header now reached on the 360x800 first screen."
     },
     {
       "id": "microinteraction",
       "title": "Meaningful brief transitions and feedback states",
-      "implemented": false,
-      "browser_verified": false,
+      "implemented": true,
+      "browser_verified": true,
       "priority": "P2",
-      "next_action": "Only after core browser tests and accessibility pass"
+      "next_action": "Implemented: 200-260ms case-switch, evidence-gap reveal, decision banner and toast, all gated behind prefers-reduced-motion:no-preference and verified not to run under reduced motion."
     },
     {
       "id": "demo-capture",
@@ -77,7 +77,7 @@
       "next_action": "Show data-quality audit section in Chrome; verify 55 sensor sentinels, 387 gaps, 1,852 name variants and raw->validated examples against source report."
     }
   ],
-  "verified_browser_run": "https://github.com/okoyeDelight/Trustledger-bct-2026/actions/runs/42815304722",
-  "browser_test_result": "21 passed on desktop, Pixel7-like and 360px Chromium",
+  "verified_browser_run": "local container run 10 Nov 2026; see HANDOFF.md for the Playwright browser-build override required in this image",
+  "browser_test_result": "45 passed locally on desktop, Pixel7-like and 360px Chromium (42 pre-existing + 1 new route-isolation regression test x 3 projects). GitHub Actions not yet re-run for this commit.",
   "screenshot_artifact_id": "13763154796"
 }
