@@ -152,3 +152,12 @@ Added opt-in GitHub Pages workflow `.github/workflows/deploy-pages.yml` that dep
 ## 10 Nov afternoon update — concrete connected-systems demo, not pretend backend
 
 `src/engine.js` now exports `buildHandoffPacket` for `trustledger.synthetic-handoff.v1`: exact source readings, power context, uncertainty flags, *fictional* unit occupancy, mock reviewer disposition and issue attempts. `src/app.js` adds real JSON download from any selected case. Tests in `tests/engine.test.mjs` and `e2e/core.spec.mjs` verify source fidelity, `clinical_release_authorized: false`, and `EXPORT_ONLY_NO_EXTERNAL_SYSTEM_CONNECTED`. It does NOT call an external hospital system. Frontend design may polish the new `.handoff-panel`, but do not add staff login UI without real authentication. Eight-slide factual pitch has been rendered in editable PPTX and PDF locally; source `submission/PITCH_8_SLIDES.md` remains the storyline. Still need public HTTPS demo, recorded screen video, organizer-approved public code access.
+
+
+## Organizer's new blood_system.sqlite verified (10 Nov, ~17:30 WAT)
+
+The team chat reports Hany added `blood_system.sqlite`, and Isaac already contacted a blood-service expert; **expert answer not yet received**. Accessed the real file via organizer's [Applicant's Kit](https://drive.google.com/drive/folders/1e4gcSnUvbao73maOT3-THjgUBtMQJDa-); downloaded 45,514,752-byte SQLite and opened read-only. Detailed findings: [docs/SQLITE_SOURCE_RECONCILIATION_2026-11-10.md](docs/SQLITE_SOURCE_RECONCILIATION_2026-11-10.md).
+
+11 tables, same column names and row counts as original CSVs (including 399,280 temperature logs, 49,426 units, 35,181 transfers). **No fridge/device/unit occupancy mapping, declared foreign keys or explicit indexes**. Readings for HSP-024 remain 57 missing expected hours; outage OUT-00009 unchanged. Counts and schema confirmed; full rowwise equality not claimed. SQLite is a queryable synthetic data source, **not our app's operational backend**.
+
+**Action:** do not pivot architecture or change clinical workflow because the file extension changed. Await expert feedback about staff roles, escalation and closure; preserve existing working demo and prioritize deployment/video/submission. Don't send a second expert inquiry duplicating Isaac's action.
