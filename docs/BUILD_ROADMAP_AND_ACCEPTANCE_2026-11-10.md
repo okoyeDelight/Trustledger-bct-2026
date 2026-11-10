@@ -21,8 +21,8 @@ A duty worker can see an incident generated from original monitoring data or rep
 - **Repo:** Keep one implementation in this repository. Stop creating separate Vercel copies and unmerged experiments. Protect working code; use branches/preview deployments for changes and merge only after tests.
 - **Frontend:** Reuse and simplify existing mobile-responsive HTML/CSS/JS and tested source-aware engine. Avoid framework migration without clear necessity.
 - **Hosting:** Existing Git-connected Vercel project and fixed production URL; commits merged to main redeploy it. Preview branches for verification.
-- **Persistent data + authentication:** Prefer one hosted PostgreSQL/Auth service (e.g., Supabase Free initially) to minimize complexity. Free quota/pause limits exist; it is for synthetic sandbox, not regulated operations. Credentials configured only through hosting provider secrets, never in repository or chat.
-- **Server:** Narrow ingestion/API layer enforcing schema, source auth, deduplication, role checks and append-only events. Never trust client-provided roles/statuses.
+- **Persistent data + authentication:** Use a new Neon PostgreSQL database + separate Clerk organization-based authentication (as independently employed in StandPilot). These are separate TrustLedger accounts/projects, not shared data or credentials with StandPilot. Free quota/pause limits exist; synthetic evaluation only. Credentials only in provider secrets, never in repository or chat.
+- **Server:** Narrow same-origin Vercel Functions ingestion/API layer enforcing schema, source auth, deduplication, role checks and append-only events. Never trust client-provided roles/statuses.
 - **Security minimum:** Invite-only operator, reviewer and admin accounts; per-facility data scope; least-privilege row-level access; server-enforced separation of submitter and reviewer; audit trail not editable in ordinary UI.
 
 ## The single end-to-end workflow (one source, one facility first)
