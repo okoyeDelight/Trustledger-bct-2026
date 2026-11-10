@@ -203,6 +203,30 @@ export function review(state, caseId, decision, note) {
   next.audit.unshift(stamp("Quality reviewer (simulated)", decision.toUpperCase(), caseId, disposition + " · " + note.trim()));
   return next;
 }
+
+/**
+ * Finalize a simulated incident review without asserting clinical clearance.
+ * Incomplete/abnormal temperature evidence is NOT repaired by a note.
+ * A case may be administratively documented or referred, while mock issue
+ * remains blocked until a distinct, site-authorized clinical process exists.
+ */
+export function closeReview(state, caseId, resolution, note) {
+  const s = SCENARIOS.find(c => c.id === caseId), c = state.cases[caseId];
+  if (!s || !c) throw new Error("Unknown case");
+  if (!["authorized_hold", "authorized_investigation"].includes(c.disposition))
+    throw new Error("A reviewer must authorize the investigation or hold first");
+  if (!["continued_hold", "refer_site_authority"].includes(resolution))
+    throw new Error("Invalid closure outcome");
+  if ((note || "").trim().length < 18)
+    throw new Error("Document the supporting evidence and next action (minimum 18 characters)");
+  const next = snapshot(state);
+  const disposition = resolution === "continued_hold" ? "review_documented_hold" : "referred_site_authority";
+  next.cases[caseId] = { ...c, disposition, closureNote: note.trim(), closureOutcome: resolution };
+  next.audit.unshift(stamp("Quality reviewer (simulated)", "REVIEW_CLOSED_NO_RELEASE", caseId,
+    disposition + " · " + note.trim()));
+  return next;
+}
+
 export function issueGuard(state, caseId, unitId) {
   const s = SCENARIOS.find(c => c.id === caseId);
   if (!s || !s.units.includes(unitId)) throw new Error("Unit not in this synthetic case mapping");
