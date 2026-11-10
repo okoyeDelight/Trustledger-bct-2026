@@ -6,6 +6,7 @@ const status = byId('status');
 let clerk = null;
 let facilities = [];
 let active = '';
+let signInMounted = false;
 
 const setStatus = message => {status.textContent = message;};
 function script(src) {
@@ -51,11 +52,11 @@ async function renderAuth() {
     signCard.hidden=false;
     setStatus('Sign in to your authorized TrustLedger staff account.');
     const mount=byId('sign-in');
-    mount.replaceChildren();
-    clerk.mountSignIn(mount);
+    if(!signInMounted){mount.replaceChildren();clerk.mountSignIn(mount);signInMounted=true;}
     return;
   }
   signCard.hidden=true;
+  if(signInMounted) { try {clerk.unmountSignIn(byId('sign-in'));} catch {} signInMounted=false; }
   signedArea.hidden=false;
   byId('staff-name').textContent=clerk.user.fullName||clerk.user.firstName||'Staff member';
   if(lastUserId!==clerk.user.id) {
@@ -102,6 +103,7 @@ async function loadSession() {
     byId('no-access').hidden=false;
     byId('authorized').hidden=true;
     byId('staff-description').textContent=e.message;
+    byId('staff-id').textContent=clerk?.user?.id||'';
   }
 }
 async function loadIncidents() {
@@ -133,7 +135,11 @@ document.querySelectorAll('[data-tab]').forEach(button=>button.addEventListener(
 byId('report-form').addEventListener('submit',async event=>{
   event.preventDefault();
   const form=event.currentTarget;
-  const report={category:form.category.value,title:form.title.value,description:form.description.value};
+  const report={
+    category:form.elements.namedItem('category').value,
+    title:form.elements.namedItem('title').value,
+    description:form.elements.namedItem('description').value
+  };
   const button=form.querySelector('button[type="submit"]');
   button.disabled=true;
   try {
