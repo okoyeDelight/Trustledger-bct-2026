@@ -2,12 +2,12 @@
 
 ## Status
 - Separate Neon project: `trustledger-incident-operations` (`frosty-dawn-57250959`), independent from StandPilot.
-- Reviewed SQL migration: `db/migrations/001_initial.sql`; prepared/tested on isolated branch before production application.
+- Reviewed SQL migration: `db/migrations/001_initial.sql`; applied to the separate Neon main database after user approval on 10 Nov 2026; all nine tables confirmed. The temporary validation branch was deleted.
 - Auth architecture: Clerk JWT verified by server. The database stores *facility-scoped* staff memberships and roles; never accept a role supplied by browser request.
-- Vercel's production site remains on its stable link and existing demo behavior until server migration and verified two-browser login.
+- Vercel's production site remains on its stable link and existing demo behavior until API authentication and verified two-browser login.
 
 ## First shared-data acceptance
-1. Facility admin creates/invites test operator and independent test reviewer.
+1. Create/configure a distinct TrustLedger Clerk app and server-only deployment variables, then provision staff identities and authorized facility memberships.
 2. Server confirms Clerk session and membership for every read/write.
 3. A test incident is created; both authorized accounts can read the same row after refresh.
 4. Operator cannot approve their own incident. Reviewer can write a reasoned decision, which becomes an append-only event.
@@ -17,6 +17,11 @@
 `tl_facilities`, `tl_memberships`, `tl_data_sources`, `tl_imports`, `tl_temperature_readings`, `tl_incidents`, `tl_incident_evidence`, `tl_incident_events`, and `tl_followups`.
 
 Readings preserve original raw values and source row/timestamp. Incident evidence records keep provenance. Facility-scope checks and role transitions must be enforced at API layer. This schema alone does not confer secure authentication or a regulated immutable audit: table owner can still alter records, and a privileged DB connection must never be exposed.
+
+## Applied database check
+- Project: `frosty-dawn-57250959`, database: `trustledger`, default branch: `main`.
+- Verified: nine `tl_*` tables exist; `tl_facilities`, `tl_memberships`, `tl_incidents`, `tl_incident_events` and `tl_data_sources` are empty.
+- No test accounts, facility membership, real incident data, or web connection have been enabled yet.
 
 ## Deployment prerequisites
 - New or appropriate dedicated Clerk app for TrustLedger (do not reuse StandPilot's app or staff membership).
