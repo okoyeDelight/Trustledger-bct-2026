@@ -7,6 +7,7 @@
   <meta name="description" content="TrustLedger: evidence-led cold-chain exception to authorized review, built for the Terumo BCT Africa Hackathon 2026. Synthetic prototype only.">
   <title>TrustLedger · Cold-chain evidence to action</title>
   <link rel="stylesheet" href="./styles.css">
+  <link rel="stylesheet" href="./operation-studio.css">
 </head>
 <body>
   <div class="app-shell">
@@ -34,38 +35,30 @@
       </div>
 
       <section class="content-section visible" id="section-overview" aria-labelledby="page-title">
-        <div class="page-intro">
-          <div class="eyebrow"><span class="eyebrow-line"></span> COLD-CHAIN CONTROL SYSTEM · PROTOTYPE 01</div>
-          <div class="page-title-row"><div><h1 id="page-title">From uncertainty<br><em>to accountable action.</em></h1><p class="page-subtitle">Check the evidence. Document a human decision. Test the simulated issue restriction.</p></div></div>
-        </div>
+        <header class="page-intro" aria-label="Incident desk introduction">
+          <div class="eyebrow"><span class="eyebrow-line"></span> OPERATIONS DESK <span class="intro-ref">/ COLD CHAIN / 01</span></div>
+          <div class="page-title-row"><div><h1 id="page-title">From uncertainty <em>to accountable action.</em></h1><p class="page-subtitle">A single place to examine a monitoring exception, record a human decision, and test its issue restriction.</p></div><div class="desk-status"><span class="desk-status-dot"></span> 4 synthetic cases <small>· Local demonstration</small></div></div>
+        </header>
         <article class="blindspot-hero" aria-labelledby="blindspot-headline">
           <div class="blindspot-story">
-            <span class="blindspot-kicker"><span class="pulse-pin" aria-hidden="true"></span> WORKING SYNTHETIC DEMO · CASE TL-024</span>
-            <h2 id="blindspot-headline">A normal reading.<br><em>57 hours unknown.</em></h2>
-            <p>HSP-024's synthetic facility feed resumes at a normal temperature. But <strong>57 expected hourly readings are missing.</strong> TrustLedger won't mistake missing evidence for safety.</p>
-            <a class="blindspot-action" href="#case-detail">Investigate the evidence <span aria-hidden="true">↗</span></a>
+            <span class="blindspot-kicker"><span class="pulse-pin" aria-hidden="true"></span> PRIORITY EXCEPTION <span class="hero-split">/</span> TL-024 <span class="hero-split">/</span> HSP-024</span>
+            <h2 id="blindspot-headline">A normal reading. <em>57 hours unknown.</em></h2>
+            <p>57 expected hourly measurements are absent. The last value cannot verify the missing interval.</p>
+            <a class="blindspot-action" href="#case-detail">Open case <span aria-hidden="true">↗</span></a>
           </div>
           <div class="blindspot-proof" aria-label="Evidence contrast">
-            <div class="proof-item">
-              <div class="proof-number">4.2<span>°C</span></div>
-              <div class="proof-title">Latest recorded value</div>
-              <div class="proof-caption">Normal-looking · facility-level</div>
-            </div>
+            <div class="proof-item"><div class="proof-number">4.2<span>°C</span></div><div class="proof-title">Last observed</div><div class="proof-caption">Facility-level feed</div></div>
             <div class="proof-separator" aria-hidden="true"><span>≠</span></div>
-            <div class="proof-item evidence-gap">
-              <div class="proof-number">57<span>h</span></div>
-              <div class="proof-title">Unobserved period</div>
-              <div class="proof-caption">Missing expected hourly records</div>
-            </div>
-            <div class="proof-result"><span class="proof-lock" aria-hidden="true">⊘</span><span><strong>Mock issue blocked</strong><small>Review and evidence required · synthetic demo only</small></span></div>
+            <div class="proof-item evidence-gap"><div class="proof-number">57<span>h</span></div><div class="proof-title">Not observed</div><div class="proof-caption">Expected records missing</div></div>
+            <div class="proof-result"><span class="proof-lock" aria-hidden="true">⊘</span><span><strong>Mock issue restricted</strong><small>Evidence requires review</small></span></div>
           </div>
         </article>
         <div class="stat-grid" id="stat-grid" aria-label="Demo case statistics"></div>
         <div class="workflow-band"><div class="workflow-label">THE CONTROL LOOP</div><div class="workflow-steps"><span><b>01</b> Detect</span><i></i><span><b>02</b> Explain</span><i></i><span><b>03</b> Propose</span><i></i><span><b>04</b> Authorize</span><i></i><span><b>05</b> Guard issue</span></div></div>
         <div class="workspace-grid">
           <section class="case-list-card panel" aria-label="Synthetic cases">
-            <div class="panel-heading"><div><div class="panel-kicker">MONITORED EXCEPTIONS</div><h2>Review queue</h2></div><span id="case-count" class="item-count">04 cases</span></div>
-            <p class="panel-help">Select a case to investigate its evidence and simulate review.</p>
+            <div class="panel-heading"><div><div class="panel-kicker">MONITORED EXCEPTIONS</div><h2>Incident queue</h2></div><span id="case-count" class="item-count">04 cases</span></div>
+            <p class="panel-help">Select an exception to examine. All cases are synthetic.</p>
             <div id="case-list" class="case-list"></div>
             <div class="queue-footnote"><span>ⓘ</span> The four curated windows are demo examples, not a representative sample.</div>
           </section>
