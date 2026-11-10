@@ -117,3 +117,12 @@
 .dataset-stats>span{font-size:10px;line-height:1.5}
 .dataset-stats .dataset-head{font-weight:800;color:#265e54;font-size:10px;margin-bottom:7px}
 @media(max-width:620px){.whole-dataset-grid{grid-template-columns:1fr;gap:9px}.dataset-stats{border-left:0;border-top:1px solid #d7e7e1;padding:15px 0 0}.whole-dataset h2{font-size:17px}}
+
+.whole-dataset{margin-bottom:18px;background:#f6fbf8;border-color:#d1e5de}
+.whole-dataset-grid{display:grid;grid-template-columns:1.5fr 1fr;gap:20px;margin-top:12px}
+.whole-dataset h2{font-size:19px;line-height:1.4}
+.whole-dataset p{font-size:11px;line-height:1.8;color:#687d80}
+.dataset-stats{border-left:1px solid #d2e6de;padding:12px 16px;display:flex;flex-direction:column;gap:6px}
+.dataset-stats strong{font-size:27px;color:#087f7c}
+.dataset-stats span{font-size:10px;color:#5c7879}
+@media(max-width:640px){.whole-dataset-grid{grid-template-columns:1fr}.dataset-stats{border-left:0;border-top:1px solid #d2e6de}}
