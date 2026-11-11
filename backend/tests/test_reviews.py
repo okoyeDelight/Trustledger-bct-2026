@@ -13,7 +13,7 @@ from app import main
 REVIEWER = main.DemoUser(
     username="facility-demo",
     actor_name="Amina Reviewer",
-    role="facility_staff",
+    role="blood_service_supervisor",
 )
 
 
