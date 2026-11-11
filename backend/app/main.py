@@ -10,7 +10,7 @@ from contextlib import closing
 from typing import Any, Literal
 from uuid import UUID
 
-from app import workflow_store, case_flow
+from app import workflow_store, case_flow, proof_lab
 
 import pandas as pd
 from fastapi import Cookie, Depends, FastAPI, HTTPException, Query, Response
@@ -290,6 +290,64 @@ def read_json(name: str):
     if not path.exists():
         raise HTTPException(status_code=503, detail="Data pipeline has not been run yet. Run `python -m app.run_pipeline` first.")
     return json.loads(path.read_text(encoding="utf-8"))
+
+
+
+# Synthetic-only judge demonstration. No writes to the real incident ledger.
+class ImportContractObservation(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    schema_version: Literal["trustledger.observation.v1"]
+    source_system: str = Field(min_length=2, max_length=100)
+    source_event_id: str = Field(min_length=3, max_length=100)
+    facility_id: str = Field(min_length=2, max_length=80)
+    observed_at: datetime
+    temperature_c: float
+
+    @field_validator("observed_at")
+    @classmethod
+    def require_timezone(cls, value: datetime) -> datetime:
+        if value.tzinfo is None or value.utcoffset() is None:
+            raise ValueError("An explicit time-zone offset is required.")
+        return value
+
+    @field_validator("temperature_c")
+    @classmethod
+    def require_finite_temperature(cls, value: float) -> float:
+        import math
+        if not math.isfinite(value):
+            raise ValueError("Temperature must be a finite numeric value.")
+        return value
+
+
+@app.get("/api/proof-lab/scenarios")
+def proof_scenarios(user: DemoUser = Depends(require_authenticated_user)):
+    return {"items": proof_lab.SCENARIOS, "notice": "Synthetic fixture challenge; does not access live devices or donor data."}
+
+
+@app.post("/api/proof-lab/scenarios/{scenario_id}/run")
+def run_proof_scenario(scenario_id: str, user: DemoUser = Depends(require_authenticated_user)):
+    try:
+        return proof_lab.run_scenario(scenario_id)
+    except KeyError as error:
+        raise HTTPException(status_code=404, detail="Unknown proof scenario.") from error
+
+
+@app.post("/api/proof-lab/validate-import")
+def validate_proposed_import(
+    observation: ImportContractObservation,
+    user: DemoUser = Depends(require_authenticated_user),
+):
+    return {
+        "accepted_for_schema_validation": True,
+        "schema_version": observation.schema_version,
+        "source_event_id": observation.source_event_id,
+        "facility_id": observation.facility_id,
+        "source_system": observation.source_system,
+        "persisted": False,
+        "interoperability": "Proposed TrustLedger contract only; not an ABBIS, FHIR or HL7 integration.",
+        "notice": "Shape and timezone validated. Sensor accuracy, facility authorization and real device provenance were not verified.",
+    }
 
 
 @app.get("/health")
