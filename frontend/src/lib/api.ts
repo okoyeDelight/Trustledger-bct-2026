@@ -12,6 +12,8 @@ import type {
   AuthenticatedUser,
   StaffReportRequest,
   InvestigationNote,
+  CaseWorkflow,
+  PendingCaseReview,
 } from "@/lib/types";
 
 const API_BASE_URL = (
@@ -20,7 +22,6 @@ const API_BASE_URL = (
 const CACHE_PREFIX = "trustledger-api-cache:";
 const OUTBOX_KEY = "trustledger-review-outbox";
 const CONNECTION_EVENT = "trustledger:offline-state";
-let pendingReviewSync: Promise<number> | null = null;
 
 export interface ReviewSubmission {
   review_id: string;
@@ -105,7 +106,9 @@ async function responseError(response: Response): Promise<Error> {
 async function request<T>(path: string): Promise<T> {
   const url = `${API_BASE_URL}${path}`;
   const isAuthCheck = path === "/api/auth/me";
-  const isSensitiveRead = isAuthCheck || path.startsWith("/api/audit-log") || path.startsWith("/api/reviews") || path.includes("/notes");
+  const isSensitiveRead = isAuthCheck || path.startsWith("/api/audit-log") ||
+    path.startsWith("/api/reviews") || path.includes("/notes") ||
+    path.includes("/workflow") || path.startsWith("/api/review-queue");
   let response: Response;
   try {
     response = await fetch(url, { credentials: "include" });
@@ -239,22 +242,8 @@ export function getPendingReviews(user?: AuthenticatedUser): ReviewEvent[] {
   }
 }
 
-function savePendingReviews(events: ReviewEvent[]) {
-  if (typeof window === "undefined") {
-    throw new Error("Offline review storage is available only in the browser.");
-  }
-  try {
-    const uniqueEvents = uniqueReviewEvents(events);
-    if (uniqueEvents.length) {
-      window.localStorage.setItem(OUTBOX_KEY, JSON.stringify(uniqueEvents));
-    } else {
-      window.localStorage.removeItem(OUTBOX_KEY);
-    }
-  } catch {
-    throw new Error("This device could not save the offline review. Free browser storage and retry.");
-  }
-}
-
+// Older unsynced review drafts remain visible as legacy local entries.
+// We deliberately do not auto-transmit them into the new stateful review process.
 async function postReview(submission: ReviewSubmission): Promise<ReviewResponse> {
   const response = await fetch(`${API_BASE_URL}/api/reviews`, {
     method: "POST",
@@ -268,81 +257,26 @@ async function postReview(submission: ReviewSubmission): Promise<ReviewResponse>
 
 export async function submitReview(
   submission: ReviewSubmission,
-  user: AuthenticatedUser,
+  _user: AuthenticatedUser,
 ): Promise<ReviewResponse> {
+  void _user;
   try {
     const response = await postReview(submission);
     announceConnection("online");
     return response;
   } catch (error) {
-    if (!(error instanceof TypeError)) throw error;
-    const event: ReviewEvent = {
-      ...submission,
-      actor_name: user.actor_name,
-      role: user.role,
-      created_at: new Date().toISOString(),
-      sync_status: "pending_sync",
-    };
-    savePendingReviews([...getPendingReviews(), event]);
-    announceConnection("offline");
-    return {
-      status: "queued_offline",
-      review: event,
-      notice: "Saved on this device only. It will sync when the API is reachable.",
-    };
+    if (error instanceof TypeError) {
+      announceConnection("offline");
+      throw new Error("Review was NOT saved. Reconnect, reopen the case and submit again.");
+    }
+    throw error;
   }
 }
 
-export async function syncPendingReviews(user: AuthenticatedUser): Promise<number> {
-  if (pendingReviewSync) return pendingReviewSync;
-  const sync = syncPendingReviewsOnce(user);
-  const trackedSync = sync.finally(() => {
-    if (pendingReviewSync === trackedSync) pendingReviewSync = null;
-  });
-  pendingReviewSync = trackedSync;
-  return trackedSync;
-}
-
-async function syncPendingReviewsOnce(user: AuthenticatedUser): Promise<number> {
-  const pending = getPendingReviews();
-  if (!pending.length || (typeof navigator !== "undefined" && !navigator.onLine)) {
-    return 0;
-  }
-
-  const syncedReviewIds = new Set<string>();
-  let synced = 0;
-  for (let index = 0; index < pending.length; index += 1) {
-    const event = pending[index];
-    if (event.actor_name !== user.actor_name || event.role !== user.role) {
-      continue;
-    }
-    try {
-      await postReview({
-        review_id: event.review_id,
-        incident_id: event.incident_id,
-        decision: event.decision,
-        reason: event.reason,
-        changed_assessment: event.changed_assessment,
-      });
-      synced += 1;
-      syncedReviewIds.add(event.review_id);
-    } catch (error) {
-      savePendingReviews(
-        getPendingReviews().filter((queued) => !syncedReviewIds.has(queued.review_id)),
-      );
-      if (error instanceof TypeError) {
-        announceConnection("offline");
-        return synced;
-      }
-      announceConnection("sync-error");
-      throw error;
-    }
-  }
-  savePendingReviews(
-    getPendingReviews().filter((event) => !syncedReviewIds.has(event.review_id)),
-  );
-  announceConnection("online");
-  return synced;
+/** Never auto-sync legacy pending decisions into a new case state. */
+export async function syncPendingReviews(_user: AuthenticatedUser): Promise<number> {
+  void _user;
+  return 0;
 }
 
 /** Live online-only staff report. Unlike reviews, never queue a report invisibly. */
@@ -368,4 +302,55 @@ export async function saveInvestigationNote(reference: string, finding: string) 
   });
   if (!response.ok) throw await responseError(response);
   return (await response.json()) as {note: InvestigationNote};
+}
+
+async function postWorkflow<T>(path: string, payload: unknown): Promise<T> {
+  let response: Response;
+  try {
+    response = await fetch(API_BASE_URL + path, {
+      method:"POST",
+      credentials:"include",
+      headers:{"Content-Type":"application/json"},
+      body:JSON.stringify(payload),
+    });
+  } catch {
+    announceConnection("offline");
+    throw new Error("No changes were saved. Check your connection and try again.");
+  }
+  if (!response.ok) throw await responseError(response);
+  announceConnection("online");
+  return (await response.json()) as T;
+}
+
+export function fetchCaseWorkflow(reference: string) {
+  return request<CaseWorkflow>("/api/incidents/"+encodeURIComponent(reference)+"/workflow");
+}
+
+export function fetchReviewQueue() {
+  return request<{items:PendingCaseReview[]}>("/api/review-queue");
+}
+
+export function submitInvestigation(reference:string, summary:string) {
+  return postWorkflow<CaseWorkflow>(
+    "/api/incidents/"+encodeURIComponent(reference)+"/submit",{summary}
+  );
+}
+
+export function createCaseFollowup(reference:string,description:string,due_at:string|null) {
+  return postWorkflow<CaseWorkflow>(
+    "/api/incidents/"+encodeURIComponent(reference)+"/followups",{description,due_at}
+  );
+}
+
+export function completeCaseFollowup(reference:string,actionId:string,completion_note:string) {
+  return postWorkflow<CaseWorkflow>(
+    "/api/incidents/"+encodeURIComponent(reference)+"/followups/"+
+      encodeURIComponent(actionId)+"/complete",{completion_note}
+  );
+}
+
+export function closeInvestigation(reference:string,reason:string) {
+  return postWorkflow<CaseWorkflow>(
+    "/api/incidents/"+encodeURIComponent(reference)+"/close",{reason}
+  );
 }

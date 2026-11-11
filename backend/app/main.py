@@ -10,7 +10,7 @@ from contextlib import closing
 from typing import Any, Literal
 from uuid import UUID
 
-from app import workflow_store
+from app import workflow_store, case_flow
 
 import pandas as pd
 from fastapi import Cookie, Depends, FastAPI, HTTPException, Query, Response
@@ -97,6 +97,54 @@ class InvestigationNoteRequest(BaseModel):
     @field_validator("finding", mode="before")
     @classmethod
     def clean_finding(cls, value: Any) -> Any:
+        return value.strip() if isinstance(value, str) else value
+
+
+class InvestigationSubmissionRequest(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+    summary: str = Field(min_length=10, max_length=2000)
+
+    @field_validator("summary", mode="before")
+    @classmethod
+    def clean_summary(cls, value: Any) -> Any:
+        return value.strip() if isinstance(value, str) else value
+
+
+class FollowupRequest(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+    description: str = Field(min_length=10, max_length=1000)
+    due_at: datetime | None = None
+
+    @field_validator("description", mode="before")
+    @classmethod
+    def clean_description(cls, value: Any) -> Any:
+        return value.strip() if isinstance(value, str) else value
+
+    @field_validator("due_at")
+    @classmethod
+    def check_due_timezone(cls, value: datetime | None) -> datetime | None:
+        if value is not None and (value.tzinfo is None or value.utcoffset() is None):
+            raise ValueError("Follow-up date must have a timezone offset.")
+        return value
+
+
+class CompleteFollowupRequest(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+    completion_note: str = Field(min_length=10, max_length=2000)
+
+    @field_validator("completion_note", mode="before")
+    @classmethod
+    def clean_completion(cls, value: Any) -> Any:
+        return value.strip() if isinstance(value, str) else value
+
+
+class ClosureRequest(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+    reason: str = Field(min_length=10, max_length=2000)
+
+    @field_validator("reason", mode="before")
+    @classmethod
+    def clean_reason(cls, value: Any) -> Any:
         return value.strip() if isinstance(value, str) else value
 
 
@@ -235,16 +283,6 @@ def _review_dict(row: sqlite3.Row) -> dict:
     return {key: row[key] for key in row.keys()}
 
 
-def _record_review(submission: ReviewSubmission, user: DemoUser) -> tuple[dict, bool]:
-    record = submission.model_dump(mode="json")
-    record["actor_username"] = user.username
-    record["actor_name"] = user.actor_name
-    record["role"] = user.role
-    record["created_at"] = datetime.now(timezone.utc).isoformat()
-    record["auth_method"] = "preprovisioned_demo_account"
-    return workflow_store.save_review(record, _connect_audit_db)
-
-
 def read_json(name: str):
     path = OUTPUT_DIR / name
     if not path.exists():
@@ -365,8 +403,85 @@ def add_incident_note(
         raise HTTPException(status_code=403, detail="Only facility staff may record investigation findings.")
     if not _case_exists(incident_id):
         raise HTTPException(status_code=404, detail="Incident not found")
+    state = case_flow.get_case(incident_id, _connect_audit_db)
+    if state["status"] not in ("investigating", "returned"):
+        raise HTTPException(status_code=409, detail="Investigation notes are locked while the case is under review or follow-up.")
     note = workflow_store.add_investigation_note(incident_id, payload.finding, user, _connect_audit_db)
     return {"note": note, "notice": "Staff finding recorded. No clinical disposition authorized."}
+
+
+@app.get("/api/review-queue")
+def review_queue(user: DemoUser = Depends(require_authenticated_user)):
+    if user.role != "blood_service_supervisor":
+        raise HTTPException(status_code=403, detail="Only a supervisor can access the review queue.")
+    return {"items": case_flow.awaiting_review(_connect_audit_db)}
+
+
+@app.get("/api/incidents/{incident_id}/workflow")
+def incident_workflow(incident_id: str, user: DemoUser = Depends(require_authenticated_user)):
+    if not _case_exists(incident_id):
+        raise HTTPException(status_code=404, detail="Incident not found")
+    return case_flow.get_case(incident_id, _connect_audit_db)
+
+
+@app.post("/api/incidents/{incident_id}/submit")
+def submit_investigation(
+    incident_id: str,
+    payload: InvestigationSubmissionRequest,
+    user: DemoUser = Depends(require_authenticated_user),
+):
+    if user.role != "facility_staff":
+        raise HTTPException(status_code=403, detail="Only facility staff may submit an investigation.")
+    if not _case_exists(incident_id):
+        raise HTTPException(status_code=404, detail="Incident not found")
+    return case_flow.submit(incident_id, user, payload.summary, _connect_audit_db)
+
+
+@app.post("/api/incidents/{incident_id}/followups", status_code=201)
+def create_followup(
+    incident_id: str,
+    payload: FollowupRequest,
+    user: DemoUser = Depends(require_authenticated_user),
+):
+    if user.role != "blood_service_supervisor":
+        raise HTTPException(status_code=403, detail="Only a supervisor may assign follow-up.")
+    if not _case_exists(incident_id):
+        raise HTTPException(status_code=404, detail="Incident not found")
+    _, accounts = _demo_auth_settings()
+    assignee = accounts["facility_staff"]["username"]
+    return case_flow.create_followup(
+        incident_id, user, assignee, payload.description,
+        payload.due_at.isoformat() if payload.due_at else None, _connect_audit_db,
+    )
+
+
+@app.post("/api/incidents/{incident_id}/followups/{action_id}/complete")
+def complete_followup(
+    incident_id: str,
+    action_id: UUID,
+    payload: CompleteFollowupRequest,
+    user: DemoUser = Depends(require_authenticated_user),
+):
+    if user.role != "facility_staff":
+        raise HTTPException(status_code=403, detail="Only assigned staff may complete follow-up.")
+    if not _case_exists(incident_id):
+        raise HTTPException(status_code=404, detail="Incident not found")
+    return case_flow.complete_followup(
+        incident_id, str(action_id), user, payload.completion_note, _connect_audit_db,
+    )
+
+
+@app.post("/api/incidents/{incident_id}/close")
+def close_incident(
+    incident_id: str,
+    payload: ClosureRequest,
+    user: DemoUser = Depends(require_authenticated_user),
+):
+    if user.role != "blood_service_supervisor":
+        raise HTTPException(status_code=403, detail="Only the supervisor may close a case.")
+    if not _case_exists(incident_id):
+        raise HTTPException(status_code=404, detail="Incident not found")
+    return case_flow.close(incident_id, user, payload.reason, _connect_audit_db)
 
 
 @app.get("/api/incidents")
@@ -511,10 +626,16 @@ def create_review(
         raise HTTPException(status_code=403, detail="Only a separate supervisor account may record a review.")
     if not _case_exists(submission.incident_id):
         raise HTTPException(status_code=404, detail="Incident not found")
-    record, created = _record_review(submission, user)
+    record = submission.model_dump(mode="json")
+    record["actor_username"] = user.username
+    record["actor_name"] = user.actor_name
+    record["role"] = user.role
+    record["created_at"] = datetime.now(timezone.utc).isoformat()
+    record["auth_method"] = "preprovisioned_demo_account"
+    saved, created = case_flow.review(submission.incident_id, user, record, _connect_audit_db)
     return {
         "status": "recorded" if created else "already_recorded",
-        "review": record,
+        "review": saved,
         "notice": "Reviewer identity is verified against a pre-provisioned demo account; this is prototype authentication, not production identity management.",
     }
 

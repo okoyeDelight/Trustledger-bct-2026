@@ -55,14 +55,14 @@ export function OfflineStatus({ user }: { user: AuthenticatedUser }) {
   if (state === "online" && pendingCount === 0) return null;
 
   const message = state === "sync-error"
-    ? "A saved review could not sync. Sign in as its original reviewer and check the audit log."
+    ? "A legacy locally pending review needs manual re-submission. It is not a confirmed server decision."
     : state === "cache-error"
-      ? "Browser storage is unavailable or full. Offline copies and queued reviews may not be saved."
+      ? "Browser storage is unavailable or full. Offline read-only copies may not be available."
       : state === "offline"
-        ? "Offline mode: showing cached data where available. New reviews are stored on this device until sync."
+        ? "Offline: cached data may be stale. Review decisions and follow-up actions cannot be saved offline."
         : state === "stale"
           ? "The API is unavailable. This view is showing its last cached copy."
-          : "Connection restored. Pending review entries are being synced.";
+          : "Connection restored. Legacy unsent review entries will not automatically sync; reopen the case to review.";
 
   return (
     <div
@@ -72,7 +72,7 @@ export function OfflineStatus({ user }: { user: AuthenticatedUser }) {
       {message}
       {pendingCount > 0 && (
         <span className="ml-1 font-semibold">
-          {pendingCount} pending review{pendingCount === 1 ? "" : "s"}.
+          {pendingCount} legacy unsent review{pendingCount === 1 ? "" : "s"} (not saved on the server).
         </span>
       )}
     </div>

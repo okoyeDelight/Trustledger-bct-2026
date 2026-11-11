@@ -71,6 +71,15 @@ def test_worker_note_and_independent_supervisor_review_are_stored(storage):
     with pytest.raises(HTTPException) as error:
         main.create_review(review,OPERATOR)
     assert error.value.status_code==403
+    with pytest.raises(HTTPException) as pending:
+        main.create_review(review,SUPERVISOR)
+    assert pending.value.status_code == 409
+    submitted=main.submit_investigation(
+        "INC-00001",
+        main.InvestigationSubmissionRequest(summary="Synthetic readings investigated; please assess the gap."),
+        OPERATOR,
+    )
+    assert submitted["status"] == "awaiting_review"
     result=main.create_review(review,SUPERVISOR)
     assert result["status"]=="recorded"
     assert main.create_review(review,SUPERVISOR)["status"]=="already_recorded"

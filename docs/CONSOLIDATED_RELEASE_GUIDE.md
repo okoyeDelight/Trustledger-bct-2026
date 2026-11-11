@@ -13,7 +13,7 @@ This is one **source-code consolidation**, not a production launch. Legacy root 
 5. A **different supervisor** accepts/changes/rejects the *investigation flag* with reason. The API rejects a facility staff account attempting the same review.
 6. **History** shows saved review events. With Neon enabled these are database-persisted and append-only to the restricted API account. This still does NOT grant clinical release, quarantine, discard, compatibility or transfusion authority.
 
-An investigation/follow-up assignment workflow and real feed/CSV ingestion are not yet complete. Detected incidents currently originate from the reproducible build-time synthetic processing pipeline, not incoming live telemetry.
+An investigation submission, supervisor review, follow-up assignment/completion and administrative closure workflow is implemented on this branch, but **not yet active in the live database** until migration 003 is approved and independently tested. Real feed/CSV ingestion remains incomplete. Detected incidents currently originate from the reproducible build-time synthetic processing pipeline, not incoming live telemetry.
 
 ## Architecture and same-origin deployment
 
@@ -50,7 +50,9 @@ Never paste secrets into issues, PRs, chat or frontend `NEXT_PUBLIC_*` variables
 - `tl_investigation_notes` — append-only worker findings.
 - `tl_review_events` — durable human review decisions.
 
-**Status:** prepared and verified on Neon temporary branch `br-weathered-darkness-zadmyurq`; API role had SELECT/INSERT but not UPDATE/DELETE. Temporary migration was **cancelled and deleted without applying to main**. It will need a fresh preparation and explicit approval before promotion. The existing nine-table Neon database remains intact; StandPilot was not touched.
+**Status (November 11, 2026):** User approved migration 002. It has been **applied to TrustLedger Neon main** and verified: 12 total tables, zero initial records, restricted API role can append but not edit/delete reviews. StandPilot untouched.
+
+**Migration 003 is staged, not applied:** `db/migrations/003_case_lifecycle_events.sql` defines the additional append-only case transition and assigned follow-up log. Apply only after a separate user-approved migration and validation.
 
 ## Developer validation
 
@@ -78,7 +80,17 @@ Release requires green CI, successful preview build, a two-user cross-browser te
 
 - A **monitoring gap** should become a first-class automatic incident rather than only a data-quality count.
 - Facility-level data do not name individual refrigerators; do not invent device or named-unit exposure.
-- Review submission should be linked to worker investigation, with assigned follow-up status and overdue work.
+- Verify the staged case lifecycle migration and enforce shared status transitions with two signed-in browser sessions.
+- Add overdue follow-up views, escalation rules and a clinically reviewed role matrix.
 - Uploading new approved synthetic logs should trigger deduplicated incident creation and source lineage rather than requiring a build-time pipeline.
 - Integrate managed auth and remove pre-provisioned demo passwords prior to real operational deployment.
-- Follow-up, retention, clinician validation, testing on actual staff workflows, and reliability under network outages.
+- Production-grade identity, retention, clinical validation, staff usability testing, and network reliability remain outstanding.
+
+## New lifecycle acceptance gates (migration 003)
+- Worker must save an investigation finding before submitting to supervisor.
+- Supervisor cannot review an incident without a submitted investigation.
+- Return for more evidence requires a **new** worker finding before resubmission.
+- Supervisor may assign a follow-up only after review; only its named operator can complete it.
+- Unfinished actions block administrative closure. Clinical release/discard is **never** an available action.
+- Case history is append-only; on hosted Neon deployment the restricted API role cannot UPDATE or DELETE events.
+- **Never silently queue supervisor decisions offline.** An unsaved review must be retried when online. Legacy pending browser reviews are explicitly labelled unsynced.

@@ -190,3 +190,37 @@ export interface InvestigationNote {
   finding: string;
   created_at: string;
 }
+
+export type CaseState = "investigating" | "awaiting_review" | "returned" | "followup" | "closed";
+export interface CaseEvent {
+  id: number;
+  case_reference: string;
+  event_kind: string;
+  actor_username: string;
+  actor_name: string;
+  actor_role: ReviewRole;
+  details: Record<string, unknown>;
+  created_at: string;
+}
+export interface CaseFollowup {
+  action_id: string;
+  description: string;
+  owner_username: string;
+  due_at: string | null;
+  status: "open" | "done";
+  created_at: string;
+  completed_at: string | null;
+  completion_note: string | null;
+}
+export interface CaseWorkflow {
+  case_reference: string;
+  status: CaseState;
+  submitted_by: string | null;
+  followups: CaseFollowup[];
+  events: CaseEvent[];
+}
+export interface PendingCaseReview {
+  case_reference: string;
+  submitted_by: string;
+  submitted_at: string;
+}

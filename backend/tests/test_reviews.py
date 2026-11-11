@@ -15,6 +15,11 @@ REVIEWER = main.DemoUser(
     actor_name="Supervisor Reviewer",
     role="blood_service_supervisor",
 )
+OPERATOR = main.DemoUser(
+    username="facility-demo",
+    actor_name="Amina Reviewer",
+    role="facility_staff",
+)
 
 
 @pytest.fixture
@@ -33,6 +38,16 @@ def review_environment(tmp_path, monkeypatch):
     monkeypatch.setenv("TRUSTLEDGER_DEMO_SUPERVISOR_USERNAME", "supervisor-demo")
     monkeypatch.setenv("TRUSTLEDGER_DEMO_SUPERVISOR_PASSWORD", "supervisor-password-long")
     monkeypatch.setenv("TRUSTLEDGER_DEMO_SUPERVISOR_NAME", "Supervisor Reviewer")
+    main.add_incident_note(
+        "INC-00001",
+        main.InvestigationNoteRequest(finding="Checked the synthetic logger rows; source location remains uncertain."),
+        OPERATOR,
+    )
+    main.submit_investigation(
+        "INC-00001",
+        main.InvestigationSubmissionRequest(summary="Request supervisor review of the synthetic monitoring evidence."),
+        OPERATOR,
+    )
 
 
 def review_payload(**changes):

@@ -5,13 +5,11 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { ClipboardCheck } from "lucide-react";
 import { ErrorState, LoadingState } from "@/components/query-states";
 import { PageHeading } from "@/components/page-heading";
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
-import { fetchCurrentUser, fetchIncidents, submitReview, type ReviewSubmission } from "@/lib/api";
+import { fetchCurrentUser, fetchReviewQueue, submitReview, type ReviewSubmission } from "@/lib/api";
 import type { AuthenticatedUser, ReviewDecision } from "@/lib/types";
-import { formatDateTime } from "@/lib/date";
 
 const fieldClassName = "h-10 w-full rounded-lg border border-input bg-background px-3 text-sm";
 const textAreaClassName = "min-h-24 w-full rounded-lg border border-input bg-background px-3 py-2 text-sm";
@@ -30,9 +28,10 @@ export default function ReviewPage() {
     queryFn: fetchCurrentUser,
     enabled: typeof window !== "undefined",
   });
-  const incidents = useQuery({
-    queryKey: ["review-incidents", search],
-    queryFn: () => fetchIncidents(100, 0, search),
+  const pending = useQuery({
+    queryKey:["review-queue"],
+    queryFn:fetchReviewQueue,
+    enabled:user.data?.role==="blood_service_supervisor",
   });
   const mutation = useMutation({
     mutationFn: ({ submission, actor }: {
@@ -46,14 +45,18 @@ export default function ReviewPage() {
         setDecision("accept");
         setReason("");
         setChangedAssessment("");
-        await queryClient.invalidateQueries({ queryKey: ["audit-log"] });
+        await Promise.all([
+          queryClient.invalidateQueries({queryKey:["audit-log"]}),
+          queryClient.invalidateQueries({queryKey:["review-queue"]}),
+        ]);
       }
     },
   });
 
-  const selectedIncident = incidents.data?.items.find(
-    (incident) => incident.incident_id === incidentId,
+  const eligible = (pending.data?.items||[]).filter(item=>
+    item.case_reference.toLowerCase().includes(search.trim().toLowerCase())
   );
+  const selectedIncident = eligible.find(item=>item.case_reference===incidentId);
 
   function onSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -76,7 +79,7 @@ export default function ReviewPage() {
       <PageHeading
         eyebrow="Human oversight · authenticated demo account"
         title="Review centre"
-        description="A person reviews the incident evidence and records an Accept, Change or Reject decision for the investigation flag."
+        description="Review only investigations submitted by facility staff. Record an Accept, Return or Reject decision with evidence."
       />
 
       <div role="note" className="mb-6 rounded-xl border border-amber-300 bg-amber-50 px-4 py-3 text-sm leading-6 text-amber-950">
@@ -98,17 +101,17 @@ export default function ReviewPage() {
               </div>
 
               <label className="block space-y-2 text-sm font-medium">
-                Find incident by ID or facility
+                Search submitted cases
                 <Input
                   onChange={(event) => setSearch(event.target.value)}
-                  placeholder="Search incident, facility or severity"
+                  placeholder="Search a case reference"
                   value={search}
                 />
               </label>
 
-              {incidents.isPending && <LoadingState label="Loading incidents…" />}
-              {incidents.isError && <ErrorState message={incidents.error.message} onRetry={() => void incidents.refetch()} />}
-              {incidents.data && (
+              {pending.isPending&&user.data?.role==="blood_service_supervisor"&&<LoadingState label="Loading submitted investigations…" />}
+              {pending.isError&&<ErrorState message={pending.error.message} onRetry={()=>void pending.refetch()}/>}
+              {pending.data && (
                 <label className="block space-y-2 text-sm font-medium">
                   Incident
                   <select
@@ -118,24 +121,22 @@ export default function ReviewPage() {
                     value={incidentId}
                   >
                     <option value="" disabled>Select an incident</option>
-                    {incidents.data.items.map((incident) => (
-                      <option key={incident.incident_id} value={incident.incident_id}>
-                        {incident.incident_id} · {incident.facility_id} · {incident.severity}
+                    {eligible.map((incident) => (
+                      <option key={incident.case_reference} value={incident.case_reference}>
+                        {incident.case_reference} · submitted by {incident.submitted_by}
                       </option>
                     ))}
                   </select>
                   <span className="block text-xs font-normal text-muted-foreground">
-                    Showing {incidents.data.items.length} matching incidents. Search to find other records.
+                    Showing {eligible.length} submitted case(s). Others cannot be reviewed until a worker submits findings.
                   </span>
                 </label>
               )}
 
               {selectedIncident && (
-                <div className="flex flex-wrap items-center gap-2 rounded-lg bg-muted/60 p-3 text-sm">
-                  <Badge variant="outline">{selectedIncident.severity}</Badge>
-                  <span>{selectedIncident.facility_id}</span>
-                  <span className="text-muted-foreground">{formatDateTime(selectedIncident.start_time)}</span>
-                  <span>{selectedIncident.reading_count} readings</span>
+                <div className="rounded-lg bg-muted/60 p-3 text-sm">
+                  {selectedIncident.case_reference} · Submitted by {selectedIncident.submitted_by}.
+                  Open the case details to inspect worker findings before signing.
                 </div>
               )}
 
@@ -146,15 +147,15 @@ export default function ReviewPage() {
                   onChange={(event) => setDecision(event.target.value as ReviewDecision)}
                   value={decision}
                 >
-                  <option value="accept">Accept flag for investigation</option>
-                  <option value="change">Change the investigation assessment</option>
-                  <option value="reject">Reject flag as unsupported by evidence</option>
+                  <option value="accept">Accept the investigation assessment</option>
+                  <option value="change">Return to worker for more evidence</option>
+                  <option value="reject">Reject the investigation flag with reason</option>
                 </select>
               </label>
 
               {decision === "change" && (
                 <label className="block space-y-2 text-sm font-medium">
-                  Changed assessment
+                  What needs correction
                   <textarea
                     className={textAreaClassName}
                     maxLength={1000}
@@ -178,7 +179,7 @@ export default function ReviewPage() {
 
               {mutation.isError && <p role="alert" className="text-sm text-destructive">{mutation.error.message}</p>}
               {resultMessage && <p role="status" className="rounded-lg bg-emerald-50 px-3 py-2 text-sm text-emerald-900">{resultMessage}</p>}
-              <Button disabled={mutation.isPending || !incidentId || !user.data} type="submit">
+              <Button disabled={mutation.isPending || !incidentId || user.data?.role!=="blood_service_supervisor"} type="submit">
                 <ClipboardCheck aria-hidden="true" />
                 {mutation.isPending ? "Saving review…" : "Save human review"}
               </Button>

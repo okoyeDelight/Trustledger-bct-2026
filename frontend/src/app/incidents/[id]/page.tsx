@@ -28,7 +28,8 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { fetchIncidentDetail, fetchCurrentUser, fetchInvestigationNotes, saveInvestigationNote } from "@/lib/api";
+import { fetchIncidentDetail, fetchCurrentUser, fetchInvestigationNotes, saveInvestigationNote, fetchCaseWorkflow } from "@/lib/api";
+import { CaseWorkflowPanel } from "@/components/case-workflow";
 import { Button } from "@/components/ui/button";
 import { formatChartTime, formatDateTime } from "@/lib/date";
 
@@ -47,6 +48,9 @@ function IncidentDetailContent() {
   const staff=useQuery({queryKey:["current-user"],queryFn:fetchCurrentUser});
   const notes=useQuery({
     queryKey:["case-notes",id],queryFn:()=>fetchInvestigationNotes(id),enabled:Boolean(id),
+  });
+  const lifecycle=useQuery({
+    queryKey:["case-workflow",id],queryFn:()=>fetchCaseWorkflow(id),enabled:Boolean(id),
   });
   const addFinding=useMutation({
     mutationFn:()=>saveInvestigationNote(id,finding.trim()),
@@ -201,7 +205,7 @@ function IncidentDetailContent() {
             <p className="font-semibold">{n.actor_name} <span className="font-normal text-muted-foreground">· {formatDateTime(n.created_at)}</span></p>
             <p className="mt-2 whitespace-pre-wrap">{n.finding}</p>
           </div>)}
-          {staff.data?.role==="facility_staff"&&<form onSubmit={e=>{e.preventDefault();addFinding.mutate();}} className="space-y-3">
+          {staff.data?.role==="facility_staff"&&["investigating","returned"].includes(lifecycle.data?.status||"investigating")&&<form onSubmit={e=>{e.preventDefault();addFinding.mutate();}} className="space-y-3">
             <label htmlFor="finding" className="block text-sm font-medium">What did you verify? What remains unknown?</label>
             <textarea id="finding" required minLength={10} maxLength={2000}
               value={finding} onChange={e=>setFinding(e.target.value)}
@@ -217,6 +221,11 @@ function IncidentDetailContent() {
         </CardContent>
       </Card>
 
+      <CaseWorkflowPanel
+        caseId={id}
+        user={staff.data}
+        findingCount={notes.data?.items.filter(n=>n.actor_role==="facility_staff").length||0}
+      />
       <p className="mt-5 text-xs leading-5 text-muted-foreground">{incident.sustained_rule}</p>
     </>
   );
