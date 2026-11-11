@@ -10,6 +10,8 @@ from contextlib import closing
 from typing import Any, Literal
 from uuid import UUID
 
+from app import workflow_store
+
 import pandas as pd
 from fastapi import Cookie, Depends, FastAPI, HTTPException, Query, Response
 from fastapi.middleware.cors import CORSMiddleware
@@ -65,6 +67,37 @@ class ReviewSubmission(BaseModel):
         if self.decision == "change" and not self.changed_assessment:
             raise ValueError("A changed assessment is required for a Change decision.")
         return self
+
+
+class StaffReportRequest(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+    facility_code: str = Field(min_length=2, max_length=80, pattern=r"^[A-Za-z0-9_-]+$")
+    category: Literal["equipment_problem","monitoring_gap","temperature_excursion","sensor_anomaly","other"]
+    title: str = Field(min_length=5, max_length=160)
+    description: str = Field(min_length=10, max_length=3000)
+    observed_at: datetime
+
+    @field_validator("title", "description", mode="before")
+    @classmethod
+    def clean_text(cls, value: Any) -> Any:
+        return value.strip() if isinstance(value, str) else value
+
+    @field_validator("observed_at")
+    @classmethod
+    def explicit_timezone(cls, value: datetime) -> datetime:
+        if value.tzinfo is None or value.utcoffset() is None:
+            raise ValueError("Observation time requires an explicit timezone offset")
+        return value
+
+
+class InvestigationNoteRequest(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+    finding: str = Field(min_length=10, max_length=2000)
+
+    @field_validator("finding", mode="before")
+    @classmethod
+    def clean_finding(cls, value: Any) -> Any:
+        return value.strip() if isinstance(value, str) else value
 
 
 class DemoLoginRequest(BaseModel):
@@ -204,31 +237,12 @@ def _review_dict(row: sqlite3.Row) -> dict:
 
 def _record_review(submission: ReviewSubmission, user: DemoUser) -> tuple[dict, bool]:
     record = submission.model_dump(mode="json")
+    record["actor_username"] = user.username
     record["actor_name"] = user.actor_name
     record["role"] = user.role
     record["created_at"] = datetime.now(timezone.utc).isoformat()
     record["auth_method"] = "preprovisioned_demo_account"
-    with closing(_connect_audit_db()) as connection, connection:
-        existing = connection.execute(
-            "SELECT * FROM review_events WHERE review_id = ?",
-            (record["review_id"],),
-        ).fetchone()
-        if existing:
-            existing_record = _review_dict(existing)
-            comparable = {key: existing_record[key] for key in record if key != "created_at"}
-            if comparable != {key: value for key, value in record.items() if key != "created_at"}:
-                raise HTTPException(status_code=409, detail="This review ID was already used for a different decision.")
-            return existing_record, False
-        connection.execute(
-            """
-            INSERT INTO review_events
-                (review_id, incident_id, actor_name, role, decision, reason, changed_assessment, created_at, auth_method)
-            VALUES
-                (:review_id, :incident_id, :actor_name, :role, :decision, :reason, :changed_assessment, :created_at, :auth_method)
-            """,
-            record,
-        )
-    return record, True
+    return workflow_store.save_review(record, _connect_audit_db)
 
 
 def read_json(name: str):
@@ -291,6 +305,70 @@ def dashboard(user: DemoUser = Depends(require_authenticated_user)):
     return summary
 
 
+def _staff_incident(report: dict) -> dict:
+    return {
+        "incident_id": report["report_ref"],
+        "facility_id": report["facility_code"],
+        "start_time": report["observed_at"],
+        "end_time": report["observed_at"],
+        "duration_hours": None,
+        "reading_count": None,
+        "peak_temp_c": None,
+        "minimum_temp_c": None,
+        "direction": "staff_report",
+        "severity": "needs_review",
+        "sustained_rule": "Reported by staff. No automatic temperature evidence established.",
+        "report_title": report["title"],
+        "report_description": report["description"],
+        "source_type": "staff_report",
+    }
+
+
+def _case_exists(case_reference: str) -> bool:
+    if case_reference.startswith("REP-"):
+        return any(row["report_ref"] == case_reference for row in workflow_store.list_staff_reports(_connect_audit_db))
+    incidents_path = OUTPUT_DIR / "incidents.csv"
+    if not incidents_path.exists():
+        return False
+    return case_reference in set(pd.read_csv(incidents_path, usecols=["incident_id"])["incident_id"].astype(str))
+
+
+@app.post("/api/incidents/report", status_code=201)
+def report_incident(
+    report: StaffReportRequest,
+    user: DemoUser = Depends(require_authenticated_user),
+):
+    if user.role != "facility_staff":
+        raise HTTPException(status_code=403, detail="Only facility staff may create an incident report.")
+    saved = workflow_store.create_staff_report(
+        {**report.model_dump(exclude={"observed_at"}), "observed_at": report.observed_at.isoformat()},
+        user.username,
+        _connect_audit_db,
+    )
+    return {"incident": _staff_incident(saved), "notice": "Staff observation recorded. This is not a verified temperature measurement."}
+
+
+@app.get("/api/incidents/{incident_id}/notes")
+def incident_notes(incident_id: str, user: DemoUser = Depends(require_authenticated_user)):
+    if not _case_exists(incident_id):
+        raise HTTPException(status_code=404, detail="Incident not found")
+    return {"items": workflow_store.list_investigation_notes(incident_id, _connect_audit_db)}
+
+
+@app.post("/api/incidents/{incident_id}/notes", status_code=201)
+def add_incident_note(
+    incident_id: str,
+    payload: InvestigationNoteRequest,
+    user: DemoUser = Depends(require_authenticated_user),
+):
+    if user.role != "facility_staff":
+        raise HTTPException(status_code=403, detail="Only facility staff may record investigation findings.")
+    if not _case_exists(incident_id):
+        raise HTTPException(status_code=404, detail="Incident not found")
+    note = workflow_store.add_investigation_note(incident_id, payload.finding, user, _connect_audit_db)
+    return {"note": note, "notice": "Staff finding recorded. No clinical disposition authorized."}
+
+
 @app.get("/api/incidents")
 def incidents(
     limit: int = 100,
@@ -305,8 +383,11 @@ def incidents(
     limit = max(1, min(limit, 500))
     offset = max(0, offset)
     df = pd.read_csv(path)
+    manual = [_staff_incident(r) for r in workflow_store.list_staff_reports(_connect_audit_db)]
+    if manual:
+        df = pd.concat([pd.DataFrame(manual), df], ignore_index=True)
     if search:
-        searchable = [column for column in ["incident_id", "facility_id", "severity", "direction"] if column in df]
+        searchable = [column for column in ["incident_id", "facility_id", "severity", "direction", "report_title"] if column in df]
         matched = df[searchable].fillna("").astype(str).apply(
             lambda column: column.str.contains(search, case=False, regex=False)
         ).any(axis=1)
@@ -426,11 +507,9 @@ def create_review(
     submission: ReviewSubmission,
     user: DemoUser = Depends(require_authenticated_user),
 ):
-    incidents_path = OUTPUT_DIR / "incidents.csv"
-    if not incidents_path.exists():
-        raise HTTPException(status_code=503, detail="Run the data pipeline first.")
-    incidents_df = pd.read_csv(incidents_path, usecols=["incident_id"])
-    if submission.incident_id not in set(incidents_df["incident_id"].astype(str)):
+    if user.role != "blood_service_supervisor":
+        raise HTTPException(status_code=403, detail="Only a separate supervisor account may record a review.")
+    if not _case_exists(submission.incident_id):
         raise HTTPException(status_code=404, detail="Incident not found")
     record, created = _record_review(submission, user)
     return {
@@ -447,18 +526,13 @@ def review_audit_log(
     offset: int = Query(default=0, ge=0),
     user: DemoUser = Depends(require_authenticated_user),
 ):
-    with closing(_connect_audit_db()) as connection:
-        total = connection.execute("SELECT COUNT(*) FROM review_events").fetchone()[0]
-        rows = connection.execute(
-            "SELECT * FROM review_events ORDER BY created_at DESC, review_id DESC LIMIT ? OFFSET ?",
-            (limit, offset),
-        ).fetchall()
+    items,total=workflow_store.reviews(limit,offset,_connect_audit_db)
     return {
-        "items": [_review_dict(row) for row in rows],
+        "items": items,
         "total": total,
         "limit": limit,
         "offset": offset,
-        "notice": "New audit events use pre-provisioned demo accounts. Older self-reported events remain marked as legacy. This is prototype authentication, not production identity management.",
+        "notice": "Review of investigation flags only. Audit records are shared in Neon when configured; demo identities are not production authentication.",
     }
 
 
@@ -534,6 +608,23 @@ def incident_detail(
     incident_id: str,
     user: DemoUser = Depends(require_authenticated_user),
 ):
+    if incident_id.startswith("REP-"):
+        found = next(
+            (report for report in workflow_store.list_staff_reports(_connect_audit_db)
+             if report["report_ref"] == incident_id),
+            None,
+        )
+        if found is None:
+            raise HTTPException(status_code=404, detail="Incident not found")
+        return {
+            "incident": _staff_incident(found),
+            "potentially_affected_units": [],
+            "temperature_history": [],
+            "power_correlations": [],
+            "decision_required": True,
+            "notice": "Staff-reported issue only. No temperature measurement, cause, unit exposure or clinical safety claim established.",
+            "temperature_policy": {"minimum_c": SAFE_MIN_C, "maximum_c": SAFE_MAX_C},
+        }
     import pandas as pd
     incident_path = OUTPUT_DIR / "incidents.csv"
     affected_path = OUTPUT_DIR / "potentially_affected_units.csv"
