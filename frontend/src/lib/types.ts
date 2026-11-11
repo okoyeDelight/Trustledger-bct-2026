@@ -88,7 +88,10 @@ export interface Incident {
   direction: string;
   severity: "warning" | "sustained" | string;
   sustained_rule: string;
-  source_type?: "staff_report" | "temperature_csv";
+  source_type?: "staff_report" | "temperature_csv" | "external_observation";
+  source_system?: string | null;
+  source_event_id?: string | null;
+  source_payload?: Record<string, unknown> | null;
   report_title?: string;
   report_description?: string;
 }

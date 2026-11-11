@@ -10,10 +10,10 @@ from contextlib import closing
 from typing import Any, Literal
 from uuid import UUID
 
-from app import workflow_store, case_flow
+from app import workflow_store, case_flow, proof_lab, external_bridge, integration_feed, connector_credentials
 
 import pandas as pd
-from fastapi import Cookie, Depends, FastAPI, HTTPException, Query, Response
+from fastapi import Cookie, Depends, FastAPI, Header, HTTPException, Query, Response
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
 
@@ -292,6 +292,368 @@ def read_json(name: str):
     return json.loads(path.read_text(encoding="utf-8"))
 
 
+
+# Synthetic-only judge demonstration. No writes to the real incident ledger.
+class ImportContractObservation(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    schema_version: Literal["trustledger.observation.v1"]
+    source_system: str = Field(min_length=2, max_length=100)
+    source_event_id: str = Field(min_length=3, max_length=100)
+    facility_id: str = Field(min_length=2, max_length=80)
+    observed_at: datetime
+    temperature_c: float
+
+    @field_validator("observed_at")
+    @classmethod
+    def require_timezone(cls, value: datetime) -> datetime:
+        if value.tzinfo is None or value.utcoffset() is None:
+            raise ValueError("An explicit time-zone offset is required.")
+        return value
+
+    @field_validator("temperature_c")
+    @classmethod
+    def require_finite_temperature(cls, value: float) -> float:
+        import math
+        if not math.isfinite(value):
+            raise ValueError("Temperature must be a finite numeric value.")
+        return value
+
+
+@app.get("/api/proof-lab/scenarios")
+def proof_scenarios(user: DemoUser = Depends(require_authenticated_user)):
+    return {"items": proof_lab.SCENARIOS, "notice": "Synthetic fixture challenge; does not access live devices or donor data."}
+
+
+@app.post("/api/proof-lab/scenarios/{scenario_id}/run")
+def run_proof_scenario(scenario_id: str, user: DemoUser = Depends(require_authenticated_user)):
+    try:
+        return proof_lab.run_scenario(scenario_id)
+    except KeyError as error:
+        raise HTTPException(status_code=404, detail="Unknown proof scenario.") from error
+
+
+@app.get("/api/proof-lab/comparison")
+def proof_comparison(user: DemoUser = Depends(require_authenticated_user)):
+    return proof_lab.comparison_summary()
+
+
+@app.post("/api/proof-lab/validate-import")
+def validate_proposed_import(
+    observation: ImportContractObservation,
+    user: DemoUser = Depends(require_authenticated_user),
+):
+    return {
+        "accepted_for_schema_validation": True,
+        "schema_version": observation.schema_version,
+        "source_event_id": observation.source_event_id,
+        "facility_id": observation.facility_id,
+        "source_system": observation.source_system,
+        "persisted": False,
+        "interoperability": "Proposed TrustLedger contract only; not an ABBIS, FHIR or HL7 integration.",
+        "notice": "Shape and timezone validated. Sensor accuracy, facility authorization and real device provenance were not verified.",
+    }
+
+
+
+@app.post("/api/integrations/demo/observations")
+def demo_observation_ingest(
+    observation: ImportContractObservation,
+    response: Response,
+    user: DemoUser = Depends(require_authenticated_user),
+):
+    """Authenticated synthetic adapter simulation, not an open machine-to-machine API."""
+    if user.role != "facility_staff":
+        raise HTTPException(status_code=403, detail="Only the facility operator may simulate source ingestion.")
+    reading = observation.temperature_c
+    if reading in {-99.0, 99.9, 0.0}:
+        raise HTTPException(status_code=422, detail="Known sentinel readings must be investigated as data-quality events, not temperature incidents.")
+    if SAFE_MIN_C <= reading <= SAFE_MAX_C:
+        return {
+            "status": "in_range_not_recorded",
+            "case_reference": None,
+            "persisted": False,
+            "notice": "Within the prototype temperature band; no incident raised. This demo does not retain routine in-range telemetry.",
+        }
+    report, created = external_bridge.persist_incident(
+        observation.model_dump(mode="json"), _connect_audit_db
+    )
+    response.status_code = 201 if created else 200
+    return {
+        "status": "incident_created" if created else "already_imported",
+        "case_reference": report["report_ref"],
+        "persisted": True,
+        "source_event_id": observation.source_event_id,
+        "incident": _staff_incident(report),
+        "notice": "Synthetic external observation stored as a provisional case. No clinical exposure or disposition has been verified.",
+    }
+
+
+@app.get("/api/integrations/demo/cases/{case_reference}")
+def demo_connection_status(
+    case_reference: str,
+    user: DemoUser = Depends(require_authenticated_user),
+):
+    if not case_reference.startswith("EXT-"):
+        raise HTTPException(status_code=404, detail="Simulated external incident not found.")
+    report = external_bridge.lookup(case_reference, _connect_audit_db)
+    if report is None:
+        raise HTTPException(status_code=404, detail="Simulated external incident not found.")
+    case = case_flow.get_case(case_reference, _connect_audit_db)
+    return {
+        "case_reference": case_reference,
+        "source": "simulated_external_blood_bank",
+        "source_system": external_bridge.unpack(report["description"])["source_system"],
+        "source_event_id": external_bridge.unpack(report["description"])["source_event_id"],
+        "investigation_status": case["status"],
+        "review_events": [
+            {"event_kind": event["event_kind"], "created_at": event["created_at"]}
+            for event in case["events"]
+        ],
+        "clinical_clearance": None,
+        "notice": "Read-only prototype status endpoint for a simulated partner; not a live ABBIS callback or patient-safety decision.",
+    }
+
+
+
+class NewConnectorRequest(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+    label: str = Field(min_length=3, max_length=100, pattern=r"^[a-zA-Z0-9][a-zA-Z0-9 _.-]{2,99}$")
+    source_system: str = Field(min_length=2, max_length=100, pattern=r"^[a-zA-Z0-9][a-zA-Z0-9 _.-]{1,99}$")
+    facility_code: str = Field(min_length=2, max_length=80, pattern=r"^[a-zA-Z0-9][a-zA-Z0-9_-]{1,79}$")
+
+
+@app.post("/api/connections", status_code=201)
+def register_connection(
+    payload: NewConnectorRequest,
+    response: Response,
+    user: DemoUser = Depends(require_authenticated_user),
+):
+    if user.role != "blood_service_supervisor":
+        raise HTTPException(status_code=403, detail="Only a supervisor can create an external system connection.")
+    response.headers["Cache-Control"] = "no-store"
+    response.headers["Pragma"] = "no-cache"
+    return connector_credentials.create(
+        payload.label, payload.source_system, payload.facility_code,
+        user.username, _connect_audit_db,
+    )
+
+
+@app.get("/api/connections")
+def list_connections(
+    response: Response,
+    user: DemoUser = Depends(require_authenticated_user),
+):
+    if user.role != "blood_service_supervisor":
+        raise HTTPException(status_code=403, detail="Only a supervisor can manage external connections.")
+    response.headers["Cache-Control"] = "no-store"
+    return {"items": connector_credentials.list_all(_connect_audit_db)}
+
+
+@app.post("/api/connections/{connection_id}/revoke")
+def revoke_connection(
+    connection_id: UUID,
+    response: Response,
+    user: DemoUser = Depends(require_authenticated_user),
+):
+    if user.role != "blood_service_supervisor":
+        raise HTTPException(status_code=403, detail="Only a supervisor can revoke an external connection.")
+    response.headers["Cache-Control"] = "no-store"
+    return connector_credentials.revoke(str(connection_id), user.username, _connect_audit_db)
+
+
+def _adapter_identity(
+    connector_key: str | None = Header(default=None, alias="X-TrustLedger-Connector-Key"),
+    session: str | None = Cookie(default=None, alias="trustledger_session"),
+):
+    """A scoped API key authenticates partner systems; demo staff can test replay."""
+    if connector_key is not None:
+        return connector_credentials.authenticate(connector_key, _connect_audit_db)
+    actor = require_authenticated_user(session)
+    if actor.role != "facility_staff":
+        raise HTTPException(status_code=403, detail="Only a facility operator or authorized connector can send observations.")
+    return actor
+
+
+def _adapter_status_identity(
+    connector_key: str | None = Header(default=None, alias="X-TrustLedger-Connector-Key"),
+    session: str | None = Cookie(default=None, alias="trustledger_session"),
+):
+    """A scoped partner key or a signed-in demonstration user may read status."""
+    if connector_key is not None:
+        return connector_credentials.authenticate(connector_key, _connect_audit_db)
+    return require_authenticated_user(session)
+
+
+@app.get("/api/connectors/v1/connection")
+def verify_connector_access(
+    response: Response,
+    identity=Depends(_adapter_status_identity),
+):
+    response.headers["Cache-Control"] = "no-store"
+    if not isinstance(identity, dict):
+        return {"authenticated": True, "mode": "signed_in_demo_user", "connected": False}
+    return {
+        "authenticated": True,
+        "connected": True,
+        "mode": "scoped_connector_key",
+        "source_system": identity["source_system"],
+        "facility_code": identity["facility_code"],
+        "notice": "Valid TrustLedger API credential. This does not confirm the external system has started sending records.",
+    }
+
+
+@app.get("/api/integrations/sandbox/sample")
+def sandbox_source_series(user: DemoUser = Depends(require_authenticated_user)):
+    """Select actual consecutive source readings from the pinned synthetic CSV files."""
+    import pandas as pd
+    incidents_file = OUTPUT_DIR / "incidents.csv"
+    raw_file = RAW_DIR / "temperature_logs.csv"
+    if not incidents_file.exists() or not raw_file.exists():
+        raise HTTPException(status_code=503, detail="The pinned synthetic source has not been prepared.")
+    incidents = pd.read_csv(incidents_file)
+    incidents = incidents[incidents["severity"] == "sustained"].head(35)
+    raw = pd.read_csv(raw_file, usecols=["facility_id", "recorded_at", "temp_c"])
+    raw["recorded_at"] = parse_timestamp_series(raw["recorded_at"])
+    raw["temp_c"] = pd.to_numeric(raw["temp_c"], errors="coerce")
+    for _, candidate in incidents.iterrows():
+        start = pd.Timestamp(candidate["start_time"])
+        end = pd.Timestamp(candidate["end_time"])
+        readings = raw[
+            (raw["facility_id"] == candidate["facility_id"])
+            & (raw["recorded_at"] >= start)
+            & (raw["recorded_at"] < end)
+            & (raw["temp_c"] > SAFE_MAX_C)
+            & (raw["temp_c"] < 80)
+        ].sort_values("recorded_at").drop_duplicates("recorded_at").head(4)
+        if len(readings) != 4:
+            continue
+        if not readings["recorded_at"].diff().iloc[1:].eq(pd.Timedelta(hours=1)).all():
+            continue
+        data = []
+        for row in readings.itertuples(index=False):
+            stamp = row.recorded_at.strftime("%Y-%m-%dT%H:%M:%S+00:00")
+            data.append({
+                "schema_version": "trustledger.observation.v1",
+                "source_system": "ABBIS Sandbox — pinned synthetic replay",
+                "source_event_id": "SRC-" + row.facility_id + "-" + row.recorded_at.strftime("%Y%m%d%H%M"),
+                "facility_id": row.facility_id,
+                "observed_at": stamp,
+                "temperature_c": float(row.temp_c),
+            })
+        return {
+            "items": data,
+            "source_incident_id": candidate["incident_id"],
+            "mode": "Historical synthetic data replay, not live monitoring.",
+            "source_revision": "da2862ff9db262f40cd1776fd7962ed47d8942ec",
+            "timestamp_note": "Original CSV timestamps did not specify a timezone. UTC is assigned for synthetic transport demonstration only; real sources must provide an explicit offset.",
+        }
+    raise HTTPException(status_code=503, detail="No verified four-reading source sequence found in pinned synthetic data.")
+
+
+@app.post("/api/connectors/v1/observations")
+def receive_connector_observation(
+    observation: ImportContractObservation,
+    response: Response,
+    identity: str = Depends(_adapter_identity),
+):
+    """Real observation store, deterministic rules and incident connection."""
+    if isinstance(identity, dict) and (
+        observation.source_system != identity["source_system"]
+        or observation.facility_id != identity["facility_code"]
+    ):
+        raise HTTPException(status_code=403, detail="Connector key is not authorized for this source and facility.")
+    result = integration_feed.ingest_observation(
+        observation.model_dump(mode="json"), _connect_audit_db
+    )
+    response.status_code = 201 if result["observation_stored"] else 200
+    response.headers["Cache-Control"] = "no-store"
+    return result
+
+
+@app.get("/api/connectors/v1/cases/{case_reference}")
+def connector_case_status(
+    case_reference: str,
+    response: Response,
+    identity: str = Depends(_adapter_status_identity),
+):
+    response.headers["Cache-Control"] = "no-store"
+    if not case_reference.startswith("EXT-"):
+        raise HTTPException(status_code=404, detail="Case not found.")
+    saved = external_bridge.lookup(case_reference, _connect_audit_db)
+    if not saved:
+        raise HTTPException(status_code=404, detail="Case not found.")
+    state = case_flow.get_case(case_reference, _connect_audit_db)
+    source = external_bridge.unpack(saved["description"])
+    if isinstance(identity, dict) and (
+        source["source_system"] != identity["source_system"]
+        or source["facility_id"] != identity["facility_code"]
+    ):
+        raise HTTPException(status_code=404, detail="Case not found.")
+    return {
+        "case_reference": case_reference,
+        "source_system": source["source_system"],
+        "source_event_id": source["source_event_id"],
+        "investigation_status": state["status"],
+        "review_events": [
+            {"event_kind": e["event_kind"], "actor_role": e["actor_role"],
+             "created_at": e["created_at"]} for e in state["events"]
+        ],
+        "clinical_clearance": None,
+        "delivery_mode": "Authenticated pull; push webhooks not implemented.",
+    }
+
+
+
+@app.get("/api/connectors/v1/cases")
+def list_partner_cases(
+    response: Response,
+    limit: int = Query(default=30, ge=1, le=50),
+    identity=Depends(_adapter_status_identity),
+):
+    """Outbound pull feed: list current partner-scoped case status snapshots."""
+    response.headers["Cache-Control"] = "no-store"
+    if not isinstance(identity, dict):
+        raise HTTPException(status_code=403, detail="An active connector API key is required for this feed.")
+    source_system, facility_code = identity["source_system"], identity["facility_code"]
+    workflow_store.verify_persistence_config()
+    if workflow_store.use_postgres():
+        from psycopg.rows import dict_row
+        with workflow_store._connection() as connection:
+            with connection.cursor(row_factory=dict_row) as cursor:
+                cursor.execute(
+                    """SELECT report_ref FROM tl_staff_reports
+                    WHERE report_ref LIKE 'EXT-%'
+                      AND facility_code=%s
+                      AND description::jsonb->>'source_system'=%s
+                    ORDER BY created_at DESC LIMIT %s""",
+                    (facility_code, source_system, limit),
+                )
+                references=[r["report_ref"] for r in cursor.fetchall()]
+    else:
+        with closing(_connect_audit_db()) as connection:
+            workflow_store.ensure_local_workflow_tables(connection)
+            rows=connection.execute(
+                """SELECT report_ref,description FROM staff_reports
+                   WHERE report_ref LIKE 'EXT-%' AND facility_code=?
+                   ORDER BY created_at DESC LIMIT 1000""", (facility_code,)
+            ).fetchall()
+        references=[
+            r["report_ref"] for r in rows
+            if external_bridge.unpack(r["description"])["source_system"] == source_system
+        ][:limit]
+    return {
+        "items": [
+            {
+                "case_reference": ref,
+                "investigation_status": case_flow.get_case(ref, _connect_audit_db)["status"],
+            } for ref in references
+        ],
+        "clinical_clearance": None,
+        "delivery_mode": "authenticated_polling",
+    }
+
+
 @app.get("/health")
 def health():
     return {"status": "ok", "service": "trustledger-api"}
@@ -346,26 +708,31 @@ def dashboard(user: DemoUser = Depends(require_authenticated_user)):
 
 
 def _staff_incident(report: dict) -> dict:
+    external = report["report_ref"].startswith("EXT-")
+    payload = external_bridge.unpack(report["description"]) if external else None
     return {
         "incident_id": report["report_ref"],
         "facility_id": report["facility_code"],
-        "start_time": report["observed_at"],
-        "end_time": report["observed_at"],
+        "start_time": payload.get("episode_start_at", report["observed_at"]) if external else report["observed_at"],
+        "end_time": payload.get("episode_end_at", report["observed_at"]) if external else report["observed_at"],
         "duration_hours": None,
-        "reading_count": None,
-        "peak_temp_c": None,
-        "minimum_temp_c": None,
-        "direction": "staff_report",
-        "severity": "needs_review",
-        "sustained_rule": "Reported by staff. No automatic temperature evidence established.",
+        "reading_count": len(payload.get("episode_readings", [])) if external and "episode_readings" in payload else 1 if external else None,
+        "peak_temp_c": payload["temperature_c"] if external else None,
+        "minimum_temp_c": payload["temperature_c"] if external else None,
+        "direction": ("above_range" if payload["temperature_c"] > SAFE_MAX_C else "below_range") if external else "staff_report",
+        "severity": "sustained" if external and len(payload.get("episode_readings", [])) >= 4 else "warning" if external else "needs_review",
+        "sustained_rule": payload.get("detection_rule", "Single simulated external observation; sustained exposure not established.") if external else "Reported by staff. No automatic temperature evidence established.",
         "report_title": report["title"],
-        "report_description": report["description"],
-        "source_type": "staff_report",
+        "report_description": ("External connector observation; source metadata preserved, not independently verified." if external else report["description"]),
+        "source_type": "external_observation" if external else "staff_report",
+        "source_system": payload["source_system"] if external else None,
+        "source_event_id": payload["source_event_id"] if external else None,
+        "source_payload": payload if external else None,
     }
 
 
 def _case_exists(case_reference: str) -> bool:
-    if case_reference.startswith("REP-"):
+    if case_reference.startswith(("REP-", "EXT-")):
         return any(row["report_ref"] == case_reference for row in workflow_store.list_staff_reports(_connect_audit_db))
     incidents_path = OUTPUT_DIR / "incidents.csv"
     if not incidents_path.exists():
@@ -500,18 +867,24 @@ def incidents(
     limit: int = 100,
     offset: int = 0,
     search: str | None = None,
+    view: Literal["all", "active", "historical"] = "all",
     user: DemoUser = Depends(require_authenticated_user),
 ):
     import pandas as pd
     path = OUTPUT_DIR / "incidents.csv"
-    if not path.exists():
+    if view in ("all", "historical") and not path.exists():
         raise HTTPException(status_code=503, detail="Run the data pipeline first.")
     limit = max(1, min(limit, 500))
     offset = max(0, offset)
-    df = pd.read_csv(path)
     manual = [_staff_incident(r) for r in workflow_store.list_staff_reports(_connect_audit_db)]
-    if manual:
-        df = pd.concat([pd.DataFrame(manual), df], ignore_index=True)
+    if view == "active":
+        df = pd.DataFrame(manual)
+    elif view == "historical":
+        df = pd.read_csv(path)
+    else:
+        df = pd.read_csv(path)
+        if manual:
+            df = pd.concat([pd.DataFrame(manual), df], ignore_index=True)
     if search:
         searchable = [column for column in ["incident_id", "facility_id", "severity", "direction", "report_title"] if column in df]
         matched = df[searchable].fillna("").astype(str).apply(
@@ -740,7 +1113,7 @@ def incident_detail(
     incident_id: str,
     user: DemoUser = Depends(require_authenticated_user),
 ):
-    if incident_id.startswith("REP-"):
+    if incident_id.startswith(("REP-", "EXT-")):
         found = next(
             (report for report in workflow_store.list_staff_reports(_connect_audit_db)
              if report["report_ref"] == incident_id),
@@ -754,7 +1127,11 @@ def incident_detail(
             "temperature_history": [],
             "power_correlations": [],
             "decision_required": True,
-            "notice": "Staff-reported issue only. No temperature measurement, cause, unit exposure or clinical safety claim established.",
+            "notice": (
+                "A simulated external observation created this investigation candidate. It is not confirmed sensor telemetry or evidence of blood-unit exposure."
+                if incident_id.startswith("EXT-")
+                else "Staff-reported issue only. No temperature measurement, cause, unit exposure or clinical safety claim established."
+            ),
             "temperature_policy": {"minimum_c": SAFE_MIN_C, "maximum_c": SAFE_MAX_C},
         }
     import pandas as pd

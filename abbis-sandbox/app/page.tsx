@@ -1,0 +1,219 @@
+"use client";
+
+import {useCallback,useEffect,useRef,useState} from "react";
+import source from "@/data/source.json";
+
+type ConnectionStatus={connected:boolean;source_system?:string;facility_code?:string;cursor?:number;error?:string};
+type CaseItem={case_reference:string;investigation_status:string};
+type CaseResponse={items:CaseItem[];clinical_clearance:null;delivery_mode:string};
+type CatalogView={source_system:string;facility_id:string;episode_count:number;dataset_summaries:{id:string;count:number;filename:string}[];timestamp_note:string};
+type AutoTick={success?:boolean;finished?:boolean;cursor:number;total:number;received_events?:number;case_reference?:string|null;receipts?:{source_event_id:string;status:string;observation_stored:boolean}[];message?:string};
+
+async function request<T>(url:string,method:"GET"|"POST"="GET",body?:unknown):Promise<T>{
+  const r=await fetch(url,{
+    method,credentials:"same-origin",cache:"no-store",
+    headers:body===undefined?undefined:{"Content-Type":"application/json"},
+    body:body===undefined?undefined:JSON.stringify(body),
+  });
+  const data=await r.json() as T & {error?:string};
+  if(!r.ok)throw new Error(data.error||"Request failed. HTTP "+r.status);
+  return data;
+}
+const trustledger=process.env.NEXT_PUBLIC_TRUSTLEDGER_DASHBOARD_URL||"https://trustledger-bct-2026.vercel.app";
+
+export default function Home(){
+  const [connection,setConnection]=useState<ConnectionStatus|null>(null);
+  const [key,setKey]=useState("");
+  const [showKey,setShowKey]=useState(false);
+  const [connecting,setConnecting]=useState(false);
+  const [connectionError,setConnectionError]=useState("");
+  const [autoTick,setAutoTick]=useState<AutoTick|null>(null);
+  const [autoSending,setAutoSending]=useState(false);
+  const [autoError,setAutoError]=useState("");
+  const [paused,setPaused]=useState(false);
+  const sendLock=useRef(false);
+  const [catalogView,setCatalogView]=useState<CatalogView|null>(null);
+  const [cases,setCases]=useState<CaseItem[]>([]);
+  const [casesLoading,setCasesLoading]=useState(false);
+  const [casesError,setCasesError]=useState("");
+  const [activeCase,setActiveCase]=useState<string|null>(null);
+  const [lastChecked,setLastChecked]=useState("");
+
+  const refreshConnection=useCallback(async()=>{
+    try{setConnection(await request<ConnectionStatus>("/api/connection"));}
+    catch{setConnection({connected:false});}
+  },[]);
+  const refreshCases=useCallback(async()=>{
+    setCasesLoading(true);setCasesError("");
+    try{
+      const data=await request<CaseResponse>("/api/cases");
+      setCases(data.items);
+      setLastChecked(new Date().toLocaleTimeString());
+    }catch(err){setCasesError(err instanceof Error?err.message:"Could not retrieve updates.");}
+    finally{setCasesLoading(false);}
+  },[]);
+
+  useEffect(()=>{void refreshConnection();},[refreshConnection]);
+  useEffect(()=>{void request<CatalogView>("/api/catalog").then(setCatalogView).catch(()=>setCatalogView(null));},[]);
+  useEffect(()=>{if(connection?.connected)void refreshCases();},[connection?.connected,refreshCases]);
+
+  async function connect(event:React.FormEvent<HTMLFormElement>){
+    event.preventDefault();setConnecting(true);setConnectionError("");
+    try{
+      const result=await request<ConnectionStatus>("/api/connect","POST",{api_key:key.trim()});
+      setConnection(result);setKey("");setShowKey(false);
+    }catch(err){setConnectionError(err instanceof Error?err.message:"Could not connect.");}
+    finally{setConnecting(false);}
+  }
+  async function disconnect(){
+    await request("/api/disconnect","POST");
+    setConnection({connected:false});setAutoTick(null);setCases([]);setActiveCase(null);setKey("");
+  }
+  const isConnected=connection?.connected===true;
+  useEffect(()=>{
+    if(!isConnected||paused)return;
+    let cancelled=false;
+    async function tick(){
+      if(sendLock.current)return;
+      sendLock.current=true;
+      if(!cancelled){setAutoSending(true);setAutoError("");}
+      try{
+        const outcome=await request<AutoTick>("/api/auto/tick","POST");
+        if(!cancelled){
+          setAutoTick(outcome);
+          if(!outcome.success&&!outcome.finished)setAutoError(outcome.message||"Data delivery failed; retrying at next interval.");
+          if(outcome.case_reference)setActiveCase(outcome.case_reference);
+          void refreshCases();
+        }
+      }catch(error){
+        if(!cancelled)setAutoError(error instanceof Error?error.message:"Unable to reach TrustLedger.");
+      }finally{
+        sendLock.current=false;
+        if(!cancelled)setAutoSending(false);
+      }
+    }
+    void tick();
+    const handle=setInterval(()=>void tick(),60000);
+    return()=>{cancelled=true;clearInterval(handle);};
+  },[isConnected,paused,refreshCases]);
+  const selectedCase=activeCase||cases[0]?.case_reference||null;
+
+  return <div className="app-shell">
+    <header className="topbar">
+      <div className="topbar-inner">
+        <div className="brand"><div className="brand-mark">A</div><div><strong>ABBIS Source Sandbox</strong><span>Interoperability test environment</span></div></div>
+        <div className="topbar-status"><span className={"status-dot "+(isConnected?"green":"")}></span>{isConnected?"TrustLedger connected":"Awaiting connection"}</div>
+      </div>
+    </header>
+
+    <main className="main">
+      <div className="eyebrow">BLOOD BANK INFORMATION SYSTEM · SYNTHETIC SOURCE</div>
+      <h1>Blood-bank records, connected automatically.</h1>
+      <p className="lead">This independent synthetic blood-bank source holds all six original datasets. Once connected, it automatically feeds verified monitoring episodes into TrustLedger and receives investigation updates.</p>
+
+      <section className="workflow" aria-label="Integration workflow">
+        <div className="workflow-item"><span className="bubble">1</span><div><strong>Connect</strong><small>Authorize an external system</small></div></div>
+        <div className="workflow-arrow">→</div>
+        <div className="workflow-item"><span className="bubble">2</span><div><strong>Auto-feed</strong><small>One source episode per minute</small></div></div>
+        <div className="workflow-arrow">→</div>
+        <div className="workflow-item"><span className="bubble">3</span><div><strong>Receive</strong><small>Read investigation updates</small></div></div>
+      </section>
+
+      <div className="two-col">
+        <section className="panel">
+          <div className="panel-head">
+            <div><div className="section-label">01 · CONNECTION</div><h2>TrustLedger adapter</h2><p>Connect with a key issued by the TrustLedger Quality Supervisor.</p></div>
+            <div className={"status-chip "+(isConnected?"success":"neutral")}>{isConnected?"Connected":"Not connected"}</div>
+          </div>
+          {connection===null?<p className="muted">Checking existing session…</p>:isConnected?
+          <div className="connected-panel">
+            <div className="check-icon">✓</div>
+            <div><strong>Secure connection verified</strong><p>The credential was accepted by the TrustLedger API.</p></div>
+            <dl>
+              <div><dt>Source system</dt><dd>{connection.source_system}</dd></div>
+              <div><dt>Allowed facility</dt><dd>{connection.facility_code}</dd></div>
+            </dl>
+            <button className="plain-button" onClick={()=>void disconnect()}>Disconnect this browser session</button>
+          </div>:
+          <form onSubmit={event=>void connect(event)} className="connect-form">
+            <div className="hint">
+              <span className="hint-icon">i</span>
+              <p>In TrustLedger, sign in as <strong>Quality Supervisor → Connections → Connect system</strong>, then create a key using these exact identifiers.</p>
+            </div>
+            <div className="identity-grid">
+              <div><small>Source identifier</small><strong>{source.source_system}</strong></div>
+              <div><small>Facility code</small><strong>{source.facility_id}</strong></div>
+            </div>
+            <label htmlFor="api-key">TrustLedger API key</label>
+            <div className="key-entry"><input id="api-key" autoComplete="off" spellCheck={false} type={showKey?"text":"password"} required
+              placeholder="tlc_••••••••••••••••" value={key} onChange={event=>setKey(event.target.value)}/>
+              <button type="button" aria-label={showKey?"Hide key":"Show key"} onClick={()=>setShowKey(x=>!x)}>{showKey?"Hide":"Show"}</button>
+            </div>
+            <p className="form-help">The key is sent over HTTPS and retained only in an encrypted, HttpOnly session cookie for this browser. It is never stored in the sandbox dataset.</p>
+            {connectionError&&<p className="error" role="alert">{connectionError}</p>}
+            <button className="primary-button" type="submit" disabled={connecting}>{connecting?"Verifying connection…":"Connect to TrustLedger"} <span>→</span></button>
+            <a href={trustledger+"/connections"} target="_blank" rel="noreferrer" className="text-link">Open TrustLedger connector settings ↗</a>
+          </form>}
+        </section>
+
+        <section className="panel">
+          <div className="panel-head"><div><div className="section-label">02 · SOURCE DATA</div><h2>Facility monitoring</h2><p>Four consecutive historical source readings, extracted from the pinned hackathon dataset.</p></div></div>
+          <div className="facility">
+            <span className="facility-icon">⌂</span>
+            <div><small>Source facility connected to TrustLedger</small><strong>{source.facility_id}</strong></div>
+            <div className="fixture-tag">Synthetic source</div>
+          </div>
+          <div className="auto-monitor">
+            <div className="auto-monitor-header">
+              <div><strong>Automatic monitoring feed</strong><p>{isConnected?(paused?"Paused by operator":autoTick?.finished?"Source episodes complete":"Running while this page is open"):"Connect the adapter to start automatically"}</p></div>
+              <span className={"status-chip "+(isConnected&&!paused?"success":"neutral")}>{isConnected&&!paused?"Auto-feed ON":"Inactive"}</span>
+            </div>
+            <div className="auto-stat-grid">
+              <div><small>Verified source episodes</small><strong>{catalogView?.episode_count??"—"}</strong></div>
+              <div><small>Delivered this session</small><strong>{autoTick?.cursor??connection?.cursor??0}</strong></div>
+              <div><small>Frequency</small><strong>Every 60 sec</strong></div>
+            </div>
+            {autoSending&&<p role="status" className="muted">Sending the next verified four-reading source episode through the TrustLedger API…</p>}
+            {autoError&&<p role="alert" className="error">{autoError}</p>}
+            {autoTick?.case_reference&&<div className="receipt" role="status">
+              <strong>Incident created or verified in TrustLedger</strong>
+              <p>{autoTick.received_events??4} source readings acknowledged. Case: <code>{autoTick.case_reference}</code></p>
+            </div>}
+            {autoTick?.finished&&<p className="muted">This facility has reached the end of its verified source episodes. The sandbox will not fabricate additional incidents.</p>}
+            {isConnected&&<button className="secondary-button auto-control" onClick={()=>setPaused(x=>!x)}>{paused?"Resume automatic feed":"Pause automatic feed"}</button>}
+            <p className="auto-note">This free-tier demonstration advances while its browser page remains open. A persistent server scheduler is required for continuous delivery with every browser closed.</p>
+          </div>
+          <details className="details">
+            <summary>All six blood-bank datasets</summary>
+            <p>Full source files are hash-verified and prepared on the ABBIS sandbox server. Only matching, validated temperature episodes are currently transmitted to TrustLedger; the other source datasets remain available for future transfer and inventory adapters.</p>
+            <div className="source-list">
+              {(catalogView?.dataset_summaries??[]).map(dataset=><div className="source-row" key={dataset.id}>
+                <span>{dataset.id.replaceAll("_"," ")}</span>
+                <span>{dataset.count.toLocaleString("en-GB")} records</span>
+                <a href={"/api/datasets/"+encodeURIComponent(dataset.id)+"?limit=5"} target="_blank" rel="noreferrer">Preview ↗</a>
+              </div>)}
+            </div>
+            <p>{catalogView?.timestamp_note??source.timezone_note}</p>
+            <p>Source Git revision: <code>{source.upstream_git_revision.slice(0,12)}</code>. The dataset and the simulated source are not a live ABBIS installation.</p>
+          </details>
+        </section>
+      </div>
+
+      <section className="panel outcome" aria-label="Investigation updates returned from TrustLedger">
+        <div className="panel-head compact"><div><div className="section-label">03 · RETURN PATH</div><h2>Investigation updates</h2><p>TrustLedger returns the case status to this source application through a separately authenticated API request.</p></div>
+          <button className="secondary-button" disabled={!isConnected||casesLoading} onClick={()=>void refreshCases()}>{casesLoading?"Checking…":"↻ Refresh status"}</button>
+        </div>
+        {!isConnected?<div className="empty"><span>↗</span><strong>Connect an adapter to see case updates</strong><p>Once your key is verified, this sandbox will be able to read only the investigation cases belonging to its source and facility.</p></div>:
+          casesError?<p role="alert" className="error">{casesError}</p>:
+          cases.length===0?<div className="empty"><span>◎</span><strong>No cases returned yet</strong><p>The source sends observations automatically while connected and this page is open. Cases appear here as TrustLedger accepts them.</p></div>:
+          <div className="case-list">{cases.map(item=><div className={"case-row "+(selectedCase===item.case_reference?"selected":"")} key={item.case_reference}>
+            <div><small>Case reference</small><code>{item.case_reference}</code></div>
+            <span className="status-chip success">{item.investigation_status.replaceAll("_"," ")}</span>
+            <a href={trustledger+"/incidents/"+encodeURIComponent(item.case_reference)} target="_blank" rel="noreferrer" className="text-link">Open investigation ↗</a>
+          </div>)}</div>}
+        {lastChecked&&<p className="last-checked">Last retrieved from TrustLedger at {lastChecked}</p>}
+      </section>
+      <footer><strong>ABBIS Source Sandbox</strong><span>Separate synthetic source application · Real authenticated HTTPS exchange · No clinical product disposition</span></footer>
+    </main>
+  </div>;
+}
