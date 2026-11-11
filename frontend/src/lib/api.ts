@@ -361,3 +361,81 @@ export function fetchCaseHistory() {
     "/api/case-history?limit=100&offset=0"
   );
 }
+
+
+// Blood bank source console: always use server-managed keys; never persist tokens in localStorage.
+export interface SourceDataset {
+  dataset: string;
+  filename: string;
+  available: boolean;
+}
+export interface SourceFeedEvent {
+  source_code: string;
+  source_event_id: string;
+  dataset: string;
+  facility_code: string | null;
+  observed_at: string | null;
+  incident_ref: string | null;
+  incident_category: string | null;
+  created_at: string;
+}
+export interface ConnectorKeyMeta {
+  key_id: string;
+  label: string;
+  key_hint: string;
+  created_by: string;
+  created_at: string;
+  revoked: boolean;
+}
+
+export function fetchBloodBankCatalog() {
+  return request<{
+    datasets: SourceDataset[];
+    mode: string;
+    demo_enabled: boolean;
+    notice: string;
+  }>("/api/bloodbank/catalog");
+}
+export function fetchBloodBankRows(dataset: string) {
+  return request<{ dataset: string; items: Record<string, string>[]; notice: string }>(
+    "/api/bloodbank/datasets/" + encodeURIComponent(dataset) + "?limit=10"
+  );
+}
+export function fetchBloodBankFeed() {
+  return request<{ items: SourceFeedEvent[] }>("/api/bloodbank/feed");
+}
+export function fetchBloodBankKeys() {
+  return request<{ items: ConnectorKeyMeta[] }>("/api/bloodbank/connectors");
+}
+
+async function postBloodBank<T>(path: string, payload?: unknown): Promise<T> {
+  const response = await fetch(API_BASE_URL + path, {
+    method: "POST", credentials: "include",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(payload ?? {}),
+  });
+  if (!response.ok) throw await responseError(response);
+  return (await response.json()) as T;
+}
+export function createBloodBankKey(label: string) {
+  return postBloodBank<{
+    key: string;
+    key_id: string;
+    label: string;
+    key_hint: string;
+    notice: string;
+  }>("/api/bloodbank/connectors", { label });
+}
+export function revokeBloodBankKey(keyId: string) {
+  return postBloodBank<{ revoked: boolean }>(
+    "/api/bloodbank/connectors/" + encodeURIComponent(keyId) + "/revoke"
+  );
+}
+export function advanceBloodBankDemo() {
+  return postBloodBank<{
+    completed: boolean;
+    remaining: number;
+    event?: { dataset: string; source_event_id: string; incident_ref: string | null };
+    cooldown_seconds?: number;
+  }>("/api/bloodbank/demo/tick");
+}
