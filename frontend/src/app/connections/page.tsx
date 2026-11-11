@@ -1,7 +1,7 @@
 "use client";
 
-import Link from "next/link";
 import { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
 import { ArrowRight, CheckCircle2, CircleHelp, PlugZap, RefreshCw, Send, ShieldCheck } from "lucide-react";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { PageHeading } from "@/components/page-heading";
@@ -51,6 +51,7 @@ async function callApi<T>(path: string, body?: unknown): Promise<T> {
 }
 
 export default function ConnectionsPage() {
+  const router = useRouter();
   const [caseId, setCaseId] = useState<string | null>(null);
   const [received, setReceived] = useState<ReceivedCase | null>(null);
   const [showRejected, setShowRejected] = useState(false);
@@ -59,7 +60,7 @@ export default function ConnectionsPage() {
   useEffect(() => {
     try {
       const stored = window.sessionStorage.getItem("trustledger-demo-connection-case");
-      if (stored && /^EXT-[0-9a-f-]{36}$/.test(stored)) setCaseId(stored);
+      if (stored && /^EXT-[0-9a-f-]{36}$/.test(stored)) queueMicrotask(() => setCaseId(stored));
     } catch { /* Storage may be unavailable in a protected browser. */ }
   }, []);
 
@@ -138,7 +139,7 @@ export default function ConnectionsPage() {
         <p className="text-sm text-muted-foreground">This case is in the same Incidents and Review workflow as every other TrustLedger case.</p>
       </CardHeader>
       <CardContent className="space-y-4">
-        <Button className="w-full" onClick={() => window.location.assign("/incidents/" + encodeURIComponent(caseId))}>
+        <Button className="w-full" onClick={() => router.push("/incidents/" + encodeURIComponent(caseId))}>
           Open investigation <ArrowRight className="ml-2 size-4"/>
         </Button>
         <div className="rounded-lg border bg-muted/40 p-4">
@@ -160,7 +161,7 @@ export default function ConnectionsPage() {
     </Card>}
 
     <details className="rounded-xl border bg-card px-4 py-3 text-sm">
-      <summary className="flex cursor-pointer items-center gap-2 font-medium"><CircleHelp className="size-4"/> What does this prove—and what doesn't it?</summary>
+      <summary className="flex cursor-pointer items-center gap-2 font-medium"><CircleHelp className="size-4"/> What does this prove—and what doesn&apos;t it?</summary>
       <div className="mt-3 space-y-2 border-t pt-3 text-muted-foreground">
         <p>The signed-in operator sends a versioned JSON observation to a FastAPI endpoint. The adapter checks its fields and temperature, stores a provisional incident in the append-only report ledger, and makes it available to our existing worker and supervisor workflow. A separate GET endpoint returns the case's latest status.</p>
         <p>Repeated identical source events are idempotent; reusing an event ID with different evidence is rejected. Incomplete timestamps are rejected rather than silently assumed.</p>
