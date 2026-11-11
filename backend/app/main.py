@@ -193,6 +193,8 @@ def _demo_auth_settings() -> tuple[str, dict[str, dict[str, str]]]:
         )
     if accounts["facility_staff"]["username"] == accounts["blood_service_supervisor"]["username"]:
         raise HTTPException(status_code=503, detail="Demo account usernames must be distinct.")
+    if accounts["facility_staff"]["password"] == accounts["blood_service_supervisor"]["password"]:
+        raise HTTPException(status_code=503, detail="Demo account passwords must be distinct.")
     return secret, accounts
 
 

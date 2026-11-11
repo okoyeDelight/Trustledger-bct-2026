@@ -94,3 +94,11 @@ Release requires green CI, successful preview build, a two-user cross-browser te
 - Unfinished actions block administrative closure. Clinical release/discard is **never** an available action.
 - Case history is append-only; on hosted Neon deployment the restricted API role cannot UPDATE or DELETE events.
 - **Never silently queue supervisor decisions offline.** An unsaved review must be retried when online. Legacy pending browser reviews are explicitly labelled unsynced.
+
+## Two demo identities: local predeployment HTTP test
+
+`backend/tests/test_two_account_api.py` uses two **independent** HTTP cookie jars and randomly generated process-local passwords, exercising login, manual report, shared queue, investigation note, submit, reviewer-only decision, follow-up, closure, audit/history, logout, unauthorized actions and tampered cookies. Tests run in GitHub Actions, not on Vercel and not on real patient or hospital data.
+
+**Security:** the demo credentials previously disclosed must **never** be reused. Future preview account passwords must be random, different per role, and provided via private hosting environment variables. The two-user HTTP test is not a live cross-device Neon/Vercel deployment test; complete that once the final preview is approved. A separate restricted-role Neon branch test can verify persistent data/permissions without leaving synthetic test records in the live branch.
+
+**Production status:** the approved `tl_case_events` migration has been applied. No need for further table approval for this journey. The site remains on the prior deployed version; preview builds stay disabled to conserve Vercel limits.
