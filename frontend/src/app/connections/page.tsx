@@ -1,7 +1,6 @@
 "use client";
 
 import { useState } from "react";
-import { useRouter } from "next/navigation";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Cable, Check, ClipboardCopy, KeyRound, LockKeyhole, Plus, RefreshCw, ShieldCheck, Trash2 } from "lucide-react";
 import { PageHeading } from "@/components/page-heading";
@@ -32,7 +31,6 @@ async function api<T>(path:string, method:"GET"|"POST"="GET", body?:unknown):Pro
 
 export default function ConnectionsPage(){
   const qc=useQueryClient();
-  const router=useRouter();
   const user=useQuery({queryKey:["current-user"],queryFn:fetchCurrentUser,retry:false});
   const isSupervisor=user.data?.role==="blood_service_supervisor";
   const connections=useQuery({
@@ -226,11 +224,25 @@ export default function ConnectionsPage(){
         <p className="text-xs text-muted-foreground">This is a working scoped JSON/HTTPS adapter, not a certified ABBIS, HL7 or FHIR connector. Outgoing case updates use authenticated polling; push webhooks are not yet enabled. Use the production domain when it is released.</p>
       </CardContent>
     </Card>
-    <div className="rounded-xl border bg-muted/30 p-4">
-      <div className="flex items-center justify-between gap-3">
-        <div><p className="font-semibold">Test with sample data</p><p className="mt-1 text-sm text-muted-foreground">Optional synthetic replay. Not required to connect a real system.</p></div>
-        <Button variant="outline" onClick={()=>router.push("/connections/sandbox")}>Try demo</Button>
+    <div className="rounded-xl border bg-muted/30 p-4 space-y-3">
+      <div className="flex items-start gap-3">
+        <Cable className="mt-1 size-5 shrink-0 text-primary"/>
+        <div>
+          <p className="font-semibold">ABBIS Source Sandbox</p>
+          <p className="mt-1 text-sm leading-relaxed text-muted-foreground">A separate blood-bank source application that sends real authenticated API requests to TrustLedger and retrieves case updates. Its records are synthetic.</p>
+        </div>
       </div>
+      <div className="flex flex-wrap gap-2">
+        {isSupervisor && !issued && <Button variant="outline" onClick={()=>{
+          setName("ABBIS Source Sandbox");
+          setSource("ABBIS-SANDBOX");
+          setFacility("HSP-028");
+          setShowForm(true);
+          document.querySelector("main")?.scrollIntoView({behavior:"smooth"});
+        }}>Prepare sandbox connector</Button>}
+        <a className="inline-flex min-h-9 items-center justify-center rounded-md bg-primary px-3 py-2 text-sm font-semibold text-primary-foreground" href="https://abbis-source-sandbox.vercel.app" target="_blank" rel="noopener noreferrer">Open external ABBIS sandbox ↗</a>
+      </div>
+      <p className="text-xs text-muted-foreground">The sandbox uses source <code>ABBIS-SANDBOX</code> and facility <code>HSP-028</code>. Vercel authentication may be required while testing.</p>
     </div>
   </div>;
 }
