@@ -106,7 +106,7 @@ async function responseError(response: Response): Promise<Error> {
 async function request<T>(path: string): Promise<T> {
   const url = `${API_BASE_URL}${path}`;
   const isAuthCheck = path === "/api/auth/me";
-  const isSensitiveRead = isAuthCheck || path.startsWith("/api/audit-log") || path.startsWith("/api/reviews");
+  const isSensitiveRead = isAuthCheck || path.startsWith("/api/audit-log") || path.startsWith("/api/reviews") || path.includes("/notes");
   let response: Response;
   try {
     response = await fetch(url, { credentials: "include" });
