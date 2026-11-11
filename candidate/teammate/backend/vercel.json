@@ -1,0 +1,9 @@
+{
+  "$schema": "https://openapi.vercel.sh/vercel.json",
+  "buildCommand": "python -m app.run_pipeline --data data/raw --output data/processed",
+  "functions": {
+    "app/main.py": {
+      "includeFiles": "data/processed/**"
+    }
+  }
+}
