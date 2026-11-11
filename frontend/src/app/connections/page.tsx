@@ -115,7 +115,7 @@ export default function ConnectionsPage(){
           </Button>
           {isCopyError && <p className="text-xs">Automatic copy was blocked; select the key above and copy it manually.</p>}
           <p className="text-xs">Allowed source: <strong>{issued.source_system}</strong> · Facility: <strong>{issued.facility_code}</strong></p>
-          <Button className="w-full" variant="secondary" onClick={()=>setIssued(null)}>I saved the key</Button>
+          <Button className="w-full" variant="secondary" onClick={()=>{setIssued(null);register.reset();}}>I saved the key</Button>
         </div>}
 
         {showForm && !issued && <form onSubmit={event=>{event.preventDefault();register.mutate();}} className="space-y-4 rounded-xl border bg-muted/30 p-4">

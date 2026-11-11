@@ -1,5 +1,11 @@
 # Three-minute submission demo — actual API-connected TrustLedger
-**Synthetic ABBIS-like sandbox; real HTTP ingestion, persistent store, case workflow and read-back. No live ABBIS or medical device.**
+**Real self-service adapter and optional synthetic source demonstration. No live ABBIS or medical device.**
+
+### First-time connector onboarding (show if time allows)
+1. Quality Supervisor opens **Connections** → **Connect system**.
+2. Register a clearly named synthetic integration (for example, `Hackathon-Sandbox`, facility `HSP-028`), generate a unique API key and copy it **once** to a secure credential store. The demo presenter must **not display the key** in a public recording.
+3. Explain: partner systems use the key as `X-TrustLedger-Connector-Key`, send observations to `/api/connectors/v1/observations`, and read updates via `GET /api/connectors/v1/cases`. Source-system and facility scope are enforced.
+4. Optional synthetic sender demonstration is under `Connections → Test with sample data`. It uses an authenticated operator login, not the newly generated partner key.
 
 ### Before recording
 - Check that migration 004 has been explicitly approved and applied, new API deployment is READY, and synthetic-only demo account is logged in.
@@ -9,7 +15,7 @@
 
 | Approximate scene | Live action | Explain briefly |
 |---|---|---|
-| 0–20s | Open Connections | "We designed TrustLedger as a cold-chain investigation component that can connect to external systems. For this demonstration ABBIS is a synthetic sandbox, not a real integration." |
+| 0–20s | Open Connections as Supervisor | "We designed TrustLedger as a cold-chain investigation component that can connect to external systems. For this demonstration ABBIS is a synthetic sandbox, not a real integration." |
 | 20–55s | Press **Send readings to TrustLedger** | "These four historical readings are selected from the pinned hackathon CSV. The sandbox sends one genuine request per reading. TrustLedger validates and stores every received observation. The fourth consecutive above-6°C hourly observation creates an investigation candidate." |
 | 55–75s | Press **Send again** | "Idempotent source IDs prevent duplicate observations and duplicate cases." |
 | 75–120s | Press **Open investigation**, expand Evidence Passport | "The real case preserves original source IDs, readings and uncertainty. A worker submits findings. We don't invent refrigerator identity or blood-unit exposure." |

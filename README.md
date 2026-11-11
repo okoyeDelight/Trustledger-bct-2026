@@ -2,7 +2,7 @@
 
 **Current implementation (November 11, 2026):** The deployed application is a combined Next.js frontend (`frontend/`) and FastAPI backend (`backend/`) with Neon PostgreSQL append-only staff notes, reviews and case-history events. The official URL is **https://trustledger-bct-2026.vercel.app**. This is a **synthetic-data hackathon prototype**, not a clinical product or a real hospital-system integration.
 
-**Core integration MVP (pending database approval):** A pinned synthetic ABBIS-like source produces four chronological observations through a genuine authenticated `POST /api/connectors/v1/observations` endpoint. Each reading is stored append-only in a dedicated connector ledger (migration `004_connector_observations.sql`), duplicate acknowledgements are idempotent, and a four-consecutive-hour provisional incident enters the existing review workflow. The authenticated `GET /api/connectors/v1/cases/{case_reference}` endpoint returns current investigation and review history. Source data were recorded historically and their timezone-less timestamps are **explicitly interpreted as UTC for the sandbox replay only**. The connection is live *software-to-software*, not live ABBIS or a clinical device. Requires migration 004 on Neon main before preview can ingest.
+**Adapter MVP status:** A pinned synthetic ABBIS-like source produces four chronological observations through a genuine authenticated `POST /api/connectors/v1/observations` endpoint. Each reading is stored append-only in a dedicated connector ledger (migration `004_connector_observations.sql`), duplicate acknowledgements are idempotent, and a four-consecutive-hour provisional incident enters the existing review workflow. The authenticated `GET /api/connectors/v1/cases/{case_reference}` endpoint returns current investigation and review history. Source data were recorded historically and their timezone-less timestamps are **explicitly interpreted as UTC for the sandbox replay only**. The connection is live *software-to-software*, not live ABBIS or a clinical device. Migration 004 has been applied on Neon main; migration 005 must be approved before self-service credential registration can run on the deployment.
 
 **Main product integration demo:** `/connections` sends a validated synthetic external temperature alert into a real incident and later reads its status. The optional hidden technical `/proof-lab` route offers three executable adverse-data challenges, honest comparisons with competent conventional rules, and a proposed schema-only external observation validator. The `/incidents/{id}` page has an Evidence Passport using actual underlying synthetic source records and the case's server-side review history.
 
@@ -15,6 +15,22 @@
 **Scope and limitations:** Facility-level observations and provisional unit matches cannot establish a refrigerator's identity, actual blood-unit exposure, causation, clinical suitability, release or transfusion authorization. Our current identity is demonstrator-only; external integrations and offline writes are not implemented. Case event history is database append-only to the restricted app role but has not undergone external audit certification. Prototype 2–6°C policy and four-hour rules need professional validation.
 
 ---
+
+## Connect a real external system (adapter onboarding)
+
+The **Connections** page is the administration interface for TrustLedger's real JSON/HTTPS integration gateway. A supervisor registers a unique connector name, a strict external `source_system` identifier, and an allowed `facility_code`; the server returns a randomly generated `tlc_` API key **once**. Only SHA-256 of the key is stored, alongside its non-secret display prefix. Connector keys can be revoked without deleting prior evidence. Each key may send observations and read case status only for its allowed source/facility. The simulator remains optional at `/connections/sandbox`.
+
+Real incoming and outgoing adapter contract:
+- `GET /api/connectors/v1/connection` — check the API key and scope.
+- `POST /api/connectors/v1/observations` — accept `trustledger.observation.v1` payloads with source_system, source_event_id, facility_id, observed_at with explicit timezone offset, and temperature_c.
+- `GET /api/connectors/v1/cases` — authenticated source-scoped status feed (polling).
+- `GET /api/connectors/v1/cases/{case_reference}` — current review status and event kinds for one authorized case.
+
+External systems supply `X-TrustLedger-Connector-Key` as an HTTPS request header; never place it in client-side JavaScript, public repositories, query strings or a URL. The same event ID is idempotent; conflicting resubmissions fail with HTTP 409. The backend stores individual observations, evaluates the provisional four-hour threshold and connects qualifying sequences to the real incident workflow. The adapter has no automatic clinical clearance.
+
+**Deployment gate:** `db/migrations/005_connector_credentials.sql` must be explicitly approved and applied to Neon main before real connector management can operate in the preview. A temporary migration branch demonstrated restricted SELECT/INSERT privileges with no UPDATE/DELETE and append-only revocation. The production UI remains on the previous main release until final verification.
+
+**Not yet implemented:** real ABBIS mapping because no official interface has been provided; managed hospital SSO, per-tenant operator privileges, per-partner key rotation/expiry, signed event callbacks, formal device reconciliation, or clinical release. Outgoing updates are pulled over an authenticated API, not pushed as webhooks.
 
 ## Historical reference: original browser-only prototype
 
