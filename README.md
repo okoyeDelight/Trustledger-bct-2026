@@ -9,7 +9,7 @@ This repository contains **one active TrustLedger product**, with two cooperatin
 | Component | Code | Permanent project address | Responsibility |
 |---|---|---|---|
 | **TrustLedger** | `frontend/`, `backend/`, `db/migrations/` | https://trustledger-bct-2026.vercel.app | Receives scoped source events, detects review candidates, supports investigator → independent supervisor → follow-up → administrative closure |
-| **ABBIS Source Sandbox** | `abbis-sandbox/` | https://abbis-source-sandbox.vercel.app | Separately deployed **synthetic** blood-bank source, holding all six hash-verified starter datasets, replaying qualifying source episodes automatically through the real HTTPS adapter |
+| **ABBIS Source Sandbox** | `abbis-sandbox/` | https://abbis-source-sandbox.vercel.app | Separately deployed **synthetic** blood-bank source, holding all eleven organizer-provided, checksum-verified CSV datasets, replaying qualifying source episodes automatically through the real HTTPS adapter |
 
 The two applications are **one end-to-end solution**—not two versions of TrustLedger. The source sandbox is **not** an actual ABBIS service or device integration.
 
@@ -24,14 +24,14 @@ The historical static browser prototype remains in the Git history and legacy ro
 5. Watch **TrustLedger → Incoming incidents** refresh automatically. Log in as a **Facility Operator** to add a finding and submit. A **different Quality Supervisor** reviews, assigns follow-up and, once completed, may administratively close the investigation.
 6. In ABBIS, use **Investigation updates** to retrieve the source-scoped status of that case from TrustLedger.
 
-**Critical demo truth:** Automatic replay currently runs **while the ABBIS sandbox browser page is open**. It is not a hosted background scheduler. ABBIS holds six original datasets, but **the working connector sends verified temperature observations**; donation, unit, facility, outage and transfer files are retained on the source side and are not all streaming over separate API adapters yet. A logged observation is not a blood-unit exposure or clinical disposition decision.
+**Critical demo truth:** Automatic replay currently runs **while the ABBIS sandbox browser page is open**. It is not a hosted background scheduler. ABBIS holds eleven original datasets, but **the working connector sends verified temperature observations**; donation, unit, facility, outage and transfer files are retained on the source side and are not all streaming over separate API adapters yet. A logged observation is not a blood-unit exposure or clinical disposition decision.
 
-**Empty-queue principle:** The operational TrustLedger queue is driven only by newly received connected-system cases or intentional staff reports; its historical evaluation data do not auto-populate the live incident queue. Historical research remains available in evidence and test artifacts, never misrepresented as incoming live records.
+**Full competition dataset:** ABBIS verifies the official 11-file starter archive, including donors, drives, routes, requests and daily stock in addition to the six initial cold-chain inputs. Its search API lets workers choose source evidence from the full original catalog, attaching record ID, dataset revision and checksum to a human report. The working automatic connector still streams temperature readings only; other tables are available for source lookup, not claimed as event streams.\n\n**Empty-queue principle:** The operational TrustLedger queue is driven only by newly received connected-system cases or intentional staff reports; its historical evaluation data do not auto-populate the live incident queue. Historical research remains available in evidence and test artifacts, never misrepresented as incoming live records.
 
 ## Current application architecture
 
 ```text
-ABBIS Source Sandbox (Next.js, all 6 synthetic CSVs and verified replay catalog)
+ABBIS Source Sandbox (Next.js, all 11 verified synthetic CSVs and verified replay catalog)
        │ X-TrustLedger-Connector-Key (hashed, facility-scoped, revocable)
        ▼
 TrustLedger FastAPI /api/connectors/v1/observations
@@ -53,7 +53,7 @@ Neon PostgreSQL → investigation cases → facility worker → supervisor
 
 - `frontend/` — **canonical TrustLedger UI** (Next.js 16)
 - `backend/` — **canonical TrustLedger API**, source validation, workflow and tests (FastAPI)
-- `abbis-sandbox/` — **separate source simulator** (Next.js) with six verified synthetic CSVs
+- `abbis-sandbox/` — **separate source simulator** (Next.js) with eleven verified synthetic CSVs
 - `db/migrations/` — Neon persistence and append-only event tables
 - `submission/` — demo and judge-ready materials
 - `docs/` — evidence, security, limitations and historical engineering record
@@ -74,7 +74,7 @@ npm --prefix abbis-sandbox run typecheck
 npm --prefix abbis-sandbox run build
 ```
 
-The ABBIS build obtains only the six pinned synthetic source CSVs and verifies every Git blob SHA; never substitute donor or patient data. For the two-account case workflow and staged deployments, see [release guide](docs/CONSOLIDATED_RELEASE_GUIDE.md), [judge evidence](docs/SUBMISSION_EVIDENCE_2026.md), and [final demo script](submission/DEMO_SCRIPT_FINAL_2026.md).
+The ABBIS build obtains only the eleven verified synthetic source CSVs and verifies every Git blob SHA; never substitute donor or patient data. For the two-account case workflow and staged deployments, see [release guide](docs/CONSOLIDATED_RELEASE_GUIDE.md), [judge evidence](docs/SUBMISSION_EVIDENCE_2026.md), and [final demo script](submission/DEMO_SCRIPT_FINAL_2026.md).
 
 ## Submission boundaries
 
