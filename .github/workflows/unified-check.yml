@@ -21,10 +21,25 @@ jobs:
         run: python -m compileall -q backend/app
       - name: Run data pipeline and workflow tests
         run: python -m pytest -q backend/tests
-      - name: Ensure no synthetic CSV or credentials were copied into code branch
+      - name: Ensure secrets and raw CSV were not committed
         run: |
           test ! -f backend/data/raw/temperature_logs.csv
           test ! -f backend/.env
+      - name: Verify pinned source data and complete processing pipeline
+        run: |
+          python backend/tools/fetch_synthetic_inputs.py
+          cd backend
+          python -m app.run_pipeline --data data/raw --output data/processed
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          out=Path('data/processed')
+          summary=json.loads((out/'pipeline_summary.json').read_text())
+          assert summary['incident_count'] > 0
+          assert (out/'incidents.csv').exists()
+          assert (out/'temperature_gaps_by_facility.csv').exists()
+          print('Verified source-backed incidents:', summary['incident_count'])
+          PY
   frontend:
     runs-on: ubuntu-latest
     timeout-minutes: 12
@@ -41,5 +56,7 @@ jobs:
         run: npm --prefix frontend run typecheck
       - name: Lint frontend
         run: npm --prefix frontend run lint
+      - name: Verify consolidated Vercel JSON configuration
+        run: python -m json.tool vercel.json > /dev/null
       - name: Build Next.js application
         run: npm --prefix frontend run build
