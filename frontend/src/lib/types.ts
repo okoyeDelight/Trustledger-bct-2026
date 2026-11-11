@@ -186,6 +186,9 @@ export interface StaffReportRequest {
   title: string;
   description: string;
   observed_at: string;
+  source_dataset?: string;
+  source_record_id?: string;
+  source_record_sha256?: string;
 }
 
 export interface InvestigationNote {
