@@ -40,6 +40,22 @@ jobs:
           assert (out/'temperature_gaps_by_facility.csv').exists()
           print('Verified source-backed incidents:', summary['incident_count'])
           PY
+      - name: Prove sandbox replay uses real pinned source rows
+        run: |
+          cd backend
+          python - <<'PY'
+          from app.main import sandbox_source_series, DemoUser
+          from datetime import datetime, timedelta
+          user=DemoUser(username='source-ci',actor_name='Synthetic CI Actor',role='facility_staff')
+          result=sandbox_source_series(user=user)
+          rows=result['items']
+          assert len(rows)==4
+          assert all(float(r['temperature_c'])>6 for r in rows)
+          dates=[datetime.fromisoformat(r['observed_at']) for r in rows]
+          assert all(b-a==timedelta(hours=1) for a,b in zip(dates,dates[1:]))
+          assert result['timestamp_note']
+          print('Pinned source replay verified:',result['source_incident_id'])
+          PY
   frontend:
     runs-on: ubuntu-latest
     timeout-minutes: 12
