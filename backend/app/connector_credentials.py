@@ -150,11 +150,8 @@ def list_all(sqlite_connection):
         return [_metadata(dict(row)) for row in rows]
     with closing(sqlite_connection()) as connection:
         _local_schema(connection)
-        connection.execute(
-            """CREATE TABLE IF NOT EXISTS connector_observations (
-                id INTEGER PRIMARY KEY,source_system TEXT,facility_id TEXT,received_at TEXT
-            )"""
-        )
+        from app.integration_feed import _init_sqlite
+        _init_sqlite(connection)
         rows=connection.execute(
             """SELECT k.id,k.label,k.source_system,k.facility_code,k.key_prefix,
                k.created_by,k.created_at,(r.key_id IS NOT NULL) AS revoked,

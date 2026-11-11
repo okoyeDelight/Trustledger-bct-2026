@@ -10,7 +10,7 @@ from contextlib import closing
 from typing import Any, Literal
 from uuid import UUID
 
-from app import workflow_store, case_flow, proof_lab, external_bridge, integration_feed
+from app import workflow_store, case_flow, proof_lab, external_bridge, integration_feed, connector_credentials
 
 import pandas as pd
 from fastapi import Cookie, Depends, FastAPI, Header, HTTPException, Query, Response
@@ -416,35 +416,91 @@ def demo_connection_status(
 
 
 
+class NewConnectorRequest(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+    label: str = Field(min_length=3, max_length=100, pattern=r"^[a-zA-Z0-9][a-zA-Z0-9 _.-]{2,99}$")
+    source_system: str = Field(min_length=2, max_length=100, pattern=r"^[a-zA-Z0-9][a-zA-Z0-9 _.-]{1,99}$")
+    facility_code: str = Field(min_length=2, max_length=80, pattern=r"^[a-zA-Z0-9][a-zA-Z0-9_-]{1,79}$")
+
+
+@app.post("/api/connections", status_code=201)
+def register_connection(
+    payload: NewConnectorRequest,
+    response: Response,
+    user: DemoUser = Depends(require_authenticated_user),
+):
+    if user.role != "blood_service_supervisor":
+        raise HTTPException(status_code=403, detail="Only a supervisor can create an external system connection.")
+    response.headers["Cache-Control"] = "no-store"
+    response.headers["Pragma"] = "no-cache"
+    return connector_credentials.create(
+        payload.label, payload.source_system, payload.facility_code,
+        user.username, _connect_audit_db,
+    )
+
+
+@app.get("/api/connections")
+def list_connections(
+    response: Response,
+    user: DemoUser = Depends(require_authenticated_user),
+):
+    if user.role != "blood_service_supervisor":
+        raise HTTPException(status_code=403, detail="Only a supervisor can manage external connections.")
+    response.headers["Cache-Control"] = "no-store"
+    return {"items": connector_credentials.list_all(_connect_audit_db)}
+
+
+@app.post("/api/connections/{connection_id}/revoke")
+def revoke_connection(
+    connection_id: UUID,
+    response: Response,
+    user: DemoUser = Depends(require_authenticated_user),
+):
+    if user.role != "blood_service_supervisor":
+        raise HTTPException(status_code=403, detail="Only a supervisor can revoke an external connection.")
+    response.headers["Cache-Control"] = "no-store"
+    return connector_credentials.revoke(str(connection_id), user.username, _connect_audit_db)
+
+
 def _adapter_identity(
     connector_key: str | None = Header(default=None, alias="X-TrustLedger-Connector-Key"),
     session: str | None = Cookie(default=None, alias="trustledger_session"),
 ):
-    """Support the real server-to-server key boundary and signed-in sandbox operator."""
-    configured = os.environ.get("TRUSTLEDGER_CONNECTOR_API_KEY")
-    if configured and len(configured) >= 32 and connector_key is not None:
-        if hmac.compare_digest(connector_key.encode("utf-8"), configured.encode("utf-8")):
-            return "external_connector"
-        raise HTTPException(status_code=401, detail="Invalid connector credential.")
+    """A scoped API key authenticates partner systems; demo staff can test replay."""
+    if connector_key is not None:
+        return connector_credentials.authenticate(connector_key, _connect_audit_db)
     actor = require_authenticated_user(session)
     if actor.role != "facility_staff":
         raise HTTPException(status_code=403, detail="Only a facility operator or authorized connector can send observations.")
-    return actor.username
-
+    return actor
 
 
 def _adapter_status_identity(
     connector_key: str | None = Header(default=None, alias="X-TrustLedger-Connector-Key"),
     session: str | None = Cookie(default=None, alias="trustledger_session"),
 ):
-    """Machine key or either signed-in demo role may read shared status."""
-    configured = os.environ.get("TRUSTLEDGER_CONNECTOR_API_KEY")
-    if configured and len(configured) >= 32 and connector_key is not None:
-        if hmac.compare_digest(connector_key.encode("utf-8"), configured.encode("utf-8")):
-            return "external_connector"
-        raise HTTPException(status_code=401, detail="Invalid connector credential.")
-    actor = require_authenticated_user(session)
-    return actor.username
+    """A scoped partner key or a signed-in demonstration user may read status."""
+    if connector_key is not None:
+        return connector_credentials.authenticate(connector_key, _connect_audit_db)
+    return require_authenticated_user(session)
+
+
+@app.get("/api/connectors/v1/connection")
+def verify_connector_access(
+    response: Response,
+    identity=Depends(_adapter_status_identity),
+):
+    response.headers["Cache-Control"] = "no-store"
+    if not isinstance(identity, dict):
+        return {"authenticated": True, "mode": "signed_in_demo_user", "connected": False}
+    return {
+        "authenticated": True,
+        "connected": True,
+        "mode": "scoped_connector_key",
+        "source_system": identity["source_system"],
+        "facility_code": identity["facility_code"],
+        "notice": "Valid TrustLedger API credential. This does not confirm the external system has started sending records.",
+    }
 
 
 @app.get("/api/integrations/sandbox/sample")
@@ -502,6 +558,11 @@ def receive_connector_observation(
     identity: str = Depends(_adapter_identity),
 ):
     """Real observation store, deterministic rules and incident connection."""
+    if isinstance(identity, dict) and (
+        observation.source_system != identity["source_system"]
+        or observation.facility_id != identity["facility_code"]
+    ):
+        raise HTTPException(status_code=403, detail="Connector key is not authorized for this source and facility.")
     result = integration_feed.ingest_observation(
         observation.model_dump(mode="json"), _connect_audit_db
     )
@@ -524,6 +585,11 @@ def connector_case_status(
         raise HTTPException(status_code=404, detail="Case not found.")
     state = case_flow.get_case(case_reference, _connect_audit_db)
     source = external_bridge.unpack(saved["description"])
+    if isinstance(identity, dict) and (
+        source["source_system"] != identity["source_system"]
+        or source["facility_id"] != identity["facility_code"]
+    ):
+        raise HTTPException(status_code=404, detail="Case not found.")
     return {
         "case_reference": case_reference,
         "source_system": source["source_system"],
@@ -535,6 +601,56 @@ def connector_case_status(
         ],
         "clinical_clearance": None,
         "delivery_mode": "Authenticated pull; push webhooks not implemented.",
+    }
+
+
+
+@app.get("/api/connectors/v1/cases")
+def list_partner_cases(
+    response: Response,
+    limit: int = Query(default=30, ge=1, le=50),
+    identity=Depends(_adapter_status_identity),
+):
+    """Outbound pull feed: list current partner-scoped case status snapshots."""
+    response.headers["Cache-Control"] = "no-store"
+    if not isinstance(identity, dict):
+        raise HTTPException(status_code=403, detail="An active connector API key is required for this feed.")
+    source_system, facility_code = identity["source_system"], identity["facility_code"]
+    workflow_store.verify_persistence_config()
+    if workflow_store.use_postgres():
+        from psycopg.rows import dict_row
+        with workflow_store._connection() as connection:
+            with connection.cursor(row_factory=dict_row) as cursor:
+                cursor.execute(
+                    """SELECT report_ref FROM tl_staff_reports
+                    WHERE report_ref LIKE 'EXT-%'
+                      AND facility_code=%s
+                      AND description::jsonb->>'source_system'=%s
+                    ORDER BY created_at DESC LIMIT %s""",
+                    (facility_code, source_system, limit),
+                )
+                references=[r["report_ref"] for r in cursor.fetchall()]
+    else:
+        with closing(_connect_audit_db()) as connection:
+            workflow_store.ensure_local_workflow_tables(connection)
+            rows=connection.execute(
+                """SELECT report_ref,description FROM staff_reports
+                   WHERE report_ref LIKE 'EXT-%' AND facility_code=?
+                   ORDER BY created_at DESC LIMIT 1000""", (facility_code,)
+            ).fetchall()
+        references=[
+            r["report_ref"] for r in rows
+            if external_bridge.unpack(r["description"])["source_system"] == source_system
+        ][:limit]
+    return {
+        "items": [
+            {
+                "case_reference": ref,
+                "investigation_status": case_flow.get_case(ref, _connect_audit_db)["status"],
+            } for ref in references
+        ],
+        "clinical_clearance": None,
+        "delivery_mode": "authenticated_polling",
     }
 
 
@@ -607,7 +723,7 @@ def _staff_incident(report: dict) -> dict:
         "severity": "sustained" if external and len(payload.get("episode_readings", [])) >= 4 else "warning" if external else "needs_review",
         "sustained_rule": payload.get("detection_rule", "Single simulated external observation; sustained exposure not established.") if external else "Reported by staff. No automatic temperature evidence established.",
         "report_title": report["title"],
-        "report_description": ("Synthetic external monitoring observation; original source metadata preserved." if external else report["description"]),
+        "report_description": ("External connector observation; source metadata preserved, not independently verified." if external else report["description"]),
         "source_type": "external_observation" if external else "staff_report",
         "source_system": payload["source_system"] if external else None,
         "source_event_id": payload["source_event_id"] if external else None,
