@@ -10,10 +10,10 @@ from contextlib import closing
 from typing import Any, Literal
 from uuid import UUID
 
-from app import workflow_store, case_flow, proof_lab, external_bridge
+from app import workflow_store, case_flow, proof_lab, external_bridge, integration_feed
 
 import pandas as pd
-from fastapi import Cookie, Depends, FastAPI, HTTPException, Query, Response
+from fastapi import Cookie, Depends, FastAPI, Header, HTTPException, Query, Response
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
 
@@ -415,6 +415,114 @@ def demo_connection_status(
     }
 
 
+
+def _adapter_identity(
+    connector_key: str | None = Header(default=None, alias="X-TrustLedger-Connector-Key"),
+    session: str | None = Cookie(default=None, alias="trustledger_session"),
+):
+    """Support the real server-to-server key boundary and signed-in sandbox operator."""
+    configured = os.environ.get("TRUSTLEDGER_CONNECTOR_API_KEY")
+    if configured and len(configured) >= 32 and connector_key is not None:
+        if hmac.compare_digest(connector_key.encode("utf-8"), configured.encode("utf-8")):
+            return "external_connector"
+        raise HTTPException(status_code=401, detail="Invalid connector credential.")
+    actor = require_authenticated_user(session)
+    if actor.role != "facility_staff":
+        raise HTTPException(status_code=403, detail="Only a facility operator or authorized connector can send observations.")
+    return actor.username
+
+
+@app.get("/api/integrations/sandbox/sample")
+def sandbox_source_series(user: DemoUser = Depends(require_authenticated_user)):
+    """Select actual consecutive source readings from the pinned synthetic CSV files."""
+    import pandas as pd
+    incidents_file = OUTPUT_DIR / "incidents.csv"
+    raw_file = RAW_DIR / "temperature_logs.csv"
+    if not incidents_file.exists() or not raw_file.exists():
+        raise HTTPException(status_code=503, detail="The pinned synthetic source has not been prepared.")
+    incidents = pd.read_csv(incidents_file)
+    incidents = incidents[incidents["severity"] == "sustained"].head(35)
+    raw = pd.read_csv(raw_file, usecols=["facility_id", "recorded_at", "temp_c"])
+    raw["recorded_at"] = parse_timestamp_series(raw["recorded_at"])
+    raw["temp_c"] = pd.to_numeric(raw["temp_c"], errors="coerce")
+    for _, candidate in incidents.iterrows():
+        start = pd.Timestamp(candidate["start_time"])
+        end = pd.Timestamp(candidate["end_time"])
+        readings = raw[
+            (raw["facility_id"] == candidate["facility_id"])
+            & (raw["recorded_at"] >= start)
+            & (raw["recorded_at"] < end)
+            & (raw["temp_c"] > SAFE_MAX_C)
+            & (raw["temp_c"] < 80)
+        ].sort_values("recorded_at").drop_duplicates("recorded_at").head(4)
+        if len(readings) != 4:
+            continue
+        if not readings["recorded_at"].diff().iloc[1:].eq(pd.Timedelta(hours=1)).all():
+            continue
+        data = []
+        for row in readings.itertuples(index=False):
+            stamp = row.recorded_at.strftime("%Y-%m-%dT%H:%M:%S+00:00")
+            data.append({
+                "schema_version": "trustledger.observation.v1",
+                "source_system": "ABBIS Sandbox — pinned synthetic replay",
+                "source_event_id": "SRC-" + row.facility_id + "-" + row.recorded_at.strftime("%Y%m%d%H%M"),
+                "facility_id": row.facility_id,
+                "observed_at": stamp,
+                "temperature_c": float(row.temp_c),
+            })
+        return {
+            "items": data,
+            "source_incident_id": candidate["incident_id"],
+            "mode": "Historical synthetic data replay, not live monitoring.",
+            "source_revision": "da2862ff9db262f40cd1776fd7962ed47d8942ec",
+            "timestamp_note": "Original CSV timestamps did not specify a timezone. UTC is assigned for synthetic transport demonstration only; real sources must provide an explicit offset.",
+        }
+    raise HTTPException(status_code=503, detail="No verified four-reading source sequence found in pinned synthetic data.")
+
+
+@app.post("/api/connectors/v1/observations")
+def receive_connector_observation(
+    observation: ImportContractObservation,
+    response: Response,
+    identity: str = Depends(_adapter_identity),
+):
+    """Real observation store, deterministic rules and incident connection."""
+    result = integration_feed.ingest_observation(
+        observation.model_dump(mode="json"), _connect_audit_db
+    )
+    response.status_code = 201 if result["observation_stored"] else 200
+    response.headers["Cache-Control"] = "no-store"
+    return result
+
+
+@app.get("/api/connectors/v1/cases/{case_reference}")
+def connector_case_status(
+    case_reference: str,
+    response: Response,
+    identity: str = Depends(_adapter_identity),
+):
+    response.headers["Cache-Control"] = "no-store"
+    if not case_reference.startswith("EXT-"):
+        raise HTTPException(status_code=404, detail="Case not found.")
+    saved = external_bridge.lookup(case_reference, _connect_audit_db)
+    if not saved:
+        raise HTTPException(status_code=404, detail="Case not found.")
+    state = case_flow.get_case(case_reference, _connect_audit_db)
+    source = external_bridge.unpack(saved["description"])
+    return {
+        "case_reference": case_reference,
+        "source_system": source["source_system"],
+        "source_event_id": source["source_event_id"],
+        "investigation_status": state["status"],
+        "review_events": [
+            {"event_kind": e["event_kind"], "actor_role": e["actor_role"],
+             "created_at": e["created_at"]} for e in state["events"]
+        ],
+        "clinical_clearance": None,
+        "delivery_mode": "Authenticated pull; push webhooks not implemented.",
+    }
+
+
 @app.get("/health")
 def health():
     return {"status": "ok", "service": "trustledger-api"}
@@ -474,15 +582,15 @@ def _staff_incident(report: dict) -> dict:
     return {
         "incident_id": report["report_ref"],
         "facility_id": report["facility_code"],
-        "start_time": report["observed_at"],
-        "end_time": report["observed_at"],
+        "start_time": payload.get("episode_start_at", report["observed_at"]) if external else report["observed_at"],
+        "end_time": payload.get("episode_end_at", report["observed_at"]) if external else report["observed_at"],
         "duration_hours": None,
-        "reading_count": 1 if external else None,
+        "reading_count": len(payload.get("episode_readings", [])) if external and "episode_readings" in payload else 1 if external else None,
         "peak_temp_c": payload["temperature_c"] if external else None,
         "minimum_temp_c": payload["temperature_c"] if external else None,
         "direction": ("above_range" if payload["temperature_c"] > SAFE_MAX_C else "below_range") if external else "staff_report",
-        "severity": "warning" if external else "needs_review",
-        "sustained_rule": "One simulated external observation; sustained exposure has not been established." if external else "Reported by staff. No automatic temperature evidence established.",
+        "severity": "sustained" if external and len(payload.get("episode_readings", [])) >= 4 else "warning" if external else "needs_review",
+        "sustained_rule": payload.get("detection_rule", "Single simulated external observation; sustained exposure not established.") if external else "Reported by staff. No automatic temperature evidence established.",
         "report_title": report["title"],
         "report_description": ("Synthetic external monitoring observation; original source metadata preserved." if external else report["description"]),
         "source_type": "external_observation" if external else "staff_report",
