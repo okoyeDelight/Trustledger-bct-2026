@@ -22,7 +22,35 @@ export function IncidentTable({ incidents }: { incidents: Incident[] }) {
   }
 
   return (
-    <Table>
+    <>
+      <div className="divide-y md:hidden">
+        {incidents.map(incident => (
+          <Link
+            key={incident.incident_id}
+            href={`/incidents/${encodeURIComponent(incident.incident_id)}`}
+            className="block space-y-2 px-4 py-4 transition-colors hover:bg-muted/40"
+            aria-label={`Open incident ${incident.incident_id}`}
+          >
+            <div className="flex items-center justify-between gap-2">
+              <span className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                {incident.source_type === "external_observation" ? "ABBIS / Connected source" :
+                  incident.source_type === "staff_report" ? "Worker report" : "Historical research"}
+              </span>
+              <ArrowUpRight className="size-4 shrink-0 text-primary" aria-hidden="true" />
+            </div>
+            <p className="break-all text-sm font-semibold text-primary">{incident.incident_id}</p>
+            <div className="grid grid-cols-2 gap-2 text-xs">
+              <div><span className="text-muted-foreground">Facility</span><p className="font-medium">{incident.facility_id}</p></div>
+              <div><span className="text-muted-foreground">Source readings</span><p className="font-medium">{incident.reading_count ?? "Worker reported"}</p></div>
+              <div><span className="text-muted-foreground">Start</span><p className="font-medium">{formatDateTime(incident.start_time)}</p></div>
+              <div><span className="text-muted-foreground">Peak recorded</span><p className="font-medium">{typeof incident.peak_temp_c === "number" ? incident.peak_temp_c.toFixed(1) + "°C" : "Not measured"}</p></div>
+            </div>
+            <span className="inline-flex rounded-full border px-2 py-0.5 text-xs font-medium">{incident.severity.replaceAll("_"," ")}</span>
+          </Link>
+        ))}
+      </div>
+      <div className="hidden overflow-x-auto md:block">
+        <Table>
       <TableHeader>
         <TableRow className="hover:bg-transparent">
           <TableHead>Incident</TableHead>
@@ -76,5 +104,7 @@ export function IncidentTable({ incidents }: { incidents: Incident[] }) {
         ))}
       </TableBody>
     </Table>
+      </div>
+    </>
   );
 }
