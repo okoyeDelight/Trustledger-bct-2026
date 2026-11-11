@@ -1,6 +1,14 @@
 # TrustLedger — submission evidence map
 **November 11, 2026 · Synthetic hackathon demonstration · Not clinically validated**
 
+## Genuine streamed adapter MVP — pending schema release
+
+Four consecutive **historical synthetic source readings** selected from the pinned input files are replayed through four real HTTP requests to `POST /api/connectors/v1/observations`. The receiver checks signed-in worker or privately configured connector-key authorization, validates the versioned schema, and appends readings to a restricted PostgreSQL connector-observation table (migration 004). Repeating a source-event ID does not create another observation; conflicting evidence returns 409. A streak of four distinct consecutive hourly above-6°C readings creates a source-linked `EXT-` incident in the normal worker/supervisor workflow. A separate authenticated status GET returns current case state and recorded review transitions. The UI calls these APIs instead of drawing fake progress.
+
+**New database migration:** `db/migrations/004_connector_observations.sql` is additive, gives the API role SELECT/INSERT but no UPDATE/DELETE, and must be explicitly approved before applying to Neon main. It was verified on a disposable Neon branch. Deployment is blocked until approval and full CI.
+
+**Limits:** This is an integration test against an ABBIS-like synthetic source, not a real ABBIS environment. The schema is proposed and not institutionally certified. The status adapter is pull-based, not webhooks. Real partner onboarding still requires facility-scoped credentials, device identity, authorization, replay reconciliation and timestamps with true source timezones. A dedicated incident table and transactional outbox may be needed for scale. Source timestamps without timezone are assigned UTC *only in this replay*, with that assumption visible.
+
 ## Core integration journey (submission focus)
 
 **Connections → Incidents → Worker investigation → Supervisor review → Status returned**. The user-facing demonstration is `/connections`, not the hidden adversarial Proof Lab. A signed-in facility operator triggers a synthetic external observation. The backend validates its source event ID, timestamp and value, persists a source-tagged `EXT-` case in existing Neon append-only report storage, and sends it through the exact existing incident workflow. An authenticated GET endpoint returns current status and review events to the simulated source. The same event ID + payload is idempotent; a changed payload with the same ID is rejected. This is an interface and handoff **simulation**—not live ABBIS, a production machine client or an operating hospital adapter.
