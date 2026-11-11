@@ -130,7 +130,7 @@ function IncidentDetailContent() {
                 {isExternal ? "Case created in TrustLedger" : "Report submitted to TrustLedger"}
               </p>
               <p className="mt-1 font-semibold">{formatDateTime(incident.recorded_at)}</p>
-              <p className="mt-2 text-xs text-muted-foreground">Saved server timestamp · shown in your browser's local time</p>
+              <p className="mt-2 text-xs text-muted-foreground">Saved server timestamp · shown in your local browser time</p>
             </div>
           </CardContent>
         </Card>
