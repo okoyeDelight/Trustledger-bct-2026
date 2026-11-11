@@ -361,3 +361,18 @@ export function fetchCaseHistory() {
     "/api/case-history?limit=100&offset=0"
   );
 }
+
+export interface ReceivedObservation {
+  source_system: string;
+  source_event_id: string;
+  facility_id: string;
+  observed_at: string;
+  temperature_c: number;
+  received_at: string;
+}
+
+export function fetchReceivedObservations() {
+  return request<{total: number; items: ReceivedObservation[]; notice: string}>(
+    "/api/connectors/received-observations?limit=12",
+  );
+}

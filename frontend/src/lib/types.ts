@@ -109,6 +109,7 @@ export interface AffectedUnit {
 
 export interface TemperaturePoint {
   recorded_at: string;
+  source_event_id?: string;
   temp_c: number | null;
   quality_status: "valid" | "known_sensor_glitch" | string;
 }

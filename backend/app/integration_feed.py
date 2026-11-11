@@ -216,3 +216,48 @@ def ingest_observation(payload: dict, sqlite_connection):
         "rule": "Four consecutive above-6°C hourly readings; missing hours break the sequence.",
         "clinical_clearance": None,
     }
+
+
+def recent_observations(sqlite_connection, limit: int = 12) -> dict:
+    """Read-only monitoring receipt stream; not a list of clinical incidents."""
+    limit = max(1, min(int(limit), 30))
+    workflow_store.verify_persistence_config()
+    if workflow_store.use_postgres():
+        from psycopg.rows import dict_row
+        with workflow_store._connection() as connection:
+            with connection.cursor(row_factory=dict_row) as cursor:
+                cursor.execute("SELECT COUNT(*) AS total FROM tl_connector_observations")
+                total = int(cursor.fetchone()["total"])
+                cursor.execute(
+                    """SELECT source_system,source_event_id,facility_id,observed_at,
+                              temperature_c,received_at
+                       FROM tl_connector_observations ORDER BY id DESC LIMIT %s""",
+                    (limit,),
+                )
+                rows = [dict(row) for row in cursor.fetchall()]
+    else:
+        with closing(sqlite_connection()) as connection:
+            _init_sqlite(connection)
+            total = int(connection.execute(
+                "SELECT COUNT(*) FROM connector_observations"
+            ).fetchone()[0])
+            rows = [dict(row) for row in connection.execute(
+                """SELECT source_system,source_event_id,facility_id,observed_at,
+                          temperature_c,received_at
+                   FROM connector_observations ORDER BY id DESC LIMIT ?""",
+                (limit,),
+            ).fetchall()]
+    return {
+        "total": total,
+        "items": [
+            {
+                "source_system": row["source_system"],
+                "source_event_id": row["source_event_id"],
+                "facility_id": row["facility_id"],
+                "observed_at": _iso(row["observed_at"]),
+                "temperature_c": float(row["temperature_c"]),
+                "received_at": _iso(row["received_at"]),
+            } for row in rows
+        ],
+        "notice": "Original synthetic source observations received through the adapter; only qualifying sequences become cases.",
+    }

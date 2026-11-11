@@ -244,7 +244,11 @@ def test_external_observation_becomes_real_case_and_returns_human_status(identit
         assert sum(i["incident_id"] == reference for i in incidents.json()["items"]) == 1
         detail = worker.get(f"/api/incidents/{reference}")
         assert detail.status_code == 200
-        assert detail.json()["temperature_history"] == []
+        # The API now returns the true original source observation; it is not
+        # fabricated or a claim of sustained four-hour exposure.
+        assert len(detail.json()["temperature_history"]) == 1
+        assert detail.json()["temperature_history"][0]["temp_c"] == 7.2
+        assert detail.json()["temperature_history"][0]["source_event_id"] == "SYN-ABBIS-ALERT-001"
         assert detail.json()["incident"]["source_payload"]["source_event_id"] == sample["source_event_id"]
         assert detail.json()["potentially_affected_units"] == []
 

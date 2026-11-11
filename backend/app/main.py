@@ -485,6 +485,15 @@ def _adapter_status_identity(
     return require_authenticated_user(session)
 
 
+@app.get("/api/connectors/received-observations")
+def received_connector_observations(
+    limit: int = Query(default=12, ge=1, le=30),
+    user: DemoUser = Depends(require_authenticated_user),
+):
+    """Operational receipt view. Distinct observations are not incident counts."""
+    return integration_feed.recent_observations(_connect_audit_db, limit=limit)
+
+
 @app.get("/api/connectors/v1/connection")
 def verify_connector_access(
     response: Response,
@@ -707,23 +716,66 @@ def dashboard(user: DemoUser = Depends(require_authenticated_user)):
     return summary
 
 
+def _external_observation_rows(payload: dict) -> list[dict]:
+    """Rehydrate *actual* connector evidence already saved with the case.
+
+    Four hourly samples create one provisional case, not four cases. The
+    original four observations are stored inside the append-only external
+    case payload, so no migration or fabricated timeseries is needed.
+    """
+    source_rows = payload.get("episode_readings")
+    if not isinstance(source_rows, list) or not source_rows:
+        source_rows = [payload]
+    records = []
+    seen = set()
+    for row in source_rows:
+        if not isinstance(row, dict):
+            continue
+        when, event_id = row.get("observed_at"), row.get("source_event_id")
+        try:
+            temperature = float(row["temperature_c"])
+            parsed = datetime.fromisoformat(str(when).replace("Z", "+00:00"))
+        except (ValueError, TypeError, KeyError):
+            continue
+        if parsed.tzinfo is None or parsed.utcoffset() is None:
+            continue
+        identity = (str(when), str(event_id))
+        if identity in seen:
+            continue
+        seen.add(identity)
+        records.append({
+            "recorded_at": parsed.isoformat(),
+            "temp_c": temperature,
+            "quality_status": "valid",
+            "source_event_id": str(event_id or "not provided"),
+        })
+    return sorted(records, key=lambda row: row["recorded_at"])
+
+
 def _staff_incident(report: dict) -> dict:
     external = report["report_ref"].startswith("EXT-")
     payload = external_bridge.unpack(report["description"]) if external else None
+    observations = _external_observation_rows(payload) if external else []
+    values = [item["temp_c"] for item in observations]
+    first = observations[0]["recorded_at"] if observations else report["observed_at"]
+    last = observations[-1]["recorded_at"] if observations else report["observed_at"]
     return {
         "incident_id": report["report_ref"],
         "facility_id": report["facility_code"],
-        "start_time": payload.get("episode_start_at", report["observed_at"]) if external else report["observed_at"],
-        "end_time": payload.get("episode_end_at", report["observed_at"]) if external else report["observed_at"],
+        "start_time": first if external else report["observed_at"],
+        "end_time": last if external else report["observed_at"],
+        # An observed time span is not proof of product exposure duration.
         "duration_hours": None,
-        "reading_count": len(payload.get("episode_readings", [])) if external and "episode_readings" in payload else 1 if external else None,
-        "peak_temp_c": payload["temperature_c"] if external else None,
-        "minimum_temp_c": payload["temperature_c"] if external else None,
-        "direction": ("above_range" if payload["temperature_c"] > SAFE_MAX_C else "below_range") if external else "staff_report",
-        "severity": "sustained" if external and len(payload.get("episode_readings", [])) >= 4 else "warning" if external else "needs_review",
-        "sustained_rule": payload.get("detection_rule", "Single simulated external observation; sustained exposure not established.") if external else "Reported by staff. No automatic temperature evidence established.",
+        "reading_count": len(observations) if external else None,
+        "peak_temp_c": max(values) if values else None,
+        "minimum_temp_c": min(values) if values else None,
+        "direction": ("above_range" if values and min(values) > SAFE_MAX_C else
+                      "below_range" if values and max(values) < SAFE_MIN_C else
+                      "observed_excursion") if external else "staff_report",
+        "severity": "sustained" if external and len(observations) >= 4 else "warning" if external else "needs_review",
+        "sustained_rule": payload.get("detection_rule", "Connector observation requires review; exposure duration not established.") if external else "Reported by staff. No automatic temperature evidence established.",
         "report_title": report["title"],
-        "report_description": ("External connector observation; source metadata preserved, not independently verified." if external else report["description"]),
+        "report_description": ("Source observations received through the authenticated connector. No clinical safety determination has been made." if external else report["description"]),
         "source_type": "external_observation" if external else "staff_report",
         "source_system": payload["source_system"] if external else None,
         "source_event_id": payload["source_event_id"] if external else None,
@@ -1121,15 +1173,21 @@ def incident_detail(
         )
         if found is None:
             raise HTTPException(status_code=404, detail="Incident not found")
+        external = incident_id.startswith("EXT-")
+        incident = _staff_incident(found)
+        observation_rows = (
+            _external_observation_rows(external_bridge.unpack(found["description"]))
+            if external else []
+        )
         return {
-            "incident": _staff_incident(found),
+            "incident": incident,
             "potentially_affected_units": [],
-            "temperature_history": [],
+            "temperature_history": observation_rows,
             "power_correlations": [],
             "decision_required": True,
             "notice": (
-                "A simulated external observation created this investigation candidate. It is not confirmed sensor telemetry or evidence of blood-unit exposure."
-                if incident_id.startswith("EXT-")
+                "The source application sent these timestamped synthetic observations over the connector. Four consecutive hourly readings produce one provisional investigation; sensor identity, causation and individual blood-unit exposure are not established."
+                if external
                 else "Staff-reported issue only. No temperature measurement, cause, unit exposure or clinical safety claim established."
             ),
             "temperature_policy": {"minimum_c": SAFE_MIN_C, "maximum_c": SAFE_MAX_C},

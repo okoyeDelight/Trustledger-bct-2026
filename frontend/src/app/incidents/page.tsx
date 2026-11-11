@@ -3,14 +3,15 @@
 import { useQuery } from "@tanstack/react-query";
 import { useState } from "react";
 import Link from "next/link";
-import { Search, Cable } from "lucide-react";
+import { Search, Cable, Radio, RefreshCw } from "lucide-react";
 import { IncidentTable } from "@/components/incident-table";
 import { PageHeading } from "@/components/page-heading";
 import { ErrorState, LoadingState } from "@/components/query-states";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
-import { fetchIncidents } from "@/lib/api";
+import { fetchIncidents, fetchReceivedObservations } from "@/lib/api";
+import { formatDateTime } from "@/lib/date";
 
 const PAGE_SIZE = 50;
 
@@ -25,7 +26,12 @@ export default function IncidentsPage() {
   const incidents = useQuery({
     queryKey: ["incidents", search, offset, "active"],
     queryFn: () => fetchIncidents(PAGE_SIZE, offset, search, "active"),
-    refetchInterval: 15000,
+    refetchInterval: 10000,
+  });
+  const receipts = useQuery({
+    queryKey: ["received-source-observations"],
+    queryFn: fetchReceivedObservations,
+    refetchInterval: 10000,
   });
   const totalPages = incidents.data ? Math.max(1, Math.ceil(incidents.data.total / PAGE_SIZE)) : 1;
   const currentPage = Math.floor(offset / PAGE_SIZE) + 1;
@@ -37,6 +43,55 @@ export default function IncidentsPage() {
         title="Incoming incidents"
         description="Cases appear here only when a connected source triggers an investigation or a worker reports an observation. Nothing is preloaded into this queue from the historical dataset."
       />
+      <Card className="mb-5 border-0 shadow-sm ring-1 ring-border/80">
+        <CardContent className="p-4 sm:p-5">
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <div>
+              <p className="flex items-center gap-2 font-semibold">
+                <Radio className="size-4 text-emerald-600" aria-hidden="true" />
+                Received from connected systems
+              </p>
+              <p className="mt-1 text-sm text-muted-foreground">
+                Individual readings received by TrustLedger, independently of incident creation. Refreshes every 10 seconds.
+              </p>
+            </div>
+            <Button variant="outline" size="sm" disabled={receipts.isFetching}
+              onClick={() => { void receipts.refetch(); void incidents.refetch(); }}>
+              <RefreshCw className="mr-2 size-3.5" aria-hidden="true" />
+              Refresh
+            </Button>
+          </div>
+          {receipts.isPending && <p className="mt-4 text-sm text-muted-foreground">Checking connector receipts…</p>}
+          {receipts.isError && <p role="alert" className="mt-4 text-sm text-destructive">Cannot load source receipts: {receipts.error.message}</p>}
+          {receipts.data && <>
+            <div className="mt-4 flex flex-wrap items-end gap-3">
+              <p className="text-3xl font-bold tabular-nums">{receipts.data.total.toLocaleString("en-GB")}</p>
+              <p className="pb-1 text-sm text-muted-foreground">source observations acknowledged</p>
+            </div>
+            {receipts.data.items.length ? (
+              <div className="mt-3 space-y-2">
+                {receipts.data.items.slice(0,6).map(item => (
+                  <div key={item.source_system+item.source_event_id}
+                    className="flex flex-wrap items-center justify-between gap-2 rounded-lg border bg-muted/30 px-3 py-2.5 text-sm">
+                    <div className="min-w-0">
+                      <p className="font-medium">{item.source_system} · {item.facility_id}</p>
+                      <p className="text-xs text-muted-foreground">{formatDateTime(item.observed_at)} · received {formatDateTime(item.received_at)}</p>
+                    </div>
+                    <span className={item.temperature_c>6?"font-semibold text-amber-700":"font-semibold text-emerald-700"}>
+                      {item.temperature_c.toFixed(1)}°C
+                    </span>
+                  </div>
+                ))}
+              </div>
+            ) : <p className="mt-3 text-sm text-muted-foreground">
+              No source records yet. Connect ABBIS and leave its automatic feed running.
+            </p>}
+            <p className="mt-3 text-xs text-muted-foreground">
+              Four qualifying consecutive hourly readings create one investigation case—not four separate cases.
+            </p>
+          </>}
+        </CardContent>
+      </Card>
       <Card className="border-0 shadow-sm ring-1 ring-border/80">
         <CardContent className="p-0">
           <div className="flex flex-wrap items-center justify-between gap-3 border-b p-4 sm:px-5">
