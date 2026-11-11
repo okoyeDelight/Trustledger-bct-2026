@@ -14,6 +14,7 @@ from uuid import uuid4
 
 from fastapi import HTTPException
 from app import workflow_store
+from app.services.pipeline import SAFE_MIN_C, SAFE_MAX_C
 
 DATASET_FILES = {
     "donations": "donations.csv",
@@ -181,7 +182,7 @@ def _incident_details(dataset, record):
         else:
             if temp in (-99.0, 99.9, 0.0):
                 category, title = "sensor_anomaly", "Known sensor-error sentinel"
-            elif temp < 2 or temp > 6:
+            elif temp < SAFE_MIN_C or temp > SAFE_MAX_C:
                 category, title = "temperature_excursion", "Out-of-range facility reading"
     elif dataset == "power_outages":
         backup = str(record.get("backup_power_engaged", "")).lower()
@@ -190,7 +191,7 @@ def _incident_details(dataset, record):
     elif dataset == "transfers":
         try:
             temp = float(record["coolbox_max_temp_c"])
-            if temp > 6:
+            if temp > SAFE_MAX_C:
                 category, title = "temperature_excursion", "Transport temperature requires investigation"
         except (ValueError, TypeError, KeyError):
             pass
@@ -299,7 +300,7 @@ def source_incidents(sqlite_factory, *, incident_ref=None):
             "report_title": detail["title"],
             "report_description": "Imported from " + r["dataset"] + " / " + r["source_event_id"],
             "source_type": "source_feed",
-            "source_record": raw,
+            **({"source_record": raw, "source_dataset": r["dataset"]} if incident_ref else {}),
         })
     return items
 
@@ -333,7 +334,7 @@ def demo_sequence(raw_dir):
                                    _incident_details(dataset, row)["incident_category"])
                     if len(rows) < 2 or interesting:
                         rows.append((index, row))
-                    if len(rows) >= 5:
+                    if len(rows) >= (5 if dataset in ("temperature_logs", "power_outages", "transfers") else 2):
                         break
         selections[dataset] = rows
     # Interleave domains: one row per dataset, then another, rather than six batches.
