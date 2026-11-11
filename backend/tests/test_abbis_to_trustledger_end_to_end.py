@@ -97,10 +97,6 @@ def test_source_only_ingestion_to_worker_supervisor_and_status(configured):
             if i < 3:
                 assert receipt.json()["case_created"] is False
                 assert worker.get("/api/incidents?view=active").json()["total"] == 0
-            live_receipts = worker.get("/api/connectors/received-observations")
-            assert live_receipts.status_code == 200
-            assert live_receipts.json()["total"] == i+1
-            assert live_receipts.json()["items"][0]["temperature_c"] == temp
             else:
                 assert receipt.json()["case_created"] is True
                 case_ref = receipt.json()["case_reference"]
@@ -113,6 +109,10 @@ def test_source_only_ingestion_to_worker_supervisor_and_status(configured):
                 changed = source.post("/api/connectors/v1/observations",
                                       headers=headers, json={**payload, "temperature_c": 15})
                 assert changed.status_code == 409
+            live_receipts = worker.get("/api/connectors/received-observations")
+            assert live_receipts.status_code == 200
+            assert live_receipts.json()["total"] == i+1
+            assert live_receipts.json()["items"][0]["temperature_c"] == temp
         assert case_ref
         live = worker.get("/api/incidents?view=active").json()
         assert live["total"] == 1
