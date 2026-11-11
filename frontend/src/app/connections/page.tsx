@@ -163,7 +163,7 @@ export default function ConnectionsPage() {
     <details className="rounded-xl border bg-card px-4 py-3 text-sm">
       <summary className="flex cursor-pointer items-center gap-2 font-medium"><CircleHelp className="size-4"/> What does this prove—and what doesn&apos;t it?</summary>
       <div className="mt-3 space-y-2 border-t pt-3 text-muted-foreground">
-        <p>The signed-in operator sends a versioned JSON observation to a FastAPI endpoint. The adapter checks its fields and temperature, stores a provisional incident in the append-only report ledger, and makes it available to our existing worker and supervisor workflow. A separate GET endpoint returns the case's latest status.</p>
+        <p>The signed-in operator sends a versioned JSON observation to a FastAPI endpoint. The adapter checks its fields and temperature, stores a provisional incident in the append-only report ledger, and makes it available to our existing worker and supervisor workflow. A separate GET endpoint returns the case&apos;s latest status.</p>
         <p>Repeated identical source events are idempotent; reusing an event ID with different evidence is rejected. Incomplete timestamps are rejected rather than silently assumed.</p>
         <p>It does not implement external machine credentials, a real ABBIS interface, sensor connectivity, FHIR/HL7 interoperability, clinical authorization or routine telemetry storage. The source is a simulated fixture.</p>
         <Button size="sm" variant="outline" onClick={() => setShowRejected(x => !x)}>
