@@ -39,5 +39,6 @@
       "observed_at": "2025-11-01T03:00:00+00:00",
       "temperature_c": 10.1
     }
-  ]
+  ],
+  "notice": "Historical first fixture retained for comparison; full six-file source is prepared in data/catalog.json and data/raw during the source build."
 }

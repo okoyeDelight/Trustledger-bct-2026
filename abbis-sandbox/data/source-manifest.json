@@ -1,0 +1,37 @@
+{
+  "source_repository": "isaac-briandt/trustLedger-bct-hackaton-solution-2026",
+  "source_revision": "da2862ff9db262f40cd1776fd7962ed47d8942ec",
+  "synthetic_csv_inputs": [
+    {
+      "path": "backend/data/raw/donations.csv",
+      "bytes": 4391791,
+      "git_sha1": "426f6b57bd1ad6f563ef6dec1af11dbc6b0f2a2a"
+    },
+    {
+      "path": "backend/data/raw/facilities.csv",
+      "bytes": 5923,
+      "git_sha1": "85972c25dd71c461ebcc81635df4d46fbd75efb2"
+    },
+    {
+      "path": "backend/data/raw/power_outages.csv",
+      "bytes": 178697,
+      "git_sha1": "d6a4affc98ea4a3edb0034adf3d6b18e25cea33c"
+    },
+    {
+      "path": "backend/data/raw/temperature_logs.csv",
+      "bytes": 12829641,
+      "git_sha1": "4544f3140df9e0047512b3ec0cc478fc8a903073"
+    },
+    {
+      "path": "backend/data/raw/transfers.csv",
+      "bytes": 3970903,
+      "git_sha1": "1fceaf1429646780e8740f73f1c7c9325a9db204"
+    },
+    {
+      "path": "backend/data/raw/units.csv",
+      "bytes": 5781459,
+      "git_sha1": "cd8dd75c7983bf7531b2954335c0c4500b7afd81"
+    }
+  ],
+  "note": "These synthetic CSV inputs are not committed in the candidate snapshot; each is pinned to upstream commit and verified by Git blob hash."
+}
