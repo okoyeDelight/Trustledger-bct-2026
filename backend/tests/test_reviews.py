@@ -209,8 +209,18 @@ def test_authenticated_routes_require_server_session_dependency():
     ]
 
     assert protected_routes
+    partner_api_paths = {
+        "/api/connectors/v1/observations",
+        "/api/connectors/v1/cases/{case_reference}",
+    }
     assert all(
-        any(dependency.call is main.require_authenticated_user for dependency in route.dependant.dependencies)
+        any(
+            dependency.call is (
+                main._adapter_identity if route.path in partner_api_paths
+                else main.require_authenticated_user
+            )
+            for dependency in route.dependant.dependencies
+        )
         for route in protected_routes
     )
 
