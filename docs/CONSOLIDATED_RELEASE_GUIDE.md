@@ -1,8 +1,8 @@
-# TrustLedger — consolidated application (integration branch)
+# TrustLedger — consolidated application (deployed production)
 
 **Canonical code in this branch:** `frontend/` (Next.js worker interface), `backend/` (FastAPI + Python source-data processing), `db/migrations/` (Neon schema), and `vercel.json` (one-origin service routing).
 
-This is one **source-code consolidation**, not a production launch. Legacy root `index.html`, `src/` and `styles.css` are preserved for reference and rollback. Their original Vercel configuration is preserved in `config/legacy-vercel-static.json`. The teammate's source remains reproducible at `candidate/teammate/` (exact source commit in `docs/CONSOLIDATION_SOURCE.md`). Do not claim two different browser apps are independently maintained after adoption.
+This source-code consolidation has been deployed to https://trustledger-bct-2026.vercel.app on November 11, 2026. It remains synthetic-only and not clinically authorized. Legacy root `index.html`, `src/` and `styles.css` are preserved for reference and rollback. Their original Vercel configuration is preserved in `config/legacy-vercel-static.json`. The teammate's source remains reproducible at `candidate/teammate/` (exact source commit in `docs/CONSOLIDATION_SOURCE.md`). Do not claim two different browser apps are independently maintained after adoption.
 
 ## One primary worker journey
 
@@ -13,7 +13,7 @@ This is one **source-code consolidation**, not a production launch. Legacy root 
 5. A **different supervisor** accepts/changes/rejects the *investigation flag* with reason. The API rejects a facility staff account attempting the same review.
 6. **History** shows saved review events. With Neon enabled these are database-persisted and append-only to the restricted API account. This still does NOT grant clinical release, quarantine, discard, compatibility or transfusion authority.
 
-An investigation submission, supervisor review, follow-up assignment/completion and administrative closure workflow is implemented on this branch, but **now backed by the approved migration on Neon main**, but not yet deployed or verified with real separate signed-in accounts. Real feed/CSV ingestion remains incomplete. Detected incidents currently originate from the reproducible build-time synthetic processing pipeline, not incoming live telemetry.
+Investigation submission, separate supervisor review, follow-up assignment/completion and administrative closure are implemented and deployed with the approved Neon lifecycle event schema. CI tested independent HTTP sessions and restricted Neon persistence separately; production cross-device sign-off remains a separate requirement. Real feed/CSV ingestion remains incomplete. Detected incidents currently originate from the reproducible build-time synthetic processing pipeline, not incoming live telemetry.
 
 ## Architecture and same-origin deployment
 
@@ -52,7 +52,7 @@ Never paste secrets into issues, PRs, chat or frontend `NEXT_PUBLIC_*` variables
 
 **Status (November 11, 2026):** User approved migration 002. It has been **applied to TrustLedger Neon main** and verified: 12 total tables, zero initial records, restricted API role can append but not edit/delete reviews. StandPilot untouched.
 
-**Migration 003 applied with approval (November 11, 2026):** `db/migrations/003_case_lifecycle_events.sql` installed `tl_case_events` on TrustLedger Neon main. Verified **13 `tl_*` tables**, with zero case events, staff reports, investigation notes and review events initially; `trustledger_api` has SELECT and INSERT plus sequence usage, but **no UPDATE or DELETE** on case events. The temporary validation branch was deleted after application. This changes database structure only; production app has not been switched to the consolidated branch.
+**Migration 003 applied with approval (November 11, 2026):** `db/migrations/003_case_lifecycle_events.sql` installed `tl_case_events` on TrustLedger Neon main. Verified **13 `tl_*` tables**, with zero case events, staff reports, investigation notes and review events initially; `trustledger_api` has SELECT and INSERT plus sequence usage, but **no UPDATE or DELETE** on case events. The temporary validation branch was deleted after application. The consolidated application was subsequently merged and deployed to the permanent site.
 
 ## Developer validation
 
@@ -74,7 +74,7 @@ uvicorn app.main:app --reload --port 8000
 ```
 Then in a second terminal: `npm --prefix frontend run dev`.
 
-Release requires green CI, successful preview build, a two-user cross-browser test and verified data provenance. Do not merge to `main` or replace the existing permanent website before these gates pass.
+The original consolidated branch passed GitHub CI, was previewed, and was merged to `main`. Vercel reported the production build READY. Additional Proof Lab features belong to a separate submission branch and require their own CI, preview and release checks. Cross-device authenticated tests remain a pilot readiness gate.
 
 ## Known gaps to build next
 
@@ -102,3 +102,7 @@ Release requires green CI, successful preview build, a two-user cross-browser te
 **Security:** the demo credentials previously disclosed must **never** be reused. Future preview account passwords must be random, different per role, and provided via private hosting environment variables. The two-user HTTP test is not a live cross-device Neon/Vercel deployment test; complete that once the final preview is approved. A separate restricted-role Neon branch test can verify persistent data/permissions without leaving synthetic test records in the live branch.
 
 **Production status:** the approved `tl_case_events` migration has been applied. No need for further table approval for this journey. The site remains on the prior deployed version; preview builds stay disabled to conserve Vercel limits.
+
+## Submission proof extension
+
+See [SUBMISSION_EVIDENCE_2026.md](SUBMISSION_EVIDENCE_2026.md) and [DEMO_SCRIPT_FINAL_2026.md](../submission/DEMO_SCRIPT_FINAL_2026.md) for new evidence passport, adversarial reproducible fixtures, the honest conventional baseline, and a versioned schema-only import validator. These are not proof of clinical efficacy or full ABBIS interoperability.

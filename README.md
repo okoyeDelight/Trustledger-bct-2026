@@ -1,4 +1,24 @@
-> **Unified product branch (November 2026):** The current implementation in this branch is now `frontend/` (Next.js) + `backend/` (FastAPI) + `db/migrations/` (Neon). Start with [Consolidated release guide](docs/CONSOLIDATED_RELEASE_GUIDE.md) and [draft PR #4](https://github.com/okoyeDelight/Trustledger-bct-2026/pull/4). `index.html`, `styles.css`, `src/` and the older sections below describe the preserved legacy browser prototype; they are not the new active worker application. The shared Neon migration and staff login are not yet activated. No real clinical use.\n\n# TrustLedger — Blood cold-chain exception-to-unit review
+# TrustLedger — evidence-linked blood cold-chain incident investigation
+
+**Current implementation (November 11, 2026):** The deployed application is a combined Next.js frontend (`frontend/`) and FastAPI backend (`backend/`) with Neon PostgreSQL append-only staff notes, reviews and case-history events. The official URL is **https://trustledger-bct-2026.vercel.app**. This is a **synthetic-data hackathon prototype**, not a clinical product or a real hospital-system integration.
+
+**Judge demo:** `/proof-lab` (after the submission branch is deployed) offers three executable adverse-data challenges, honest comparisons with competent conventional rules, and a proposed schema-only external observation validator. The `/incidents/{id}` page has an Evidence Passport using actual underlying synthetic source records and the case's server-side review history.
+
+- [Current evidence map and truth-in-claims table](docs/SUBMISSION_EVIDENCE_2026.md)
+- [Final three-minute demonstration](submission/DEMO_SCRIPT_FINAL_2026.md)
+- [Application release and Neon architecture](docs/CONSOLIDATED_RELEASE_GUIDE.md)
+- [Automated verification](backend/tests/test_proof_lab.py)
+- [Upstream source and author attribution](docs/CONSOLIDATION_SOURCE.md)
+
+**Scope and limitations:** Facility-level observations and provisional unit matches cannot establish a refrigerator's identity, actual blood-unit exposure, causation, clinical suitability, release or transfusion authorization. Our current identity is demonstrator-only; external integrations and offline writes are not implemented. Case event history is database append-only to the restricted app role but has not undergone external audit certification. Prototype 2–6°C policy and four-hour rules need professional validation.
+
+---
+
+## Historical reference: original browser-only prototype
+
+The remainder of this README documents the earlier static application (`index.html`, `src/`, and old demonstration scripts), which is retained for reproducibility and rollback. **Do not use its older localStorage claims, scenario counts or screenshots as evidence for the current deployment.**
+
+# TrustLedger — Blood cold-chain exception-to-unit review
 
 **Terumo BCT Africa Hackathon 2026 · Team TrustLedger · Challenge areas: Cold chain + Data quality**
 
