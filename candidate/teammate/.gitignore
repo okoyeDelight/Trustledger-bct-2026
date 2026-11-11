@@ -1,0 +1,16 @@
+.venv/
+__pycache__/
+.pytest_cache/
+.env
+.env.*
+!.env.example
+.DS_Store
+.next/
+node_modules/
+data/raw/*.csv
+data/processed/*.csv
+data/processed/*.json
+data/processed/*.sqlite3
+/backend/data/processed/
+!data/raw/.gitkeep
+!data/processed/.gitkeep

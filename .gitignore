@@ -23,3 +23,10 @@ __pycache__/
 
 # Generated, review-only, allowlisted submission snapshot
 _judge_package/
+
+# Unified product build outputs (synthetic data fetched only during verified builds)
+frontend/.next/
+frontend/node_modules/
+backend/data/raw/
+backend/data/processed/
+backend/.venv/
