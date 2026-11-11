@@ -1,6 +1,10 @@
 # TrustLedger — submission evidence map
 **November 11, 2026 · Synthetic hackathon demonstration · Not clinically validated**
 
+## Core integration journey (submission focus)
+
+**Connections → Incidents → Worker investigation → Supervisor review → Status returned**. The user-facing demonstration is `/connections`, not the hidden adversarial Proof Lab. A signed-in facility operator triggers a synthetic external observation. The backend validates its source event ID, timestamp and value, persists a source-tagged `EXT-` case in existing Neon append-only report storage, and sends it through the exact existing incident workflow. An authenticated GET endpoint returns current status and review events to the simulated source. The same event ID + payload is idempotent; a changed payload with the same ID is rejected. This is an interface and handoff **simulation**—not live ABBIS, a production machine client or an operating hospital adapter.
+
 ## One-sentence value claim
 TrustLedger converts noisy blood cold-chain monitoring records into evidence-linked investigation candidates and records an accountable worker-to-supervisor response, without inventing storage-device identity or authorizing clinical blood-unit decisions.
 

@@ -2,7 +2,7 @@
 
 **Current implementation (November 11, 2026):** The deployed application is a combined Next.js frontend (`frontend/`) and FastAPI backend (`backend/`) with Neon PostgreSQL append-only staff notes, reviews and case-history events. The official URL is **https://trustledger-bct-2026.vercel.app**. This is a **synthetic-data hackathon prototype**, not a clinical product or a real hospital-system integration.
 
-**Judge demo:** `/proof-lab` (after the submission branch is deployed) offers three executable adverse-data challenges, honest comparisons with competent conventional rules, and a proposed schema-only external observation validator. The `/incidents/{id}` page has an Evidence Passport using actual underlying synthetic source records and the case's server-side review history.
+**Main product integration demo:** `/connections` sends a validated synthetic external temperature alert into a real incident and later reads its status. The optional hidden technical `/proof-lab` route offers three executable adverse-data challenges, honest comparisons with competent conventional rules, and a proposed schema-only external observation validator. The `/incidents/{id}` page has an Evidence Passport using actual underlying synthetic source records and the case's server-side review history.
 
 - [Current evidence map and truth-in-claims table](docs/SUBMISSION_EVIDENCE_2026.md)
 - [Final three-minute demonstration](submission/DEMO_SCRIPT_FINAL_2026.md)
