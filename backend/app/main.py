@@ -785,6 +785,11 @@ def _staff_incident(report: dict) -> dict:
     values = [item["temp_c"] for item in observations]
     first = observations[0]["recorded_at"] if observations else report["observed_at"]
     last = observations[-1]["recorded_at"] if observations else report["observed_at"]
+    observed_span_hours = None
+    if external and len(observations) >= 2:
+        earliest = datetime.fromisoformat(observations[0]["recorded_at"])
+        latest = datetime.fromisoformat(observations[-1]["recorded_at"])
+        observed_span_hours = round((latest - earliest).total_seconds() / 3600, 2)
     return {
         "incident_id": report["report_ref"],
         "facility_id": report["facility_code"],
@@ -792,8 +797,10 @@ def _staff_incident(report: dict) -> dict:
         "observation_date_in_future": _staff_observation_is_future(report),
         "start_time": first if external else report["observed_at"],
         "end_time": last if external else report["observed_at"],
-        # An observed time span is not proof of product exposure duration.
+        # The span between first and last observed readings is measurable.
+        # It is NOT the duration of exposure or the duration of a clinical incident.
         "duration_hours": None,
+        "observation_span_hours": observed_span_hours,
         "reading_count": len(observations) if external else None,
         "peak_temp_c": max(values) if values else None,
         "minimum_temp_c": min(values) if values else None,
