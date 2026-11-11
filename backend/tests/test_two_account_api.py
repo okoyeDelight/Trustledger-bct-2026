@@ -5,7 +5,7 @@ as commits, Vercel variables or test logs. SQLite is an isolated local stand-in;
 a separate Neon branch test validates real database permissions.
 """
 import secrets
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 from uuid import uuid4
 
 import pandas as pd
@@ -304,3 +304,45 @@ def test_external_observation_becomes_real_case_and_returns_human_status(identit
         assert final.json()["investigation_status"] == "followup"
         assert any(e["event_kind"] == "review_accepted" for e in final.json()["review_events"])
         assert final.json()["clinical_clearance"] is None
+
+
+def test_future_worker_dates_rejected_and_legacy_discrepancies_explained(identities):
+    """Never rewrite an existing audit value to disguise the entered date."""
+    now = datetime.now(timezone.utc)
+    username, password = identities["worker"]
+    with TestClient(main.app) as worker:
+        _login(worker, username, password, "facility_staff")
+        base = {
+            "facility_code": "HSP-028",
+            "category": "equipment_problem",
+            "title": "Synthetic sensor-check concern",
+            "description": "Worker-reported test issue requiring verification.",
+        }
+        future = (now + timedelta(days=17)).isoformat()
+        blocked = worker.post("/api/incidents/report", json={**base, "observed_at": future})
+        assert blocked.status_code == 422
+        assert "future" in str(blocked.json()).lower()
+
+        submitted_at = (now - timedelta(minutes=2)).isoformat()
+        accepted = worker.post(
+            "/api/incidents/report", json={**base, "observed_at": submitted_at}
+        )
+        assert accepted.status_code == 201, accepted.text
+        saved = accepted.json()["incident"]
+        assert saved["observation_date_in_future"] is False
+        assert saved["recorded_at"]
+        assert saved["start_time"] == submitted_at
+        assert saved["recorded_at"] != saved["start_time"]
+
+        # Old future-dated entries remain intact, but are explicitly flagged.
+        prior = main.workflow_store.create_staff_report(
+            {**base, "observed_at": future},
+            username,
+            main._connect_audit_db,
+        )
+        preserved = worker.get(f"/api/incidents/{prior['report_ref']}")
+        assert preserved.status_code == 200
+        item = preserved.json()["incident"]
+        assert item["observation_date_in_future"] is True
+        assert item["start_time"] == future
+        assert item["recorded_at"] == prior["created_at"]
