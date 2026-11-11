@@ -13,7 +13,7 @@ This is one **source-code consolidation**, not a production launch. Legacy root 
 5. A **different supervisor** accepts/changes/rejects the *investigation flag* with reason. The API rejects a facility staff account attempting the same review.
 6. **History** shows saved review events. With Neon enabled these are database-persisted and append-only to the restricted API account. This still does NOT grant clinical release, quarantine, discard, compatibility or transfusion authority.
 
-An investigation submission, supervisor review, follow-up assignment/completion and administrative closure workflow is implemented on this branch, but **not yet active in the live database** until migration 003 is approved and independently tested. Real feed/CSV ingestion remains incomplete. Detected incidents currently originate from the reproducible build-time synthetic processing pipeline, not incoming live telemetry.
+An investigation submission, supervisor review, follow-up assignment/completion and administrative closure workflow is implemented on this branch, but **now backed by the approved migration on Neon main**, but not yet deployed or verified with real separate signed-in accounts. Real feed/CSV ingestion remains incomplete. Detected incidents currently originate from the reproducible build-time synthetic processing pipeline, not incoming live telemetry.
 
 ## Architecture and same-origin deployment
 
@@ -52,7 +52,7 @@ Never paste secrets into issues, PRs, chat or frontend `NEXT_PUBLIC_*` variables
 
 **Status (November 11, 2026):** User approved migration 002. It has been **applied to TrustLedger Neon main** and verified: 12 total tables, zero initial records, restricted API role can append but not edit/delete reviews. StandPilot untouched.
 
-**Migration 003 is staged, not applied:** `db/migrations/003_case_lifecycle_events.sql` defines the additional append-only case transition and assigned follow-up log. Apply only after a separate user-approved migration and validation.
+**Migration 003 applied with approval (November 11, 2026):** `db/migrations/003_case_lifecycle_events.sql` installed `tl_case_events` on TrustLedger Neon main. Verified **13 `tl_*` tables**, with zero case events, staff reports, investigation notes and review events initially; `trustledger_api` has SELECT and INSERT plus sequence usage, but **no UPDATE or DELETE** on case events. The temporary validation branch was deleted after application. This changes database structure only; production app has not been switched to the consolidated branch.
 
 ## Developer validation
 
