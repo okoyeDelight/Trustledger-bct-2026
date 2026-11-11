@@ -194,3 +194,85 @@ def test_tampered_session_and_reused_demo_password_are_not_accepted(identities,m
             "username":identities["worker"][0],"password":identities["worker"][1]
         })
         assert response.status_code==503
+
+
+def test_external_observation_becomes_real_case_and_returns_human_status(identities):
+    sample = {
+        "schema_version": "trustledger.observation.v1",
+        "source_system": "Simulated ABBIS connector",
+        "source_event_id": "SYN-ABBIS-ALERT-001",
+        "facility_id": "SYN-HOSP-01",
+        "observed_at": "2026-10-01T09:00:00+01:00",
+        "temperature_c": 7.2,
+    }
+    with TestClient(main.app) as worker, TestClient(main.app) as supervisor, TestClient(main.app) as guest:
+        assert guest.post("/api/integrations/demo/observations", json=sample).status_code == 401
+        _login(worker, *identities["worker"], "facility_staff")
+        _login(supervisor, *identities["reviewer"], "blood_service_supervisor")
+        assert supervisor.post("/api/integrations/demo/observations", json=sample).status_code == 403
+        bad = {k: v for k, v in sample.items() if k != "observed_at"}
+        assert worker.post("/api/integrations/demo/observations", json=bad).status_code == 422
+
+        warning = {**sample, "temperature_c": 99.9}
+        assert worker.post("/api/integrations/demo/observations", json=warning).status_code == 422
+        normal = {**sample, "source_event_id": "SYN-NORMAL-002", "temperature_c": 4.0}
+        accepted_normal = worker.post("/api/integrations/demo/observations", json=normal)
+        assert accepted_normal.status_code == 200
+        assert accepted_normal.json()["status"] == "in_range_not_recorded"
+        assert accepted_normal.json()["persisted"] is False
+
+        response = worker.post("/api/integrations/demo/observations", json=sample)
+        assert response.status_code == 201, response.text
+        assert response.json()["status"] == "incident_created"
+        reference = response.json()["case_reference"]
+        assert reference.startswith("EXT-")
+        assert response.json()["incident"]["source_type"] == "external_observation"
+        assert response.json()["incident"]["peak_temp_c"] == 7.2
+
+        repeated = worker.post("/api/integrations/demo/observations", json=sample)
+        assert repeated.status_code == 200, repeated.text
+        assert repeated.json()["case_reference"] == reference
+        assert repeated.json()["status"] == "already_imported"
+
+        conflict = worker.post(
+            "/api/integrations/demo/observations",
+            json={**sample, "temperature_c": 8.7},
+        )
+        assert conflict.status_code == 409
+        incidents = supervisor.get("/api/incidents?limit=100")
+        assert incidents.status_code == 200
+        assert sum(i["incident_id"] == reference for i in incidents.json()["items"]) == 1
+        detail = worker.get(f"/api/incidents/{reference}")
+        assert detail.status_code == 200
+        assert detail.json()["temperature_history"] == []
+        assert detail.json()["incident"]["source_payload"]["source_event_id"] == sample["source_event_id"]
+        assert detail.json()["potentially_affected_units"] == []
+
+        initial = supervisor.get(f"/api/integrations/demo/cases/{reference}")
+        assert initial.status_code == 200
+        assert initial.json()["investigation_status"] == "investigating"
+        assert initial.json()["clinical_clearance"] is None
+        assert guest.get(f"/api/integrations/demo/cases/{reference}").status_code == 401
+
+        note = worker.post(f"/api/incidents/{reference}/notes", json={
+            "finding": "Single synthetic external reading checked; no device identity or exposure is confirmed."
+        })
+        assert note.status_code == 201, note.text
+        submit = worker.post(f"/api/incidents/{reference}/submit", json={
+            "summary": "The candidate requires independent review; device and duration remain unknown."
+        })
+        assert submit.status_code == 200, submit.text
+        queued = supervisor.get("/api/review-queue")
+        assert reference in [x["case_reference"] for x in queued.json()["items"]]
+        decision = supervisor.post("/api/reviews", json={
+            "review_id": str(uuid4()),
+            "incident_id": reference,
+            "decision": "accept",
+            "reason": "Synthetic record accepted for administrative follow-up only."
+        })
+        assert decision.status_code == 200, decision.text
+        final = supervisor.get(f"/api/integrations/demo/cases/{reference}")
+        assert final.status_code == 200
+        assert final.json()["investigation_status"] == "followup"
+        assert any(e["event_kind"] == "review_accepted" for e in final.json()["review_events"])
+        assert final.json()["clinical_clearance"] is None
