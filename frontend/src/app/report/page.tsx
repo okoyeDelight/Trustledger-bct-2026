@@ -1,6 +1,6 @@
 "use client";
 
-import {useState, type FormEvent} from "react";
+import {useDeferredValue, useState, type FormEvent} from "react";
 import {useMutation, useQuery, useQueryClient} from "@tanstack/react-query";
 import {useRouter} from "next/navigation";
 import {ClipboardPenLine, ShieldAlert} from "lucide-react";
@@ -8,7 +8,8 @@ import {PageHeading} from "@/components/page-heading";
 import {Button} from "@/components/ui/button";
 import {Card, CardContent, CardHeader, CardTitle} from "@/components/ui/card";
 import {Input} from "@/components/ui/input";
-import {createStaffIncident, fetchCurrentUser} from "@/lib/api";
+import {createStaffIncident, fetchCurrentUser, fetchABBISCatalog, searchABBISSource} from "@/lib/api";
+import type {ABBISSourceRecord} from "@/lib/api";
 import type {StaffReportRequest} from "@/lib/types";
 
 const categories: {value: StaffReportRequest["category"]; title: string}[] = [
@@ -28,6 +29,17 @@ export default function ReportIncidentPage(){
   const router=useRouter();
   const client=useQueryClient();
   const identity=useQuery({queryKey:["current-user"],queryFn:fetchCurrentUser});
+  const [sourceDataset,setSourceDataset]=useState("facilities");
+  const [search,setSearch]=useState("");
+  const deferredSearch=useDeferredValue(search);
+  const [selected,setSelected]=useState<ABBISSourceRecord|null>(null);
+  const abbis=useQuery({queryKey:["abbis-catalog"],queryFn:fetchABBISCatalog,retry:false});
+  const matching=useQuery({
+    queryKey:["abbis-search",sourceDataset,deferredSearch],
+    queryFn:()=>searchABBISSource(sourceDataset,deferredSearch),
+    enabled:abbis.isSuccess&&!selected&&deferredSearch.trim().length>=2,
+    retry:false,
+  });
   const [facilityCode,setFacilityCode]=useState("");
   const [category,setCategory]=useState<StaffReportRequest["category"]>("equipment_problem");
   const [title,setTitle]=useState("");
@@ -58,6 +70,7 @@ export default function ReportIncidentPage(){
     create.mutate({
       facility_code:facilityCode.trim().toUpperCase(),category,title:title.trim(),
       description:description.trim(),observed_at:parsed.toISOString(),
+      ...(selected?{source_dataset:selected.dataset,source_record_id:selected.record_id,source_record_sha256:selected.record_sha256}:{}) ,
     });
   }
   const canReport=identity.data?.role==="facility_staff";
@@ -76,9 +89,47 @@ export default function ReportIncidentPage(){
         <CardHeader><CardTitle>What did you observe?</CardTitle></CardHeader>
         <CardContent>
           <form onSubmit={submit} className="space-y-5">
+            <div className="space-y-3 rounded-xl border border-sky-200 bg-sky-50/60 p-4">
+              <p className="font-semibold">Select evidence from ABBIS</p>
+              <p className="text-xs leading-5 text-muted-foreground">Search all 11 original hackathon datasets. Selecting a record fills its facility ID and attaches its verified source reference. You can also file an independent observation.</p>
+              {abbis.isPending&&<p className="text-xs">Loading source datasets…</p>}
+              {abbis.isError&&<p role="alert" className="text-xs text-red-800">ABBIS source search is temporarily unavailable. Manual staff reporting remains possible.</p>}
+              {abbis.data&&!selected&&<>
+                <label className="block space-y-2 text-sm font-medium">Dataset
+                  <select aria-label="Dataset" value={sourceDataset}
+                    onChange={e=>{setSourceDataset(e.target.value);setSearch("");}}
+                    className="w-full rounded-lg border bg-white px-3 py-2.5">
+                    {abbis.data.datasets.map(d=><option value={d.id} key={d.id}>{d.id.replaceAll("_"," ")} ({d.count.toLocaleString("en-GB")})</option>)}
+                  </select>
+                </label>
+                <label className="block space-y-2 text-sm font-medium">Type an ID or facility name
+                  <Input placeholder="e.g. HSP-028 or unit ID" value={search} autoComplete="off" onChange={e=>setSearch(e.target.value)}/>
+                </label>
+                {matching.isFetching&&<p className="text-xs text-muted-foreground">Searching actual source records…</p>}
+                {matching.isError&&<p role="alert" className="text-xs text-red-800">Could not search ABBIS right now.</p>}
+                {matching.data&&<div className="max-h-64 space-y-2 overflow-y-auto" aria-label="Matching source records">
+                  {matching.data.items.map(item=><button key={item.record_id} type="button"
+                    disabled={!item.facility_id}
+                    onClick={()=>{setSelected(item);setFacilityCode(item.facility_id??"");setTitle(t=>t||"Investigate "+item.dataset.replaceAll("_"," ")+" record");}}
+                    className="w-full rounded-lg border bg-white p-3 text-left text-sm hover:border-sky-600 disabled:opacity-50">
+                    <strong className="block break-all">{item.record_id}</strong>
+                    <span className="mt-1 block text-xs text-muted-foreground">{item.summary}</span>
+                    <span className="mt-1 block text-xs">Facility: {item.facility_id??"Not recorded"}</span>
+                  </button>)}
+                  {matching.data.items.length===0&&<p className="py-2 text-xs">No matching records found.</p>}
+                </div>}
+              </>}
+              {selected&&<div className="rounded-lg border border-emerald-300 bg-white p-3 text-sm">
+                <p className="font-semibold text-emerald-900">Original ABBIS record selected</p>
+                <p className="mt-1 break-all">{selected.dataset} / {selected.record_id}</p>
+                <p className="mt-1 text-xs">{selected.summary}</p>
+                <Button type="button" size="sm" variant="outline" className="mt-3"
+                  onClick={()=>{setSelected(null);setSearch("");setFacilityCode("");}}>Choose another</Button>
+              </div>}
+            </div>
             <label className="block space-y-2 text-sm font-medium">
               Synthetic facility code
-              <Input required placeholder="e.g. HSP-024" value={facilityCode}
+              <Input required placeholder="e.g. HSP-024" value={facilityCode} readOnly={!!selected}
                 maxLength={80} pattern="[A-Za-z0-9_-]+" minLength={2}
                 onChange={e=>setFacilityCode(e.target.value)}/>
             </label>
