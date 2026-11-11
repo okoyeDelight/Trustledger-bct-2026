@@ -29,15 +29,15 @@ ABBIS is a **synthetic sandbox**, not a connected hospital, device or operating 
 
 **Live demo:** [TrustLedger](https://trustledger-bct-2026.vercel.app) · [ABBIS Source Sandbox](https://abbis-source-sandbox.vercel.app)
 
-**Test log-in:** Two distinct TrustLedger demo usernames, \`operator\` (Facility Operator) and \`supervisor\` (Quality Supervisor). Provide temporary passwords securely in the judge submission form; **do not post them in this public README**. A separate one-time key is generated in **Connections** for ABBIS.
+**Test log-in:** Two distinct TrustLedger demo usernames, `operator` (Facility Operator) and `supervisor` (Quality Supervisor). Provide temporary passwords securely in the judge submission form; **do not post them in this public README**. A separate one-time key is generated in **Connections** for ABBIS.
 
 ## How to run it
 
 ### Judge quick start (browser)
 
-1. Sign in to [TrustLedger](https://trustledger-bct-2026.vercel.app/login) as **supervisor**, then open **Connections**. Register source \`ABBIS-SANDBOX\` for facility \`HSP-028\` and copy its one-time API key.
+1. Sign in to [TrustLedger](https://trustledger-bct-2026.vercel.app/login) as **supervisor**, then open **Connections**. Register source `ABBIS-SANDBOX` for facility `HSP-028` and copy its one-time API key.
 2. Open the [ABBIS Source Sandbox](https://abbis-source-sandbox.vercel.app), connect the key and keep that browser page open to enable the automatic synthetic feed.
-3. In TrustLedger, open **Incoming incidents** to see individual received readings and the resulting \`EXT-\` case. Open its **Evidence Passport** for original timestamps, temperature graph and source identifiers; the observed span and clinically unknown exposure duration remain distinct.
+3. In TrustLedger, open **Incoming incidents** to see individual received readings and the resulting `EXT-` case. Open its **Evidence Passport** for original timestamps, temperature graph and source identifiers; the observed span and clinically unknown exposure duration remain distinct.
 4. In a different browser session, sign in as **operator**, record findings and submit them. As **supervisor**, review the case and any follow-up. Return to ABBIS to fetch the case's status over the authenticated API.
 5. As operator, open **Report incident**, search the complete ABBIS catalog, select a source record and report an issue; the facility and source reference are attached rather than copied from memory.
 
@@ -45,7 +45,7 @@ ABBIS is a **synthetic sandbox**, not a connected hospital, device or operating 
 
 Requires Python 3.11+, Node.js 22+, and organizer synthetic data; store secrets in environment variables, never in this repository.
 
-\`\`\`bash
+```bash
 python3 -m venv .venv
 source .venv/bin/activate
 python -m pip install -r backend/requirements.txt pytest httpx
@@ -60,13 +60,13 @@ npm --prefix frontend run dev
 npm --prefix abbis-sandbox ci
 npm --prefix abbis-sandbox run build
 npm --prefix abbis-sandbox run dev
-\`\`\`
+```
 
-The locally started API uses separately configured \`TRUSTLEDGER_AUTH_SECRET\`, \`TRUSTLEDGER_DEMO_FACILITY_*\` and \`TRUSTLEDGER_DEMO_SUPERVISOR_*\` values, plus local SQLite or a restricted \`DATABASE_URL\` for Neon. The ABBIS build fetches the **original 11-file organizer ZIP** and verifies its SHA-256 and each CSV before serving the dataset. See [frontend setup](frontend/README.md) and [release notes](docs/CONSOLIDATED_RELEASE_GUIDE.md).
+The locally started API uses separately configured `TRUSTLEDGER_AUTH_SECRET`, `TRUSTLEDGER_DEMO_FACILITY_*` and `TRUSTLEDGER_DEMO_SUPERVISOR_*` values, plus local SQLite or a restricted `DATABASE_URL` for Neon. The ABBIS build fetches the **original 11-file organizer ZIP** and verifies its SHA-256 and each CSV before serving the dataset. See [frontend setup](frontend/README.md) and [release notes](docs/CONSOLIDATED_RELEASE_GUIDE.md).
 
 ## Architecture
 
-\`\`\`mermaid
+```mermaid
 flowchart LR
     A["11 original synthetic CSV datasets"] --> B["ABBIS Source Sandbox<br/>catalog, search & time-based replay"]
     B -->|"HTTPS temperature observations + connector key"| C["TrustLedger FastAPI<br/>source validation & review rules"]
@@ -76,11 +76,11 @@ flowchart LR
     F --> G["Independent Supervisor<br/>Accept / Change / Reject"]
     G --> D
     C -->|"Authenticated case-status lookup"| B
-\`\`\`
+```
 
 ABBIS owns original synthetic source records; TrustLedger owns evidence-backed investigation cases and the human review trail. The two applications form **one integrated solution**, not competing implementations.
 
-**Standards:** Current integration uses a project-specific versioned \`trustledger.observation.v1\` JSON/HTTPS contract. We do **not** claim a certified FHIR, DHIS2 or ISBT 128 interface.
+**Standards:** Current integration uses a project-specific versioned `trustledger.observation.v1` JSON/HTTPS contract. We do **not** claim a certified FHIR, DHIS2 or ISBT 128 interface.
 
 ## AI and data
 
@@ -103,7 +103,7 @@ ABBIS owns original synthetic source records; TrustLedger owns evidence-backed i
 
 **Source:** Organizer-supplied **synthetic** Terumo BCT Africa Hackathon 2026 starter archive, modelled on a Kenyan blood system. ABBIS verifies all 11 original tables by ZIP checksum and per-file hashes:
 
-\`facilities\`, \`routes\`, \`donors\`, \`drives\`, \`donations\`, \`units\`, \`transfers\`, \`requests\`, \`daily_stock\`, \`power_outages\`, and \`temperature_logs\`.
+`facilities`, `routes`, `donors`, `drives`, `donations`, `units`, `transfers`, `requests`, `daily_stock`, `power_outages`, and `temperature_logs`.
 
 The incident detection pipeline originally processes a narrower six-table subset, while the current ABBIS catalog/search covers all 11. The automatic connector currently transmits temperature observations, not all 11 categories of events. Verified original files are loaded at build time rather than committed to Git; the source manifest records hashes and row counts.
 
@@ -133,7 +133,7 @@ All contributors must be able to explain and defend the submitted workflow and c
 |---|---|---|---|
 | [Fill from official team roster] | [Role] | [Country] | [In person / online] |
 
-Original teammate code provenance and attribution are recorded in [docs/CONSOLIDATION_SOURCE.md](docs/CONSOLIDATION_SOURCE.md). The historical duplicate source tree is archived on the private branch \`archive/teammate-source-snapshot-2026\` and is **not a second active application**.
+Original teammate code provenance and attribution are recorded in [docs/CONSOLIDATION_SOURCE.md](docs/CONSOLIDATION_SOURCE.md). The historical duplicate source tree is archived on the private branch `archive/teammate-source-snapshot-2026` and is **not a second active application**.
 
 ## Known limits and next steps
 
