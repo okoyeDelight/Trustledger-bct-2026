@@ -11,8 +11,8 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 from app import main
 
 REVIEWER = main.DemoUser(
-    username="facility-demo",
-    actor_name="Amina Reviewer",
+    username="supervisor-demo",
+    actor_name="Supervisor Reviewer",
     role="blood_service_supervisor",
 )
 
@@ -53,10 +53,10 @@ def test_review_is_persisted_and_returned_in_audit_log(review_environment):
     audit = main.review_audit_log(100, 0, REVIEWER)
     assert audit["total"] == 1
     assert audit["items"][0]["decision"] == "change"
-    assert audit["items"][0]["actor_name"] == "Amina Reviewer"
+    assert audit["items"][0]["actor_name"] == "Supervisor Reviewer"
     assert audit["items"][0]["auth_method"] == "preprovisioned_demo_account"
     assert audit["items"][0]["changed_assessment"] == "Confirm the fridge log before escalating."
-    assert "pre-provisioned demo account" in audit["notice"]
+    assert "demo identities" in audit["notice"]
 
 
 def test_review_ids_are_idempotent_and_cannot_be_reused_for_another_decision(review_environment):
