@@ -335,3 +335,39 @@ def close(case_reference, user, reason, sqlite_connection):
         _append(cursor, postgres, case_reference, "case_closed", user,
                 {"reason": reason, "scope": "administrative_only_not_clinical_clearance"})
         return _state(case_reference, _load(cursor, postgres, case_reference))
+
+
+def recent_history(limit, offset, sqlite_connection):
+    """Read the verified server history, never browser-pending drafts."""
+    workflow_store.verify_persistence_config()
+    if workflow_store.use_postgres():
+        from psycopg.rows import dict_row
+        with workflow_store._connection() as connection:
+            with connection.cursor(row_factory=dict_row) as cursor:
+                cursor.execute("SELECT count(*) AS total FROM tl_case_events")
+                total = cursor.fetchone()["total"]
+                cursor.execute(
+                    """SELECT id,case_reference,event_kind,actor_username,actor_name,
+                           actor_role,details,created_at FROM tl_case_events
+                       ORDER BY id DESC LIMIT %s OFFSET %s""",
+                    (limit, offset),
+                )
+                rows = cursor.fetchall()
+    else:
+        with closing(sqlite_connection()) as connection:
+            _ensure_local(connection)
+            cursor = connection.execute("SELECT count(*) AS total FROM case_events")
+            total = cursor.fetchone()["total"]
+            rows = connection.execute(
+                """SELECT id,case_reference,event_kind,actor_username,actor_name,
+                          actor_role,details,created_at FROM case_events
+                   ORDER BY id DESC LIMIT ? OFFSET ?""", (limit, offset),
+            ).fetchall()
+    results = []
+    for raw in rows:
+        event = dict(raw)
+        if isinstance(event["details"], str):
+            event["details"] = json.loads(event["details"])
+        event["created_at"] = _timestamp(event["created_at"])
+        results.append(event)
+    return {"items": results, "total": total, "limit": limit, "offset": offset}

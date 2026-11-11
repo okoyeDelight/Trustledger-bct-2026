@@ -410,6 +410,15 @@ def add_incident_note(
     return {"note": note, "notice": "Staff finding recorded. No clinical disposition authorized."}
 
 
+@app.get("/api/case-history")
+def case_history(
+    limit: int = Query(default=100, ge=1, le=200),
+    offset: int = Query(default=0, ge=0),
+    user: DemoUser = Depends(require_authenticated_user),
+):
+    return case_flow.recent_history(limit, offset, _connect_audit_db)
+
+
 @app.get("/api/review-queue")
 def review_queue(user: DemoUser = Depends(require_authenticated_user)):
     if user.role != "blood_service_supervisor":

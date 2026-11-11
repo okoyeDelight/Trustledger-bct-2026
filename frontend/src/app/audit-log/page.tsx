@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useEffect, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { ScrollText } from "lucide-react";
@@ -7,7 +8,7 @@ import { ErrorState, LoadingState } from "@/components/query-states";
 import { PageHeading } from "@/components/page-heading";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
-import { fetchCurrentUser, fetchReviewAudit, getPendingReviews } from "@/lib/api";
+import { fetchCaseHistory, fetchCurrentUser, fetchReviewAudit, getPendingReviews } from "@/lib/api";
 import type { ReviewEvent } from "@/lib/types";
 import { formatDateTime } from "@/lib/date";
 
@@ -23,6 +24,10 @@ export default function AuditLogPage() {
   const audit = useQuery({
     queryKey: ["audit-log"],
     queryFn: fetchReviewAudit,
+  });
+  const history = useQuery({
+    queryKey:["case-history"],
+    queryFn:fetchCaseHistory,
   });
 
   useEffect(() => {
@@ -51,17 +56,50 @@ export default function AuditLogPage() {
     <>
       <PageHeading
         eyebrow="Traceability"
-        title="Audit log"
-        description="A chronological record of human investigation reviews, with pending offline entries clearly marked."
+        title="History"
+        description="Trace incidents through investigation submissions, supervisor decisions, assigned follow-up and administrative closure."
         action={<ScrollText className="size-5 text-primary" aria-hidden="true" />}
       />
 
       <div role="note" className="mb-6 rounded-xl border bg-muted/50 px-4 py-3 text-sm leading-6 text-muted-foreground">
-        Review events are append-only in the local prototype database. New events use the signed-in demo account; older records are labelled as legacy. Offline entries are held in this browser until they sync. This is not production identity management.
+        Server-confirmed history is read from the backend. In hosted mode, records use the shared Neon database. Historical browser-only review drafts are <strong>not submitted</strong> and are not automatically synced. No event authorizes clinical blood release.
       </div>
+
+      <section aria-label="Case activity" className="mb-8">
+        <h2 className="mb-3 text-lg font-semibold">Case activity</h2>
+        {history.isPending&&<LoadingState label="Loading the shared case history…"/>}
+        {history.isError&&<ErrorState message={history.error.message} onRetry={()=>void history.refetch()}/>}
+        {history.data?.items.length===0&&
+          <p className="rounded-lg border border-dashed p-5 text-sm text-muted-foreground">
+            No submitted investigations, decisions or follow-up actions have been recorded yet.
+          </p>}
+        {history.data?.items.length ? <ol className="space-y-3">
+          {history.data.items.map(event=><li key={event.id}>
+            <Card className="border-0 shadow-sm ring-1 ring-border/80">
+              <CardContent className="p-4">
+                <div className="flex flex-wrap items-center justify-between gap-2">
+                  <Link href={"/incidents/"+encodeURIComponent(event.case_reference)}
+                    className="font-semibold text-primary hover:underline">{event.case_reference}</Link>
+                  <Badge variant="outline">{event.event_kind.replaceAll("_"," ")}</Badge>
+                </div>
+                {typeof event.details.summary==="string"&&
+                  <p className="mt-2 text-sm">{event.details.summary}</p>}
+                {typeof event.details.description==="string"&&
+                  <p className="mt-2 text-sm">{event.details.description}</p>}
+                {typeof event.details.reason==="string"&&
+                  <p className="mt-2 text-sm">{event.details.reason}</p>}
+                <p className="mt-2 text-xs text-muted-foreground">
+                  {event.actor_name} · {formatDateTime(event.created_at)}
+                </p>
+              </CardContent>
+            </Card>
+          </li>)}
+        </ol> : null}
+      </section>
+      <h2 className="mb-3 text-lg font-semibold">Supervisor review decisions</h2>
       {otherAccountPendingCount > 0 && (
         <p role="status" className="mb-4 rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-950">
-          {otherAccountPendingCount} pending review{otherAccountPendingCount === 1 ? "" : "s"} from another demo account {otherAccountPendingCount === 1 ? "is" : "are"} hidden while this account is active. Sign in as the original reviewer to view and sync them.
+          {otherAccountPendingCount} pending review{otherAccountPendingCount === 1 ? "" : "s"} from another demo account {otherAccountPendingCount === 1 ? "is" : "are"} hidden while this account is active. Sign in as the original reviewer to inspect them and, if still appropriate, submit a fresh review.
         </p>
       )}
 
@@ -71,7 +109,7 @@ export default function AuditLogPage() {
       )}
       {audit.isError && events.length > 0 && (
         <p role="status" className="mb-4 text-sm text-amber-900">
-          The API is unavailable. Showing available browser-pending and cached records.
+          The API is unavailable. Any browser-only drafts shown are not verified server records.
         </p>
       )}
       {events.length > 0 ? (
@@ -85,7 +123,7 @@ export default function AuditLogPage() {
                       <span className="font-semibold">{event.incident_id}</span>
                       <Badge variant="outline">{event.decision}</Badge>
                       {event.sync_status === "pending_sync" && (
-                        <Badge className="border-amber-300 bg-amber-50 text-amber-900" variant="outline">Pending sync</Badge>
+                        <Badge className="border-amber-300 bg-amber-50 text-amber-900" variant="outline">Local only · not submitted</Badge>
                       )}
                     </div>
                     <p className="mt-2 text-sm leading-6">{event.reason}</p>
@@ -98,7 +136,7 @@ export default function AuditLogPage() {
                       {event.actor_name} · {event.role === "facility_staff" ? "Facility staff" : "Blood service supervisor"}
                       {" · "}
                       {event.sync_status === "pending_sync"
-                        ? "Signed-in demo account · pending sync"
+                        ? "Local browser entry · not server-confirmed"
                         : event.auth_method === "preprovisioned_demo_account"
                           ? "Pre-provisioned demo account"
                           : "Legacy self-reported identity"}
@@ -114,7 +152,7 @@ export default function AuditLogPage() {
         </ol>
       ) : audit.data?.total === 0 ? (
         <div className="rounded-xl border border-dashed px-6 py-14 text-center text-sm text-muted-foreground">
-          No human review events have been recorded yet. Start at the Review centre; the log is populated by saved decisions, not sample data.
+          No supervisor review decisions have been recorded yet. A worker must submit an investigation before review.
         </div>
       ) : null}
     </>

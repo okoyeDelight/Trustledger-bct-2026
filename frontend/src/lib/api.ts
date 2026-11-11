@@ -107,7 +107,8 @@ async function request<T>(path: string): Promise<T> {
   const url = `${API_BASE_URL}${path}`;
   const isAuthCheck = path === "/api/auth/me";
   const isSensitiveRead = isAuthCheck || path.startsWith("/api/audit-log") ||
-    path.startsWith("/api/reviews") || path.includes("/notes") ||
+    path.startsWith("/api/reviews") || path.startsWith("/api/case-history") ||
+    path.includes("/notes") ||
     path.includes("/workflow") || path.startsWith("/api/review-queue");
   let response: Response;
   try {
@@ -352,5 +353,11 @@ export function completeCaseFollowup(reference:string,actionId:string,completion
 export function closeInvestigation(reference:string,reason:string) {
   return postWorkflow<CaseWorkflow>(
     "/api/incidents/"+encodeURIComponent(reference)+"/close",{reason}
+  );
+}
+
+export function fetchCaseHistory() {
+  return request<ListResponse<import("@/lib/types").CaseEvent>>(
+    "/api/case-history?limit=100&offset=0"
   );
 }

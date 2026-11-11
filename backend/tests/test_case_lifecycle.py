@@ -142,6 +142,10 @@ def test_review_followup_completion_and_administrative_closure(case_env):
     assert closed["status"] == "closed"
     assert closed["events"][-1]["details"]["scope"] == "administrative_only_not_clinical_clearance"
     assert main.incident_workflow("INC-1", OPERATOR)["status"] == "closed"
+    case_history = main.case_history(50, 0, OPERATOR)
+    assert case_history["total"] == 5
+    assert case_history["items"][0]["event_kind"] == "case_closed"
+    assert case_history["items"][-1]["event_kind"] == "investigation_submitted"
     with sqlite3.connect(main.AUDIT_DB_PATH) as conn:
         with pytest.raises(sqlite3.IntegrityError, match="append-only"):
             conn.execute("DELETE FROM case_events WHERE case_reference='INC-1'")
