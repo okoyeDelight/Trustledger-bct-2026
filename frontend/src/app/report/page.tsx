@@ -1,6 +1,6 @@
 "use client";
 
-import {useEffect, useState, type FormEvent} from "react";
+import {useState, type FormEvent} from "react";
 import {useMutation, useQuery, useQueryClient} from "@tanstack/react-query";
 import {useRouter} from "next/navigation";
 import {ClipboardPenLine, ShieldAlert} from "lucide-react";
@@ -35,11 +35,6 @@ export default function ReportIncidentPage(){
   const [observed,setObserved]=useState("");
   const [maxObserved,setMaxObserved]=useState("");
   const [notice,setNotice]=useState("");
-  useEffect(() => {
-    const now = localDateMinute(new Date());
-    setMaxObserved(now);
-    setObserved(value => value || now);
-  }, []);
   const create=useMutation({
     mutationFn:createStaffIncident,
     onSuccess:async(result)=>{
@@ -103,10 +98,14 @@ export default function ReportIncidentPage(){
             <label className="block space-y-2 text-sm font-medium">
               Date and time observed (your local time)
               <Input type="datetime-local" required value={observed} max={maxObserved || undefined}
-                onFocus={()=>setMaxObserved(localDateMinute(new Date()))}
+                onFocus={()=>{
+                  const current = localDateMinute(new Date());
+                  setMaxObserved(current);
+                  setObserved(value => value || current);
+                }}
                 onChange={e=>setObserved(e.target.value)}/>
               <span className="block text-xs font-normal text-muted-foreground">
-                Defaults to your local time. Only past or current observations can be submitted.
+                Tap this field to prefill your current local date and time, or select an earlier observation.
               </span>
             </label>
             <label className="block space-y-2 text-sm font-medium">
