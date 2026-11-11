@@ -14,6 +14,7 @@ type Result = Scenario & {
   evidence: Evidence[]; rule_executed: string; naive_comparison: string;
   competent_baseline: string; trustledger_conclusion: string;
   next_step: string; decision_scope: string; evaluation: string;
+  competent_baseline_flagged: boolean; trustledger_flagged: boolean;
 };
 type ContractResult = {
   accepted_for_schema_validation: boolean;
@@ -53,6 +54,14 @@ export default function ProofLabPage() {
     queryFn: () => jsonRequest<{ items: Scenario[] }>("/api/proof-lab/scenarios"),
     retry: false,
   });
+  const comparison = useQuery({
+    queryKey: ["proof-lab-comparison"],
+    queryFn: () => jsonRequest<{
+      scenario_count: number; trustledger_flagged: number;
+      competent_baseline_flagged: number; same_alert_direction: number; notice: string;
+    }>("/api/proof-lab/comparison"),
+    retry: false,
+  });
   const [selected, setSelected] = useState<string | null>(null);
   const [contractState, setContractState] = useState<"valid" | "invalid" | null>(null);
   const proof = useMutation({
@@ -81,6 +90,16 @@ export default function ProofLabPage() {
     <div className="rounded-xl border border-blue-200 bg-blue-50 p-4 text-sm text-blue-950">
       <strong>The claim we are testing:</strong> TrustLedger should surface uncertainty and preserve an accountable investigation — not predict product safety. A competent conventional monitor may detect the same anomalies.
     </div>
+    {comparison.data && <div className="rounded-xl border bg-slate-50 p-4">
+      <div className="flex flex-wrap items-baseline justify-between gap-2">
+        <p className="font-semibold text-slate-900">Executable three-case comparison</p>
+        <p className="text-sm font-semibold tabular-nums text-slate-800">
+          TrustLedger: {comparison.data.trustledger_flagged}/{comparison.data.scenario_count} flagged ·
+          Competent rules: {comparison.data.competent_baseline_flagged}/{comparison.data.scenario_count} flagged
+        </p>
+      </div>
+      <p className="mt-2 text-xs leading-relaxed text-slate-600">{comparison.data.notice}</p>
+    </div>}
     <div className="grid gap-4 md:grid-cols-3">
       {scenarios.isPending && <p className="text-sm text-slate-600">Loading challenges…</p>}
       {scenarios.isError && <p role="alert" className="text-sm text-red-700">{scenarios.error.message}</p>}

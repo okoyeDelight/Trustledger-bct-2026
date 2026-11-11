@@ -333,6 +333,11 @@ def run_proof_scenario(scenario_id: str, user: DemoUser = Depends(require_authen
         raise HTTPException(status_code=404, detail="Unknown proof scenario.") from error
 
 
+@app.get("/api/proof-lab/comparison")
+def proof_comparison(user: DemoUser = Depends(require_authenticated_user)):
+    return proof_lab.comparison_summary()
+
+
 @app.post("/api/proof-lab/validate-import")
 def validate_proposed_import(
     observation: ImportContractObservation,

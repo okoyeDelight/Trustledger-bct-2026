@@ -2,7 +2,7 @@
 import pytest
 from pydantic import ValidationError
 
-from app.proof_lab import SCENARIOS, run_scenario
+from app.proof_lab import SCENARIOS, run_scenario, comparison_summary
 from app.main import ImportContractObservation
 
 
@@ -56,3 +56,12 @@ def test_proposed_import_rejects_missing_or_unknown_inputs(bad):
     payload.update(bad)
     with pytest.raises(ValidationError):
         ImportContractObservation(**payload)
+
+
+def test_fair_competent_baseline_matches_on_all_three_fixtures():
+    result = comparison_summary()
+    assert result["scenario_count"] == 3
+    assert result["trustledger_flagged"] == 3
+    assert result["competent_baseline_flagged"] == 3
+    assert result["same_alert_direction"] == 3
+    assert "not estimates" in result["notice"]

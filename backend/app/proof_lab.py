@@ -56,6 +56,7 @@ def run_scenario(scenario_id: str) -> dict[str, Any]:
         missing = int(quality["summary"]["estimated_missing_hourly_readings"])
         assert missing == 57
         incident_count = len(build_incidents(usable))
+        independent_baseline_detected = (raw["recorded_at"].sort_values().diff().dt.total_seconds().div(3600).fillna(1) > 1).any()
         evidence = [
             {"label": "First record", "value": f"{_iso(raw.iloc[0]['recorded_at'])} · 4.2°C"},
             {"label": "Latest record", "value": f"{_iso(raw.iloc[1]['recorded_at'])} · 4.0°C"},
@@ -86,6 +87,7 @@ def run_scenario(scenario_id: str) -> dict[str, Any]:
         destination_assumed = any(r["facility_id"] == "SYN-B" for r in observed)
         if destination_assumed:
             raise AssertionError("Unsafe inference: destination was assumed without receipt")
+        independent_baseline_detected = bool(pd.isna(transfers.iloc[0]["received_at"]))
         evidence = [
             {"label": "Documented dispatch", "value": "2026-10-02 11:00 · SYN-A → SYN-B"},
             {"label": "Documented receipt", "value": "None"},
@@ -105,6 +107,7 @@ def run_scenario(scenario_id: str) -> dict[str, Any]:
         usable, quality = validate_temperature(raw)
         glitches = int(quality["summary"]["known_sensor_glitch_rows"])
         episode_count = len(build_incidents(usable))
+        independent_baseline_detected = bool(raw["temp_c"].isin([99.9, 0.0, -99.0]).any())
         evidence = [
             {"label": "Raw readings", "value": "4.0°C → 99.9°C → 4.2°C"},
             {"label": "Known sentinel glitches", "value": str(glitches)},
@@ -122,8 +125,21 @@ def run_scenario(scenario_id: str) -> dict[str, Any]:
         "evidence": evidence,
         "naive_comparison": naive,
         "competent_baseline": competent,
+        "competent_baseline_flagged": bool(independent_baseline_detected),
+        "trustledger_flagged": bool(missing > 0) if scenario_id == "monitoring-gap" else (not destination_assumed if scenario_id == "missing-receipt" else glitches > 0),
         "trustledger_conclusion": conclusion,
         "next_step": "Document evidence and unknowns; a different supervisor reviews the investigation flag.",
         "decision_scope": "Investigation triage only. No clinical product disposition or blood-unit release.",
         "evaluation": "Three hand-designed synthetic challenges, not a statistically representative benchmark.",
+    }
+
+def comparison_summary() -> dict[str, Any]:
+    """Small executable fixture comparison, never an accuracy/generalization claim."""
+    results = [run_scenario(scenario["id"]) for scenario in SCENARIOS]
+    return {
+        "scenario_count": len(results),
+        "trustledger_flagged": sum(int(r["trustledger_flagged"]) for r in results),
+        "competent_baseline_flagged": sum(int(r["competent_baseline_flagged"]) for r in results),
+        "same_alert_direction": sum(int(r["trustledger_flagged"] == r["competent_baseline_flagged"]) for r in results),
+        "notice": "All cases are intentionally hand-picked adverse synthetic fixtures; scores are not estimates of clinical sensitivity, specificity, superiority, or operational efficiency.",
     }
