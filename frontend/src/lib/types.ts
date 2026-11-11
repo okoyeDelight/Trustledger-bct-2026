@@ -81,6 +81,8 @@ export interface Incident {
   facility_id: string;
   start_time: string;
   end_time: string;
+  recorded_at?: string | null;
+  observation_date_in_future?: boolean;
   duration_hours: number | null;
   reading_count: number | null;
   peak_temp_c: number | null;

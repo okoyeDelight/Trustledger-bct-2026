@@ -19,6 +19,11 @@ const categories: {value: StaffReportRequest["category"]; title: string}[] = [
   {value:"other",title:"Other observation"},
 ];
 
+function localDateMinute(value: Date) {
+  return new Date(value.getTime() - value.getTimezoneOffset() * 60_000)
+    .toISOString().slice(0, 16);
+}
+
 export default function ReportIncidentPage(){
   const router=useRouter();
   const client=useQueryClient();
@@ -28,6 +33,7 @@ export default function ReportIncidentPage(){
   const [title,setTitle]=useState("");
   const [description,setDescription]=useState("");
   const [observed,setObserved]=useState("");
+  const [maxObserved,setMaxObserved]=useState("");
   const [notice,setNotice]=useState("");
   const create=useMutation({
     mutationFn:createStaffIncident,
@@ -43,6 +49,10 @@ export default function ReportIncidentPage(){
     const parsed=new Date(observed);
     if(!Number.isFinite(parsed.getTime())){
       setNotice("Enter a valid date and time for the observation.");
+      return;
+    }
+    if(parsed.getTime() > Date.now() + 5 * 60_000){
+      setNotice("The observation date is in the future. Please check the day, month and year.");
       return;
     }
     create.mutate({
@@ -87,7 +97,16 @@ export default function ReportIncidentPage(){
             </label>
             <label className="block space-y-2 text-sm font-medium">
               Date and time observed (your local time)
-              <Input type="datetime-local" required value={observed} onChange={e=>setObserved(e.target.value)}/>
+              <Input type="datetime-local" required value={observed} max={maxObserved || undefined}
+                onFocus={()=>{
+                  const current = localDateMinute(new Date());
+                  setMaxObserved(current);
+                  setObserved(value => value || current);
+                }}
+                onChange={e=>setObserved(e.target.value)}/>
+              <span className="block text-xs font-normal text-muted-foreground">
+                Tap this field to prefill your current local date and time, or select an earlier observation.
+              </span>
             </label>
             <label className="block space-y-2 text-sm font-medium">
               What happened? What is still unknown?
