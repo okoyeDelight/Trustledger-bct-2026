@@ -1,6 +1,6 @@
 from pathlib import Path
 import base64
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 import hmac
 import json
 import os
@@ -87,6 +87,10 @@ class StaffReportRequest(BaseModel):
     def explicit_timezone(cls, value: datetime) -> datetime:
         if value.tzinfo is None or value.utcoffset() is None:
             raise ValueError("Observation time requires an explicit timezone offset")
+        # Only worker-entered observation timestamps are constrained. Historical
+        # ABBIS replay is validated by its separate source connector, not here.
+        if value.astimezone(timezone.utc) > datetime.now(timezone.utc) + timedelta(minutes=5):
+            raise ValueError("Observation date cannot be in the future. Check the day, month, year and time.")
         return value
 
 
@@ -753,6 +757,21 @@ def _external_observation_rows(payload: dict) -> list[dict]:
     return sorted(records, key=lambda row: row["recorded_at"])
 
 
+def _staff_observation_is_future(report: dict) -> bool:
+    """Flag existing worker-entered future timestamps without changing evidence."""
+    if report["report_ref"].startswith("EXT-"):
+        return False
+    try:
+        observed = datetime.fromisoformat(
+            str(report["observed_at"]).replace("Z", "+00:00")
+        )
+        return observed.tzinfo is not None and (
+            observed.astimezone(timezone.utc) > datetime.now(timezone.utc) + timedelta(minutes=5)
+        )
+    except (ValueError, TypeError):
+        return False
+
+
 def _staff_incident(report: dict) -> dict:
     external = report["report_ref"].startswith("EXT-")
     payload = external_bridge.unpack(report["description"]) if external else None
@@ -763,6 +782,8 @@ def _staff_incident(report: dict) -> dict:
     return {
         "incident_id": report["report_ref"],
         "facility_id": report["facility_code"],
+        "recorded_at": report.get("created_at"),
+        "observation_date_in_future": _staff_observation_is_future(report),
         "start_time": first if external else report["observed_at"],
         "end_time": last if external else report["observed_at"],
         # An observed time span is not proof of product exposure duration.
