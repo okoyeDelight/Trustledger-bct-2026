@@ -55,6 +55,7 @@ def _cursor(case_reference, sqlite_connection, write=False):
     else:
         with closing(sqlite_connection()) as connection:
             _ensure_local(connection)
+            workflow_store.ensure_local_workflow_tables(connection)
             if write:
                 connection.execute("BEGIN IMMEDIATE")
             try:
