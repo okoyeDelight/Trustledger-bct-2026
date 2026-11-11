@@ -179,6 +179,30 @@ def test_two_account_http_journey_with_separation_and_shared_history(identities)
         assert reviewer.get("/api/auth/me").status_code==200
 
 
+def test_remember_me_is_opt_in_and_stores_no_password(identities):
+    username, password = identities["worker"]
+    with TestClient(main.app) as client:
+        normal = client.post("/api/auth/login", json={
+            "username": username, "password": password,
+        })
+        assert normal.status_code == 200
+        assert normal.json()["expires_in"] == 8 * 60 * 60
+        assert "Max-Age=28800" in normal.headers["set-cookie"]
+        assert "httponly" in normal.headers["set-cookie"].lower()
+        assert password not in normal.headers["set-cookie"]
+        remembered = client.post("/api/auth/login", json={
+            "username": username, "password": password, "remember_me": True,
+        })
+        assert remembered.status_code == 200
+        assert remembered.json()["expires_in"] == 7 * 24 * 60 * 60
+        assert "Max-Age=604800" in remembered.headers["set-cookie"]
+        assert "httponly" in remembered.headers["set-cookie"].lower()
+        assert password not in remembered.headers["set-cookie"]
+        assert client.get("/api/auth/me").json()["username"] == username
+        assert client.post("/api/auth/logout").status_code == 200
+        assert client.get("/api/auth/me").status_code == 401
+
+
 def test_tampered_session_and_reused_demo_password_are_not_accepted(identities,monkeypatch):
     with TestClient(main.app) as worker:
         _login(worker,*identities["worker"],"facility_staff")

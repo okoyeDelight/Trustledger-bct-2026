@@ -1,19 +1,33 @@
 "use client";
 
-import { useState, type FormEvent } from "react";
-import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { useEffect, useState, type FormEvent } from "react";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useRouter } from "next/navigation";
 import { KeyRound, Snowflake } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
-import { loginDemoUser } from "@/lib/api";
+import { fetchCurrentUser, loginDemoUser } from "@/lib/api";
 
 export default function LoginPage() {
   const router = useRouter();
   const queryClient = useQueryClient();
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
+  const [rememberMe, setRememberMe] = useState(true);
+  const session = useQuery({
+    queryKey: ["current-user"],
+    queryFn: fetchCurrentUser,
+    retry: false,
+    refetchOnWindowFocus: false,
+  });
+  useEffect(() => {
+    if (!session.data) return;
+    const requestedPath = new URLSearchParams(window.location.search).get("next");
+    const next = requestedPath?.startsWith("/") && !requestedPath.startsWith("//")
+      ? requestedPath : "/incidents";
+    router.replace(next);
+  }, [router, session.data]);
   const login = useMutation({
     mutationFn: loginDemoUser,
     onSuccess: ({ user }) => {
@@ -28,7 +42,7 @@ export default function LoginPage() {
 
   function onSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    login.mutate({ username: username.trim(), password });
+    login.mutate({ username: username.trim(), password, remember_me: rememberMe });
   }
 
   return (
@@ -72,10 +86,19 @@ export default function LoginPage() {
                   value={password}
                 />
               </label>
+              <label className="flex cursor-pointer items-center gap-3 rounded-lg border bg-slate-50 px-3 py-3 text-sm">
+                <input
+                  type="checkbox"
+                  className="size-4 accent-primary"
+                  checked={rememberMe}
+                  onChange={(event) => setRememberMe(event.target.checked)}
+                />
+                <span><strong>Remember me for 7 days</strong><span className="block text-xs font-normal text-muted-foreground">Stay signed in on this browser. No password is stored.</span></span>
+              </label>
               {login.isError && <p role="alert" className="text-sm text-destructive">{login.error.message}</p>}
-              <Button className="w-full" disabled={login.isPending} type="submit">
+              <Button className="w-full" disabled={login.isPending || session.isPending || session.isSuccess} type="submit">
                 <KeyRound aria-hidden="true" />
-                {login.isPending ? "Signing in…" : "Sign in"}
+                {session.isPending || session.isSuccess ? "Checking saved sign-in…" : login.isPending ? "Signing in…" : "Sign in"}
               </Button>
             </form>
           </CardContent>

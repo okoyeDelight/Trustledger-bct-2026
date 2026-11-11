@@ -153,6 +153,7 @@ class DemoLoginRequest(BaseModel):
 
     username: str = Field(min_length=1, max_length=80)
     password: str = Field(min_length=1, max_length=200)
+    remember_me: bool = False
 
 
 class DemoUser(BaseModel):
@@ -1018,7 +1019,9 @@ def login(credentials: DemoLoginRequest, response: Response):
     if authenticated is None:
         raise HTTPException(status_code=401, detail="Invalid username or password.")
 
-    max_age = 8 * 60 * 60
+    # A signed HttpOnly cookie is persistent only when a user opts in.
+    # Do not save the password in browser storage or change access roles.
+    max_age = 7 * 24 * 60 * 60 if credentials.remember_me else 8 * 60 * 60
     response.set_cookie(
         key="trustledger_session",
         value=_session_cookie_value(authenticated, secret, int(time.time()) + max_age),
