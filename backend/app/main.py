@@ -432,6 +432,21 @@ def _adapter_identity(
     return actor.username
 
 
+
+def _adapter_status_identity(
+    connector_key: str | None = Header(default=None, alias="X-TrustLedger-Connector-Key"),
+    session: str | None = Cookie(default=None, alias="trustledger_session"),
+):
+    """Machine key or either signed-in demo role may read shared status."""
+    configured = os.environ.get("TRUSTLEDGER_CONNECTOR_API_KEY")
+    if configured and len(configured) >= 32 and connector_key is not None:
+        if hmac.compare_digest(connector_key.encode("utf-8"), configured.encode("utf-8")):
+            return "external_connector"
+        raise HTTPException(status_code=401, detail="Invalid connector credential.")
+    actor = require_authenticated_user(session)
+    return actor.username
+
+
 @app.get("/api/integrations/sandbox/sample")
 def sandbox_source_series(user: DemoUser = Depends(require_authenticated_user)):
     """Select actual consecutive source readings from the pinned synthetic CSV files."""
@@ -499,7 +514,7 @@ def receive_connector_observation(
 def connector_case_status(
     case_reference: str,
     response: Response,
-    identity: str = Depends(_adapter_identity),
+    identity: str = Depends(_adapter_status_identity),
 ):
     response.headers["Cache-Control"] = "no-store"
     if not case_reference.startswith("EXT-"):
