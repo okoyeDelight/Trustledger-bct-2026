@@ -25,7 +25,7 @@ In the organizer's synthetic dataset, our reproducible audit identified **399,28
 
 ABBIS is a **synthetic sandbox**, not a connected hospital, device or operating blood-bank service. The current connector automatically sends **temperature observations only**; the other organizer tables are searchable as source evidence, not continuously streamed through separate adapters. Automatic replay depends on the ABBIS browser page remaining active; a persistent background scheduler is not deployed. There is no clinical authorization to release, discard or approve a blood product.
 
-**Demo video (3 minutes or less):** **[Team must insert the actual shareable video URL]**
+**Demo video (2 minutes 41 seconds):** [Watch the actual TrustLedger product demonstration](https://drive.google.com/file/d/15uAuLtMf63FMi2GSGzenhcnkXhkPN9FI/view?usp=drive_link) (MP4, 1080p).
 
 **Live demo:** [TrustLedger](https://trustledger-bct-2026.vercel.app) · [ABBIS Source Sandbox](https://abbis-source-sandbox.vercel.app)
 
