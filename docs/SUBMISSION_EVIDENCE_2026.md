@@ -1,7 +1,18 @@
 # TrustLedger — submission evidence map
 **November 11, 2026 · Synthetic hackathon demonstration · Not clinically validated**
 
-## Genuine streamed adapter MVP — pending schema release
+## Independent ABBIS source application (deployed sandbox)
+
+**Stable source application address:** https://abbis-source-sandbox.vercel.app — its own Vercel project, with deployment protection during testing. The source application lives at `abbis-sandbox/` in this repository and builds independently of the TrustLedger backend. Its UI provides Connect → Send four pinned historical synthetic observations → Retrieve case status, using real API calls.
+
+**Connection:** In TrustLedger as Quality Supervisor open **Connections** → **Prepare sandbox connector** (or **Connect system**), then register source identifier `ABBIS-SANDBOX` and facility `HSP-028`. Copy the once-only `tlc_` credential and paste it into the separate sandbox. The sandbox server verifies it via `GET /api/connectors/v1/connection`, and stores the key encrypted in a 24-hour HttpOnly SameSite cookie. Browser JS never receives the key again. The source application issues four HTTP calls to `POST /api/connectors/v1/observations`, then polls `GET /api/connectors/v1/cases`; the resulting investigation is processed by existing TrustLedger workers and supervisors. All records are clearly labelled synthetic. Replays acknowledge duplicates; returned case status remains scoped to the registered source and facility.
+
+**Deployment protection:** The separate sandbox currently has Vercel Authentication enabled. Its server uses a separately provisioned server-only Vercel protection bypass to call the protected TrustLedger preview. Neither this protection secret nor generated partner keys are committed to GitHub. The permanent TrustLedger production domain stays unchanged until approved.
+
+**Known limits:** The live API contract currently covers temperature observations and investigation status, not complete ABBIS inventory or blood-unit-transfer ingestion. The source fixture is four time-series readings selected from the pinned synthetic hackathon dataset, not a live ABBIS system. Outgoing status uses secure polling, not push webhooks. This is meaningful software-to-software interoperability but not a certified clinical integration.
+
+
+## Genuine streamed adapter MVP — database schema applied
 
 Four consecutive **historical synthetic source readings** selected from the pinned input files are replayed through four real HTTP requests to `POST /api/connectors/v1/observations`. The receiver checks signed-in worker or privately configured connector-key authorization, validates the versioned schema, and appends readings to a restricted PostgreSQL connector-observation table (migration 004). Repeating a source-event ID does not create another observation; conflicting evidence returns 409. A streak of four distinct consecutive hourly above-6°C readings creates a source-linked `EXT-` incident in the normal worker/supervisor workflow. A separate authenticated status GET returns current case state and recorded review transitions. The UI calls these APIs instead of drawing fake progress.
 

@@ -32,6 +32,16 @@ External systems supply `X-TrustLedger-Connector-Key` as an HTTPS request header
 
 **Not yet implemented:** real ABBIS mapping because no official interface has been provided; managed hospital SSO, per-tenant operator privileges, per-partner key rotation/expiry, signed event callbacks, formal device reconciliation, or clinical release. Outgoing updates are pulled over an authenticated API, not pushed as webhooks.
 
+## Independent ABBIS source application (deployed sandbox)
+
+**Stable source application address:** https://abbis-source-sandbox.vercel.app — its own Vercel project, with deployment protection during testing. The source application lives at `abbis-sandbox/` in this repository and builds independently of the TrustLedger backend. Its UI provides Connect → Send four pinned historical synthetic observations → Retrieve case status, using real API calls.
+
+**Connection:** In TrustLedger as Quality Supervisor open **Connections** → **Prepare sandbox connector** (or **Connect system**), then register source identifier `ABBIS-SANDBOX` and facility `HSP-028`. Copy the once-only `tlc_` credential and paste it into the separate sandbox. The sandbox server verifies it via `GET /api/connectors/v1/connection`, and stores the key encrypted in a 24-hour HttpOnly SameSite cookie. Browser JS never receives the key again. The source application issues four HTTP calls to `POST /api/connectors/v1/observations`, then polls `GET /api/connectors/v1/cases`; the resulting investigation is processed by existing TrustLedger workers and supervisors. All records are clearly labelled synthetic. Replays acknowledge duplicates; returned case status remains scoped to the registered source and facility.
+
+**Deployment protection:** The separate sandbox currently has Vercel Authentication enabled. Its server uses a separately provisioned server-only Vercel protection bypass to call the protected TrustLedger preview. Neither this protection secret nor generated partner keys are committed to GitHub. The permanent TrustLedger production domain stays unchanged until approved.
+
+**Known limits:** The live API contract currently covers temperature observations and investigation status, not complete ABBIS inventory or blood-unit-transfer ingestion. The source fixture is four time-series readings selected from the pinned synthetic hackathon dataset, not a live ABBIS system. Outgoing status uses secure polling, not push webhooks. This is meaningful software-to-software interoperability but not a certified clinical integration.
+
 ## Historical reference: original browser-only prototype
 
 The remainder of this README documents the earlier static application (`index.html`, `src/`, and old demonstration scripts), which is retained for reproducibility and rollback. **Do not use its older localStorage claims, scenario counts or screenshots as evidence for the current deployment.**

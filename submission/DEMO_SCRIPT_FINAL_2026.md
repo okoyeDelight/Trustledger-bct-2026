@@ -7,6 +7,16 @@
 3. Explain: partner systems use the key as `X-TrustLedger-Connector-Key`, send observations to `/api/connectors/v1/observations`, and read updates via `GET /api/connectors/v1/cases`. Source-system and facility scope are enforced.
 4. Optional synthetic sender demonstration is under `Connections → Test with sample data`. It uses an authenticated operator login, not the newly generated partner key.
 
+### Two-application connection (recommended opening)
+- TrustLedger preview: `/connections` signed in as Quality Supervisor → **Prepare sandbox connector**.
+- Exact source ID: `ABBIS-SANDBOX`. Facility: `HSP-028`.
+- Create and copy the unique API key. **Never record or share its actual characters.**
+- Open the **separate** source application: https://abbis-source-sandbox.vercel.app (Vercel protection may require login).
+- Paste the key there; click **Connect to TrustLedger**. The source verifies the key through a genuine server-to-server HTTPS request.
+- Press **Send four readings**. The sandbox sends four original synthetic source readings to the separate TrustLedger backend. Inspect acknowledged events.
+- Return to the TrustLedger incident and have operator investigate and supervisor review it. Refresh the sandbox's **Investigation updates** section to see the returned live status.
+- **Send again** demonstrates idempotent delivery, not a second case.
+
 ### Before recording
 - Check that migration 004 has been explicitly approved and applied, new API deployment is READY, and synthetic-only demo account is logged in.
 - Open the **Connections** page as Facility Operator.
