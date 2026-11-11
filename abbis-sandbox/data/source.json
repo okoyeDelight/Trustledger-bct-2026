@@ -1,0 +1,43 @@
+{
+  "source": "Pinned synthetic Terumo BCT starter dataset",
+  "upstream_git_revision": "da2862ff9db262f40cd1776fd7962ed47d8942ec",
+  "upstream_incident": "INC-00001",
+  "source_system": "ABBIS-SANDBOX",
+  "facility_id": "HSP-028",
+  "timezone_note": "Original CSV timestamps had no timezone. UTC is assumed only for this historical sandbox replay.",
+  "notes": "Source temperature values and source event times extracted by pinned backend pipeline in GitHub CI. No live ABBIS or medical-device connection.",
+  "items": [
+    {
+      "schema_version": "trustledger.observation.v1",
+      "source_system": "ABBIS-SANDBOX",
+      "source_event_id": "SRC-HSP-028-202511010000",
+      "facility_id": "HSP-028",
+      "observed_at": "2025-11-01T00:00:00+00:00",
+      "temperature_c": 7.4
+    },
+    {
+      "schema_version": "trustledger.observation.v1",
+      "source_system": "ABBIS-SANDBOX",
+      "source_event_id": "SRC-HSP-028-202511010100",
+      "facility_id": "HSP-028",
+      "observed_at": "2025-11-01T01:00:00+00:00",
+      "temperature_c": 8.2
+    },
+    {
+      "schema_version": "trustledger.observation.v1",
+      "source_system": "ABBIS-SANDBOX",
+      "source_event_id": "SRC-HSP-028-202511010200",
+      "facility_id": "HSP-028",
+      "observed_at": "2025-11-01T02:00:00+00:00",
+      "temperature_c": 9.1
+    },
+    {
+      "schema_version": "trustledger.observation.v1",
+      "source_system": "ABBIS-SANDBOX",
+      "source_event_id": "SRC-HSP-028-202511010300",
+      "facility_id": "HSP-028",
+      "observed_at": "2025-11-01T03:00:00+00:00",
+      "temperature_c": 10.1
+    }
+  ]
+}
