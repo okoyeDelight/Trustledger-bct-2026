@@ -76,7 +76,7 @@ def _load(cursor, postgres, case_reference):
             (case_reference,),
         )
     else:
-        cursor.execute(
+        result = cursor.execute(
             """SELECT id,case_reference,event_kind,actor_username,actor_name,
                       actor_role,details,created_at
                FROM case_events WHERE case_reference=? ORDER BY id""",
