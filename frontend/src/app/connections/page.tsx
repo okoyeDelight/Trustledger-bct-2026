@@ -64,6 +64,16 @@ export default function ConnectionsPage(){
     mutationFn:(id:string)=>api<{revoked:boolean}>(`/api/connections/${encodeURIComponent(id)}/revoke`,"POST"),
     onSuccess:()=>void qc.invalidateQueries({queryKey:["connected-systems"]}),
   });
+  const verifyKey=useMutation({
+    mutationFn:async (key:string)=>{
+      const res=await fetch("/api/connectors/v1/connection",{
+        method:"GET",cache:"no-store",credentials:"include",
+        headers:{"X-TrustLedger-Connector-Key":key},
+      });
+      if(!res.ok)throw new Error("This key was not accepted. Check that it is active.");
+      return res.json() as Promise<{connected:boolean;source_system:string;facility_code:string}>;
+    },
+  });
   async function copy(value:string){
     try{await navigator.clipboard.writeText(value);setCopied(true);setCopyError(false);}
     catch{setCopyError(true);setCopied(false);}
@@ -113,9 +123,14 @@ export default function ConnectionsPage(){
             {copied?<Check className="mr-2 size-4"/>:<ClipboardCopy className="mr-2 size-4"/>}
             {copied?"Copied":"Copy API key"}
           </Button>
+          <Button className="w-full" variant="secondary" disabled={verifyKey.isPending} onClick={()=>verifyKey.mutate(issued.key)}>
+            <ShieldCheck className="mr-2 size-4"/> {verifyKey.isPending?"Verifying…":"Verify this API key"}
+          </Button>
+          {verifyKey.data?.connected && <p role="status" className="text-sm font-medium">Verified: key accepted for {verifyKey.data.source_system} at {verifyKey.data.facility_code}. This confirms authorization, not that a partner system is sending data.</p>}
+          {verifyKey.isError && <p role="alert" className="text-sm text-red-700">{verifyKey.error.message}</p>}
           {isCopyError && <p className="text-xs">Automatic copy was blocked; select the key above and copy it manually.</p>}
           <p className="text-xs">Allowed source: <strong>{issued.source_system}</strong> · Facility: <strong>{issued.facility_code}</strong></p>
-          <Button className="w-full" variant="secondary" onClick={()=>{setIssued(null);register.reset();}}>I saved the key</Button>
+          <Button className="w-full" variant="secondary" onClick={()=>{setIssued(null);register.reset();verifyKey.reset();}}>I saved the key</Button>
         </div>}
 
         {showForm && !issued && <form onSubmit={event=>{event.preventDefault();register.mutate();}} className="space-y-4 rounded-xl border bg-muted/30 p-4">
@@ -195,6 +210,7 @@ export default function ConnectionsPage(){
           <p className="mt-1 break-all font-mono text-xs">{outgoingUrl}</p>
           <Button size="sm" variant="outline" className="mt-3" onClick={()=>void copy(outgoingUrl)}><ClipboardCopy className="mr-1 size-3.5"/> Copy URL</Button>
         </div>
+        <p className="text-xs text-muted-foreground">Start with a key verification request to <code className="break-all">GET /api/connectors/v1/connection</code>. When this succeeds, send observations from your server using the same key. API keys are not intended for public web-browser code.</p>
         <details className="rounded-lg border p-3 text-sm">
           <summary className="cursor-pointer font-semibold">Example request format</summary>
           <pre className="mt-3 overflow-auto rounded-lg bg-slate-950 p-3 text-xs leading-relaxed text-white">{JSON.stringify({
