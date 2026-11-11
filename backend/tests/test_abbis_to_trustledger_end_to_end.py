@@ -76,6 +76,10 @@ def test_source_only_ingestion_to_worker_supervisor_and_status(configured):
         assert source.get("/api/connectors/v1/connection", headers=headers).json()["connected"]
         assert source.get("/api/connectors/v1/cases", headers=headers).json()["items"] == []
 
+        initial_receipts = worker.get("/api/connectors/received-observations")
+        assert initial_receipts.status_code == 200
+        assert initial_receipts.json()["total"] == 0
+
         case_ref = None
         for i, temp in enumerate((7.4, 8.2, 9.1, 10.1)):
             payload = {
@@ -93,6 +97,10 @@ def test_source_only_ingestion_to_worker_supervisor_and_status(configured):
             if i < 3:
                 assert receipt.json()["case_created"] is False
                 assert worker.get("/api/incidents?view=active").json()["total"] == 0
+            live_receipts = worker.get("/api/connectors/received-observations")
+            assert live_receipts.status_code == 200
+            assert live_receipts.json()["total"] == i+1
+            assert live_receipts.json()["items"][0]["temperature_c"] == temp
             else:
                 assert receipt.json()["case_created"] is True
                 case_ref = receipt.json()["case_reference"]
@@ -109,7 +117,19 @@ def test_source_only_ingestion_to_worker_supervisor_and_status(configured):
         live = worker.get("/api/incidents?view=active").json()
         assert live["total"] == 1
         assert live["items"][0]["incident_id"] == case_ref
-        assert worker.get(f"/api/incidents/{case_ref}").status_code == 200
+        detail_response = worker.get(f"/api/incidents/{case_ref}")
+        assert detail_response.status_code == 200
+        detail = detail_response.json()
+        assert detail["incident"]["reading_count"] == 4
+        assert detail["incident"]["peak_temp_c"] == 10.1
+        assert detail["incident"]["minimum_temp_c"] == 7.4
+        assert detail["incident"]["source_system"] == "ABBIS-SANDBOX"
+        assert len(detail["temperature_history"]) == 4
+        assert [row["temp_c"] for row in detail["temperature_history"]] == [7.4,8.2,9.1,10.1]
+        assert all(row["source_event_id"].startswith("SRC-HSP-028-") for row in detail["temperature_history"])
+        assert len(detail["incident"]["source_payload"]["episode_readings"]) == 4
+        assert detail["potentially_affected_units"] == []
+        assert worker.get("/api/connectors/received-observations").json()["total"] == 4
 
         note = worker.post(f"/api/incidents/{case_ref}/notes", json={
             "finding": "Synthetic source readings were received; individual unit exposure is not established.",
