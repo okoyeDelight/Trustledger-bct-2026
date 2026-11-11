@@ -182,9 +182,9 @@ export function fetchDataQuality() {
   return request<DataQuality>("/api/data-quality");
 }
 
-export function fetchIncidents(limit = 50, offset = 0, search = "") {
+export function fetchIncidents(limit = 50, offset = 0, search = "", view: "active" | "historical" | "all" = "all") {
   return request<ListResponse<Incident>>(
-    `/api/incidents?${listQuery(limit, offset, search)}`,
+    `/api/incidents?${listQuery(limit, offset, search)}&view=${view}`,
   );
 }
 

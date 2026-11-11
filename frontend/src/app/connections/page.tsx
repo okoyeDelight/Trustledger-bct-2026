@@ -188,7 +188,8 @@ export default function ConnectionsPage(){
 
     {user.data && !isSupervisor && <div className="rounded-xl border bg-card p-4 text-sm">
       <div className="flex items-center gap-2 font-semibold"><LockKeyhole className="size-4"/> Connector administration</div>
-      <p className="mt-2 text-muted-foreground">A Quality Supervisor creates and revokes system credentials. As a Facility Operator, you can investigate imported incidents or use the sample feed below.</p>
+      <p className="mt-2 text-muted-foreground">You are currently signed in as Facility Operator. The <strong>Connect system</strong> button is available when signed in as Quality Supervisor. This keeps external credentials separate from investigation duties.</p>
+      <button type="button" className="mt-3 rounded-lg border px-3 py-2 text-sm font-semibold" onClick={async()=>{await fetch("/api/auth/logout",{method:"POST",credentials:"include"});window.location.assign("/login");}}>Switch to Quality Supervisor</button>
     </div>}
 
     <Card className="shadow-sm">

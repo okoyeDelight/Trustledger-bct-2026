@@ -867,18 +867,24 @@ def incidents(
     limit: int = 100,
     offset: int = 0,
     search: str | None = None,
+    view: Literal["all", "active", "historical"] = "all",
     user: DemoUser = Depends(require_authenticated_user),
 ):
     import pandas as pd
     path = OUTPUT_DIR / "incidents.csv"
-    if not path.exists():
+    if view in ("all", "historical") and not path.exists():
         raise HTTPException(status_code=503, detail="Run the data pipeline first.")
     limit = max(1, min(limit, 500))
     offset = max(0, offset)
-    df = pd.read_csv(path)
     manual = [_staff_incident(r) for r in workflow_store.list_staff_reports(_connect_audit_db)]
-    if manual:
-        df = pd.concat([pd.DataFrame(manual), df], ignore_index=True)
+    if view == "active":
+        df = pd.DataFrame(manual)
+    elif view == "historical":
+        df = pd.read_csv(path)
+    else:
+        df = pd.read_csv(path)
+        if manual:
+            df = pd.concat([pd.DataFrame(manual), df], ignore_index=True)
     if search:
         searchable = [column for column in ["incident_id", "facility_id", "severity", "direction", "report_title"] if column in df]
         matched = df[searchable].fillna("").astype(str).apply(
