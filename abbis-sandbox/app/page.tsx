@@ -109,7 +109,7 @@ export default function Home(){
     <main className="main">
       <div className="eyebrow">BLOOD BANK INFORMATION SYSTEM · SYNTHETIC SOURCE</div>
       <h1>Blood-bank records, connected automatically.</h1>
-      <p className="lead">This independent synthetic blood-bank source holds all six original datasets. Once connected, it automatically feeds verified monitoring episodes into TrustLedger and receives investigation updates.</p>
+      <p className="lead">This independent synthetic blood-bank source holds all eleven original organizer datasets. Once connected, it automatically feeds verified monitoring episodes into TrustLedger and receives investigation updates.</p>
 
       <section className="workflow" aria-label="Integration workflow">
         <div className="workflow-item"><span className="bubble">1</span><div><strong>Connect</strong><small>Authorize an external system</small></div></div>
@@ -184,8 +184,8 @@ export default function Home(){
             <p className="auto-note">This free-tier demonstration advances while its browser page remains open. A persistent server scheduler is required for continuous delivery with every browser closed.</p>
           </div>
           <details className="details">
-            <summary>All six blood-bank datasets</summary>
-            <p>Full source files are hash-verified and prepared on the ABBIS sandbox server. Only matching, validated temperature episodes are currently transmitted to TrustLedger; the other source datasets remain available for future transfer and inventory adapters.</p>
+            <summary>All eleven blood-bank datasets</summary>
+            <p>All eleven original organizer CSV files are checksum-verified and prepared on the ABBIS sandbox server. Only matching, validated temperature episodes are currently transmitted to TrustLedger; the other source datasets remain available for future transfer and inventory adapters.</p>
             <div className="source-list">
               {(catalogView?.dataset_summaries??[]).map(dataset=><div className="source-row" key={dataset.id}>
                 <span>{dataset.id.replaceAll("_"," ")}</span>
