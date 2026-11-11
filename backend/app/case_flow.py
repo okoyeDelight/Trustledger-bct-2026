@@ -69,7 +69,7 @@ def _cursor(case_reference, sqlite_connection, write=False):
 
 def _load(cursor, postgres, case_reference):
     if postgres:
-        cursor.execute(
+        result = cursor.execute(
             """SELECT id,case_reference,event_kind,actor_username,actor_name,
                       actor_role,details,created_at
                FROM tl_case_events WHERE case_reference=%s ORDER BY id""",
@@ -83,7 +83,7 @@ def _load(cursor, postgres, case_reference):
             (case_reference,),
         )
     out = []
-    for row in cursor.fetchall():
+    for row in result.fetchall():
         event = dict(row)
         if isinstance(event["details"], str):
             event["details"] = json.loads(event["details"])
@@ -204,29 +204,29 @@ def submit(case_reference, user, summary, sqlite_connection):
         threshold = returns[-1] if returns else None
         if postgres:
             if threshold:
-                cursor.execute(
+                result = cursor.execute(
                     """SELECT 1 FROM tl_investigation_notes WHERE case_reference=%s
                        AND actor_username=%s AND created_at>%s::timestamptz LIMIT 1""",
                     (case_reference, user.username, threshold),
                 )
             else:
-                cursor.execute(
+                result = cursor.execute(
                     """SELECT 1 FROM tl_investigation_notes WHERE case_reference=%s
                        AND actor_username=%s LIMIT 1""", (case_reference, user.username),
                 )
         else:
             if threshold:
-                cursor.execute(
+                result = cursor.execute(
                     """SELECT 1 FROM investigation_notes WHERE case_reference=?
                        AND actor_username=? AND created_at>? LIMIT 1""",
                     (case_reference, user.username, threshold),
                 )
             else:
-                cursor.execute(
+                result = cursor.execute(
                     """SELECT 1 FROM investigation_notes WHERE case_reference=?
                        AND actor_username=? LIMIT 1""", (case_reference, user.username),
                 )
-        if cursor.fetchone() is None:
+        if result.fetchone() is None:
             raise HTTPException(409, "Record a new investigation finding before submitting this case.")
         _append(cursor, postgres, case_reference, "investigation_submitted", user,
                 {"summary": summary})
@@ -236,14 +236,14 @@ def submit(case_reference, user, summary, sqlite_connection):
 
 def _saved_review(cursor, postgres, review_id):
     if postgres:
-        cursor.execute(
+        result = cursor.execute(
             """SELECT review_id,incident_id,actor_username,actor_name,role,decision,
                 reason,changed_assessment,created_at,auth_method
                 FROM tl_review_events WHERE review_id=%s""", (review_id,),
         )
     else:
-        cursor.execute("SELECT * FROM review_events WHERE review_id=?", (review_id,))
-    row = cursor.fetchone()
+        result = cursor.execute("SELECT * FROM review_events WHERE review_id=?", (review_id,))
+    row = result.fetchone()
     if row is None:
         return None
     return workflow_store._serialize_review(dict(row))
