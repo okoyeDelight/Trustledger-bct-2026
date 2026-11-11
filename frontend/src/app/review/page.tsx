@@ -94,7 +94,7 @@ export default function ReviewPage() {
             {user.data?.role!=="facility_staff" && <form className="space-y-5" onSubmit={onSubmit}>
               <div className="rounded-lg bg-muted/60 p-3 text-sm">
                 Signed in as <strong>{user.data?.actor_name ?? "Loading account…"}</strong>
-                {user.data && <span className="text-muted-foreground"> · {user.data.role === "facility_staff" ? "Facility staff" : "Blood service supervisor"}</span>}
+                {user.data && <span className="text-muted-foreground"> · Blood service supervisor</span>}
               </div>
 
               <label className="block space-y-2 text-sm font-medium">
