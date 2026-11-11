@@ -1,4 +1,4 @@
-# TrustLedger — Blood cold-chain exception-to-unit review
+> **Unified product branch (November 2026):** The current implementation in this branch is now `frontend/` (Next.js) + `backend/` (FastAPI) + `db/migrations/` (Neon). Start with [Consolidated release guide](docs/CONSOLIDATED_RELEASE_GUIDE.md) and [draft PR #4](https://github.com/okoyeDelight/Trustledger-bct-2026/pull/4). `index.html`, `styles.css`, `src/` and the older sections below describe the preserved legacy browser prototype; they are not the new active worker application. The shared Neon migration and staff login are not yet activated. No real clinical use.\n\n# TrustLedger — Blood cold-chain exception-to-unit review
 
 **Terumo BCT Africa Hackathon 2026 · Team TrustLedger · Challenge areas: Cold chain + Data quality**
 
