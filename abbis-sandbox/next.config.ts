@@ -4,6 +4,8 @@ const config: NextConfig = {
   poweredByHeader: false,
   outputFileTracingIncludes: {
     "/api/datasets/[name]": ["./data/raw/*.csv","./data/catalog.json"],
+    "/api/records/search": ["./data/raw/*.csv","./data/catalog.json"],
+    "/api/records/lookup": ["./data/raw/*.csv","./data/catalog.json"],
     "/api/catalog": ["./data/catalog.json"],
     "/api/auto/tick": ["./data/catalog.json"],
   },
