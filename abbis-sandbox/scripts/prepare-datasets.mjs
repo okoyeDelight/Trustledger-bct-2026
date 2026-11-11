@@ -5,9 +5,11 @@ import path from "node:path";
 import { parse } from "csv-parse";
 import { pipeline } from "node:stream/promises";
 import { Readable } from "node:stream";
+import {loadFullOfficialDataset} from "./load-full-dataset.mjs";
 
 const root=process.cwd();
 const manifest=JSON.parse(await fs.readFile(path.join(root,"data/source-manifest.json"),"utf8"));
+const officialTables=await loadFullOfficialDataset(root);
 const folder=path.join(root,"data/raw");
 await fs.mkdir(folder,{recursive:true});
 const summaries=[];
@@ -55,6 +57,32 @@ for(const file of manifest.synthetic_csv_inputs){
   summaries.push({id:filename.replace(".csv",""),filename,count,columns,bytes:file.bytes,git_sha1:file.git_sha1});
   console.log("Pinned ABBIS dataset verified:",filename,count+" records");
 }
+// The original analytical pipeline used only six. ABBIS owns all eleven.
+const existing=new Set(summaries.map(x=>x.filename));
+for(const file of officialTables){
+  if(existing.has(file.file))continue;
+  const buffer=await fs.readFile(path.join(folder,file.file));
+  if(buffer.length!==file.bytes)
+    throw Error("Unexpected source file length for "+file.file);
+  const stream=Readable.from([buffer.toString("utf8")]).pipe(parse({
+    columns:true,skip_empty_lines:true,bom:true,relax_quotes:false
+  }));
+  let count=0;
+  let columns=[];
+  for await(const row of stream){
+    count++;
+    if(count===1)columns=Object.keys(row);
+  }
+  if(count!==file.rows)throw Error("Original source count mismatch for "+file.file);
+  const git_sha1=crypto.createHash("sha1").update(Buffer.concat([
+    Buffer.from("blob "+buffer.length+"\0"),buffer
+  ])).digest("hex");
+  summaries.push({id:file.file.replace(".csv",""),filename:file.file,
+    count,columns,bytes:file.bytes,git_sha1});
+  console.log("Complete ABBIS organizer table verified:",file.file,count+" records");
+}
+if(summaries.length!==11)throw Error("Full ABBIS source catalog must contain eleven tables.");
+
 facilityReadings.sort((a,b)=>a.recorded_at.localeCompare(b.recorded_at));
 const used=new Set();
 const episodes=[];
@@ -85,6 +113,7 @@ const catalog={source:manifest.source_repository,source_revision:manifest.source
   facility_id:sourceFacility,source_system:sourceId,
   replay_interval_seconds:60,
   dataset_summaries:summaries,
+  organizer_archive_sha256:"c6b3c0a461a86adac72424ab11e179d22449e268ac3253b69b68613ce1911732",
   episode_count:episodes.length,
   episodes,
   timestamp_note:"The original CSV readings did not specify a timezone; UTC is assigned for synthetic replay only.",
