@@ -1,7 +1,7 @@
 "use client";
 
-import Link from "next/link";
 import { useState } from "react";
+import { useRouter } from "next/navigation";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Cable, Check, ClipboardCopy, KeyRound, LockKeyhole, Plus, RefreshCw, ShieldCheck, Trash2 } from "lucide-react";
 import { PageHeading } from "@/components/page-heading";
@@ -32,6 +32,7 @@ async function api<T>(path:string, method:"GET"|"POST"="GET", body?:unknown):Pro
 
 export default function ConnectionsPage(){
   const qc=useQueryClient();
+  const router=useRouter();
   const user=useQuery({queryKey:["current-user"],queryFn:fetchCurrentUser,retry:false});
   const isSupervisor=user.data?.role==="blood_service_supervisor";
   const connections=useQuery({
@@ -212,7 +213,7 @@ export default function ConnectionsPage(){
     <div className="rounded-xl border bg-muted/30 p-4">
       <div className="flex items-center justify-between gap-3">
         <div><p className="font-semibold">Test with sample data</p><p className="mt-1 text-sm text-muted-foreground">Optional synthetic replay. Not required to connect a real system.</p></div>
-        <Button variant="outline" onClick={()=>window.location.assign("/connections/sandbox")}>Try demo</Button>
+        <Button variant="outline" onClick={()=>router.push("/connections/sandbox")}>Try demo</Button>
       </div>
     </div>
   </div>;

@@ -85,13 +85,37 @@ def test_four_real_http_observations_create_case_and_return_review(adapter_env):
         conflict=worker.post("/api/connectors/v1/observations",json={**_make_event(3),"temperature_c":8.1})
         assert conflict.status_code==409
 
-        # The real partner API uses its own server-to-server API key.
-        headers={"X-TrustLedger-Connector-Key":"test-connector-key-long-enough-to-be-valid-32-chars"}
+        # Supervisor issues a real source- and facility-scoped API key.
+        issued=supervisor.post("/api/connections",json={
+            "label":"Unit Test Partner", "source_system":"ABBIS sandbox fixture",
+            "facility_code":"SYN-A",
+        })
+        assert issued.status_code==201,issued.text
+        key=issued.json()["key"]
+        assert key.startswith("tlc_") and len(key)>32
+        assert key not in supervisor.get("/api/connections").text
+        headers={"X-TrustLedger-Connector-Key":key}
+        handshake=partner.get("/api/connectors/v1/connection",headers=headers)
+        assert handshake.status_code==200,handshake.text
+        assert handshake.json()["source_system"]=="ABBIS sandbox fixture"
+        assert handshake.json()["facility_code"]=="SYN-A"
         external=partner.get(f"/api/connectors/v1/cases/{reference}",headers=headers)
         assert external.status_code==200,external.text
         assert external.json()["investigation_status"]=="investigating"
         assert external.json()["clinical_clearance"] is None
         assert partner.get(f"/api/connectors/v1/cases/{reference}",headers={"X-TrustLedger-Connector-Key":"incorrect"}).status_code==401
+        outgoing_list=partner.get("/api/connectors/v1/cases",headers=headers)
+        assert outgoing_list.status_code==200,outgoing_list.text
+        assert reference in [item["case_reference"] for item in outgoing_list.json()["items"]]
+        assert partner.post("/api/connectors/v1/observations",json=_make_event(0,facility="OTHER"),headers=headers).status_code==403
+        other=supervisor.post("/api/connections",json={
+            "label":"Other Facility Partner","source_system":"ABBIS sandbox fixture",
+            "facility_code":"SYN-B",
+        })
+        assert other.status_code==201,other.text
+        wrong_headers={"X-TrustLedger-Connector-Key":other.json()["key"]}
+        assert partner.get(f"/api/connectors/v1/cases/{reference}",headers=wrong_headers).status_code==404
+        assert partner.get("/api/connectors/v1/cases",headers=wrong_headers).json()["items"]==[]
 
         finding=worker.post(f"/api/incidents/{reference}/notes",json={"finding":"Four dated source observations checked; device identity and actual exposure remain unverified."})
         assert finding.status_code==201,finding.text
@@ -117,6 +141,38 @@ def test_four_real_http_observations_create_case_and_return_review(adapter_env):
         assert fifth.status_code==201,fifth.text
         reports=main.workflow_store.list_staff_reports(main._connect_audit_db)
         assert len([x for x in reports if x["report_ref"].startswith("EXT-")])==1
+        assert supervisor.post(f"/api/connections/{issued.json()['id']}/revoke").status_code==200
+        assert partner.get("/api/connectors/v1/connection",headers=headers).status_code==401
+        assert partner.post("/api/connectors/v1/observations",json=_make_event(8),headers=headers).status_code==401
+        assert any(x["id"] == issued.json()["id"] and x["revoked"] for x in supervisor.get("/api/connections").json()["items"])
+
+
+def test_only_supervisor_can_issue_and_revoke_connector_credentials(adapter_env):
+    with TestClient(main.app) as worker, TestClient(main.app) as supervisor, TestClient(main.app) as external:
+        _login(worker,"worker")
+        _login(supervisor,"reviewer")
+        request={"label":"External Hospital System","source_system":"Ext-Source","facility_code":"HSP-028"}
+        assert worker.post("/api/connections",json=request).status_code==403
+        assert worker.get("/api/connections").status_code==403
+        assert worker.post(f"/api/connections/{uuid4()}/revoke").status_code==403
+        assert external.post("/api/connections",json=request).status_code==401
+        assert supervisor.post("/api/connections",json={**request,"facility_code":"HSP 028"}).status_code==422
+        issued=supervisor.post("/api/connections",json=request)
+        assert issued.status_code==201,issued.text
+        secret=issued.json()["key"]
+        listing=supervisor.get("/api/connections")
+        assert listing.status_code==200
+        assert secret not in listing.text
+        assert listing.json()["items"][0]["revoked"] is False
+        headers={"X-TrustLedger-Connector-Key":secret}
+        assert external.get("/api/connectors/v1/connection",headers=headers).status_code==200
+        assert external.post("/api/connectors/v1/observations",json=_make_event(0,source="Other-Source",facility="HSP-028"),headers=headers).status_code==403
+        accepted=external.post("/api/connectors/v1/observations",json=_make_event(0,source="Ext-Source",facility="HSP-028"),headers=headers)
+        assert accepted.status_code==201,accepted.text
+        assert accepted.json()["observation_stored"] is True
+        assert supervisor.get("/api/connections").json()["items"][0]["last_observation_at"] is not None
+        assert supervisor.post(f"/api/connections/{issued.json()['id']}/revoke").status_code==200
+        assert external.get("/api/connectors/v1/connection",headers=headers).status_code==401
 
 
 def test_missing_hour_or_intervening_normal_breaks_streak(adapter_env):
