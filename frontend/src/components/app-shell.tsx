@@ -7,6 +7,7 @@ import { useEffect } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   Activity,
+  FlaskConical,
   AlertTriangle,
   ClipboardCheck,
   ClipboardPenLine,
@@ -32,6 +33,7 @@ const navigation = [
   { label: "Report incident", href: "/report", icon: ClipboardPenLine },
   { label: "Review centre", href: "/review", icon: ClipboardCheck },
   { label: "History", href: "/audit-log", icon: ShieldCheck },
+  { label: "Proof Lab", href: "/proof-lab", icon: FlaskConical },
   { label: "Evidence overview", href: "/dashboard", icon: LayoutDashboard },
   { label: "Transport alerts", href: "/transport-alerts", icon: Truck },
   { label: "Inventory", href: "/inventory", icon: PackageSearch },

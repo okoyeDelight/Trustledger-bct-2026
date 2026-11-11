@@ -30,6 +30,7 @@ import {
 } from "@/components/ui/table";
 import { fetchIncidentDetail, fetchCurrentUser, fetchInvestigationNotes, saveInvestigationNote, fetchCaseWorkflow } from "@/lib/api";
 import { CaseWorkflowPanel } from "@/components/case-workflow";
+import { EvidencePassport } from "@/components/evidence-passport";
 import { Button } from "@/components/ui/button";
 import { formatChartTime, formatDateTime } from "@/lib/date";
 
@@ -109,6 +110,8 @@ function IncidentDetailContent() {
       <div role="note" className="mb-6 rounded-xl border border-sky-200 bg-sky-50 px-4 py-3 text-sm leading-6 text-sky-950">
         <strong>Evidence boundary:</strong> {isStaffReport ? "This case began as a staff observation, not an automatic temperature measurement. The reported information requires corroboration." : "Source temperature records identify a facility, not an individual refrigerator or sensor. This incident cannot be attributed to a specific appliance."}
       </div>
+
+      <EvidencePassport detail={detail.data} notes={notes.data?.items ?? []} workflow={lifecycle.data} />
 
       <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
         <EvidenceMetric label="Peak temperature" value={typeof incident.peak_temp_c==="number"?incident.peak_temp_c.toFixed(1)+"°C":"Not measured"} icon={Thermometer} />
