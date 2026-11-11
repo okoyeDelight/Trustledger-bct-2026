@@ -22,13 +22,7 @@ export function OfflineStatus({ user }: { user: AuthenticatedUser }) {
       void syncPendingReviews(user)
         .then(() => {
           updatePendingCount();
-          setState(
-            !navigator.onLine
-              ? "offline"
-              : getPendingReviews(user).length > 0
-                ? "stale"
-                : "online",
-          );
+          setState(navigator.onLine ? "online" : "offline");
         })
         .catch(() => setState("sync-error"));
     };
@@ -54,7 +48,9 @@ export function OfflineStatus({ user }: { user: AuthenticatedUser }) {
 
   if (state === "online" && pendingCount === 0) return null;
 
-  const message = state === "sync-error"
+  const message = pendingCount > 0
+    ? "Legacy unsent review drafts are stored on this device only and will not automatically sync. Reopen the case and re-enter the review online."
+    : state === "sync-error"
     ? "A legacy locally pending review needs manual re-submission. It is not a confirmed server decision."
     : state === "cache-error"
       ? "Browser storage is unavailable or full. Offline read-only copies may not be available."
