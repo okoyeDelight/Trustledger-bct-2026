@@ -1,0 +1,76 @@
+{
+  "source": "Terumo BCT Africa Hackathon 2026 organizer starter archive",
+  "source_archive": "Hackathon Starter Dataset.zip",
+  "archive_bytes": 38875927,
+  "archive_sha256": "c6b3c0a461a86adac72424ab11e179d22449e268ac3253b69b68613ce1911732",
+  "download_url": "https://drive.usercontent.google.com/download?id=1p4eX9t0y0W94EKIkzAshrA2Rb1y2gZZ7&export=download&confirm=t",
+  "timezone_from_data_dictionary": "Africa/Nairobi (UTC+03:00)",
+  "csv": [
+    {
+      "file": "daily_stock.csv",
+      "bytes": 5278810,
+      "rows": 185785,
+      "sha256": "d053c55436b888463ac32d9a771f5ea070a62b4f90c3bd212a8b814f2ac73ef0"
+    },
+    {
+      "file": "donations.csv",
+      "bytes": 4391791,
+      "rows": 47363,
+      "sha256": "0740465505a33657da206a0a1b0a878a2f1c4697002633bb7a6dda7378a531cf"
+    },
+    {
+      "file": "donors.csv",
+      "bytes": 3545356,
+      "rows": 43363,
+      "sha256": "b59ed099e20a7c27f5edc45e9d121b0245a45b7f1e30d2de189b58ef77e47486"
+    },
+    {
+      "file": "drives.csv",
+      "bytes": 65996,
+      "rows": 1091,
+      "sha256": "c3329f42c88314e79cb486e37cfddca3ecfaadbcd9005920ed4189f51bfe6bc6"
+    },
+    {
+      "file": "facilities.csv",
+      "bytes": 5923,
+      "rows": 47,
+      "sha256": "270565fd9431fc184e786faf82cded0539078b4b4b37942cda4bf3a4a7742d03"
+    },
+    {
+      "file": "power_outages.csv",
+      "bytes": 178697,
+      "rows": 2609,
+      "sha256": "b413c9aab57321c7fa13beb38580e1df5a7eacde5fb6699102514753aed84536"
+    },
+    {
+      "file": "requests.csv",
+      "bytes": 2635164,
+      "rows": 17430,
+      "sha256": "6d654c57e0257e89fedb69a26627e4956f03e173504837ded0cd8dae487c086c"
+    },
+    {
+      "file": "routes.csv",
+      "bytes": 70198,
+      "rows": 2162,
+      "sha256": "9574213eb5772c27f0fff6d13a58bd84b64330d3760a48ba24884745a80fa389"
+    },
+    {
+      "file": "temperature_logs.csv",
+      "bytes": 12829641,
+      "rows": 399280,
+      "sha256": "aa1aa915ac7c9e3329f70ec06431d0f1ca210d11a5c0f98c06d3d06e3a158d01"
+    },
+    {
+      "file": "transfers.csv",
+      "bytes": 3970903,
+      "rows": 35181,
+      "sha256": "1bebdc1a9632f37bb08d59df5576940c410d7f029aaece9f61e125c8a7092a48"
+    },
+    {
+      "file": "units.csv",
+      "bytes": 5781459,
+      "rows": 49426,
+      "sha256": "4237752f1eca226628a43466bd8bdd9c2b66b1b00e5e8ba77aa9b53c14e2af33"
+    }
+  ]
+}
