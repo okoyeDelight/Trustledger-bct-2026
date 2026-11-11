@@ -29,6 +29,8 @@ ABBIS is a **synthetic sandbox**, not a connected hospital, device or operating 
 
 **Live demo:** [TrustLedger](https://trustledger-bct-2026.vercel.app) · [ABBIS Source Sandbox](https://abbis-source-sandbox.vercel.app)
 
+**Pitch deck:** [TrustLedger team presentation](https://docs.google.com/presentation/d/1IEf0DE6pox5Bn6gf1vxiVJgWXcI_sn92tMc9FyZO5JY/edit) (Google Slides; team must reduce to the 8-slide competition maximum before submission).
+
 **Test log-in:** Two distinct TrustLedger demo usernames, `operator` (Facility Operator) and `supervisor` (Quality Supervisor). Provide temporary passwords securely in the judge submission form; **do not post them in this public README**. A separate one-time key is generated in **Connections** for ABBIS.
 
 ## How to run it
