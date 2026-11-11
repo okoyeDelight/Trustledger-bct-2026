@@ -69,7 +69,7 @@ def test_sentinels_are_not_valid_temperatures(store):
 def test_every_dataset_can_enter_feed_but_normal_rows_do_not_create_cases(store):
     for dataset in feed.DATASET_FILES:
         feed.ingest("bank", dataset, dataset,
-                    {"facility_id": "HSP-001", "sample": "synthetic"}, store)
+                    {"facility_id": "HSP-001", "sample": "synthetic", "temp_c": "4.2", "backup_power_engaged": "true", "coolbox_max_temp_c": "4.2"}, store)
     assert len(feed.feed_events(store)) == len(feed.DATASET_FILES)
     assert feed.source_incidents(store) == []
 
