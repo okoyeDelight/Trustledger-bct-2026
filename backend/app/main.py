@@ -485,6 +485,15 @@ def _adapter_status_identity(
     return require_authenticated_user(session)
 
 
+@app.get("/api/connectors/received-observations")
+def received_connector_observations(
+    limit: int = Query(default=12, ge=1, le=30),
+    user: DemoUser = Depends(require_authenticated_user),
+):
+    """Operational receipt view. Distinct observations are not incident counts."""
+    return integration_feed.recent_observations(_connect_audit_db, limit=limit)
+
+
 @app.get("/api/connectors/v1/connection")
 def verify_connector_access(
     response: Response,
