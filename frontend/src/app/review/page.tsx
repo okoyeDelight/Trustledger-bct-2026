@@ -80,7 +80,7 @@ export default function ReviewPage() {
       />
 
       <div role="note" className="mb-6 rounded-xl border border-amber-300 bg-amber-50 px-4 py-3 text-sm leading-6 text-amber-950">
-        <strong>Human review only.</strong> This records a review of the incident flag; it does not release, quarantine, discard, declare compatibility or authorize transfusion. The backend assigns your role and audit name from your configured demo account. Both demo roles currently share review permissions pending confirmation of the role matrix. This is prototype authentication, not production identity management.
+        <strong>Human review only.</strong> This records a review of the incident flag; it does not release, quarantine, discard, declare compatibility or authorize transfusion. The backend validates which demo account is signed in. Only the supervisor role may record a review; facility staff can investigate but cannot approve their own work. This remains prototype authentication.
       </div>
 
       <div className="grid gap-6 xl:grid-cols-[minmax(0,1.2fr)_minmax(300px,0.8fr)]">
@@ -90,7 +90,8 @@ export default function ReviewPage() {
             <p className="text-sm text-muted-foreground">Every decision needs a reason and is added to the append-only audit log.</p>
           </CardHeader>
           <CardContent>
-            <form className="space-y-5" onSubmit={onSubmit}>
+            {user.data?.role==="facility_staff" && <p className="rounded-lg border border-amber-200 bg-amber-50 p-3 text-sm text-amber-900">Your role is facility staff. Record an investigation finding in the incident detail page; a separate supervisor must review it.</p>}
+            {user.data?.role!=="facility_staff" && <form className="space-y-5" onSubmit={onSubmit}>
               <div className="rounded-lg bg-muted/60 p-3 text-sm">
                 Signed in as <strong>{user.data?.actor_name ?? "Loading account…"}</strong>
                 {user.data && <span className="text-muted-foreground"> · {user.data.role === "facility_staff" ? "Facility staff" : "Blood service supervisor"}</span>}
@@ -181,7 +182,7 @@ export default function ReviewPage() {
                 <ClipboardCheck aria-hidden="true" />
                 {mutation.isPending ? "Saving review…" : "Save human review"}
               </Button>
-            </form>
+            </form>}
           </CardContent>
         </Card>
 
@@ -192,7 +193,7 @@ export default function ReviewPage() {
             <p><strong className="text-foreground">Change</strong> records a human-authored assessment and supporting reason.</p>
             <p><strong className="text-foreground">Reject</strong> records that the flag is not supported by the review evidence.</p>
             <p>These are prototype workflow states, not product disposition decisions. No inventory or patient-care system is changed.</p>
-            <p>The role is assigned by the backend from a pre-provisioned demo account. Production use requires a managed identity provider, reviewed authorization rules and secure session operations.</p>
+            <p>Review requires a separate supervisor account and is checked by the server. Managed identity, independent clinical authorization and production retention are not yet implemented.</p>
           </CardContent>
         </Card>
       </div>
