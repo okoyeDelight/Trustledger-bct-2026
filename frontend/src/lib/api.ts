@@ -11,7 +11,6 @@ import type {
   TransportAlert,
   AuthenticatedUser,
   StaffReportRequest,
-  Incident,
   InvestigationNote,
 } from "@/lib/types";
 
