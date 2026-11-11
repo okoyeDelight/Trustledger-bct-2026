@@ -9,6 +9,7 @@ import {
   Activity,
   AlertTriangle,
   ClipboardCheck,
+  ClipboardPenLine,
   Database,
   LayoutDashboard,
   LogOut,
@@ -27,13 +28,14 @@ import { fetchCurrentUser, logoutDemoUser } from "@/lib/api";
 const appName = process.env.NEXT_PUBLIC_APP_NAME ?? "TrustLedger";
 const countryLabel = process.env.NEXT_PUBLIC_COUNTRY_LABEL ?? "Kenya blood cold-chain monitoring";
 const navigation = [
-  { label: "Overview", href: "/dashboard", icon: LayoutDashboard },
   { label: "Incidents", href: "/incidents", icon: AlertTriangle },
+  { label: "Report incident", href: "/report", icon: ClipboardPenLine },
+  { label: "Review centre", href: "/review", icon: ClipboardCheck },
+  { label: "History", href: "/audit-log", icon: ShieldCheck },
+  { label: "Evidence overview", href: "/dashboard", icon: LayoutDashboard },
   { label: "Transport alerts", href: "/transport-alerts", icon: Truck },
   { label: "Inventory", href: "/inventory", icon: PackageSearch },
   { label: "Data quality", href: "/data-quality", icon: Activity },
-  { label: "Review centre", href: "/review", icon: ClipboardCheck },
-  { label: "Audit log", href: "/audit-log", icon: ShieldCheck },
 ];
 
 export function AppShell({ children }: { children: ReactNode }) {
@@ -71,7 +73,7 @@ function AuthenticatedAppShell({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     if (currentUser.isError) {
-      const next = encodeURIComponent(pathname || "/dashboard");
+      const next = encodeURIComponent(pathname || "/incidents");
       router.replace(`/login?next=${next}`);
     }
   }, [currentUser.isError, pathname, router]);
