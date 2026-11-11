@@ -109,7 +109,7 @@ function IncidentDetailContent() {
         <p><strong>Investigation candidates only.</strong> {noticeDetails} No release, discard, quarantine-removal, compatibility or transfusion action is available here.</p>
       </div>
       <div role="note" className="mb-6 rounded-xl border border-sky-200 bg-sky-50 px-4 py-3 text-sm leading-6 text-sky-950">
-        <strong>Evidence boundary:</strong> {isExternal ? "A simulated external data record started this case. Its stated temperature is not independently confirmed by a real sensor; duration, device and blood-unit exposure are unknown." : isStaffReport ? "This case began as a staff observation, not an automatic temperature measurement. The reported information requires corroboration." : "Source temperature records identify a facility, not an individual refrigerator or sensor. This incident cannot be attributed to a specific appliance."}
+        <strong>Evidence boundary:</strong> {isExternal ? "This case was triggered by a series of synthetic source readings received through ABBIS. Readings are traceable to source event IDs; device verification, actual exposure duration and individual unit exposure remain unknown." : isStaffReport ? "This case began as a staff observation, not an automatic temperature measurement. The reported information requires corroboration." : "Source temperature records identify a facility, not an individual refrigerator or sensor. This incident cannot be attributed to a specific appliance."}
       </div>
 
       <EvidencePassport detail={detail.data} notes={notes.data?.items ?? []} workflow={lifecycle.data} />
@@ -124,7 +124,7 @@ function IncidentDetailContent() {
       <Card className="mt-6 border-0 shadow-sm ring-1 ring-border/80">
         <CardHeader>
           <CardTitle>Temperature history</CardTitle>
-          <p className="text-sm text-muted-foreground">Facility readings within six hours either side of the incident window. Sentinel glitches are omitted from the line.</p>
+          <p className="text-sm text-muted-foreground">For connected cases, these are the exact timestamped readings delivered by ABBIS. Other cases show available facility context; sentinel glitches are excluded from the line.</p>
         </CardHeader>
         <CardContent>
           <div className="h-[300px] w-full">
