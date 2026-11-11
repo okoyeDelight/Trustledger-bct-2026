@@ -1,13 +1,13 @@
 "use client";
 
-import {useCallback,useEffect,useState} from "react";
+import {useCallback,useEffect,useRef,useState} from "react";
 import source from "@/data/source.json";
 
-type ConnectionStatus={connected:boolean;source_system?:string;facility_code?:string;error?:string};
-type Ack={source_event_id:string;status:string;stored:boolean;case_reference:string|null};
-type ReplayResult={success:boolean;items:Ack[];case_reference:string|null;error?:string};
+type ConnectionStatus={connected:boolean;source_system?:string;facility_code?:string;cursor?:number;error?:string};
 type CaseItem={case_reference:string;investigation_status:string};
 type CaseResponse={items:CaseItem[];clinical_clearance:null;delivery_mode:string};
+type CatalogView={source_system:string;facility_id:string;episode_count:number;dataset_summaries:{id:string;count:number;filename:string}[];timestamp_note:string};
+type AutoTick={success?:boolean;finished?:boolean;cursor:number;total:number;received_events?:number;case_reference?:string|null;receipts?:{source_event_id:string;status:string;observation_stored:boolean}[];message?:string};
 
 async function request<T>(url:string,method:"GET"|"POST"="GET",body?:unknown):Promise<T>{
   const r=await fetch(url,{
@@ -27,9 +27,12 @@ export default function Home(){
   const [showKey,setShowKey]=useState(false);
   const [connecting,setConnecting]=useState(false);
   const [connectionError,setConnectionError]=useState("");
-  const [replay,setReplay]=useState<ReplayResult|null>(null);
-  const [replaying,setReplaying]=useState(false);
-  const [replayError,setReplayError]=useState("");
+  const [autoTick,setAutoTick]=useState<AutoTick|null>(null);
+  const [autoSending,setAutoSending]=useState(false);
+  const [autoError,setAutoError]=useState("");
+  const [paused,setPaused]=useState(false);
+  const sendLock=useRef(false);
+  const [catalogView,setCatalogView]=useState<CatalogView|null>(null);
   const [cases,setCases]=useState<CaseItem[]>([]);
   const [casesLoading,setCasesLoading]=useState(false);
   const [casesError,setCasesError]=useState("");
@@ -51,6 +54,7 @@ export default function Home(){
   },[]);
 
   useEffect(()=>{void refreshConnection();},[refreshConnection]);
+  useEffect(()=>{void request<CatalogView>("/api/catalog").then(setCatalogView).catch(()=>setCatalogView(null));},[]);
   useEffect(()=>{if(connection?.connected)void refreshCases();},[connection?.connected,refreshCases]);
 
   async function connect(event:React.FormEvent<HTMLFormElement>){
@@ -63,20 +67,35 @@ export default function Home(){
   }
   async function disconnect(){
     await request("/api/disconnect","POST");
-    setConnection({connected:false});setReplay(null);setCases([]);setActiveCase(null);setKey("");
-  }
-  async function sendReadings(){
-    setReplaying(true);setReplayError("");setReplay(null);
-    try{
-      const result=await request<ReplayResult>("/api/replay","POST");
-      setReplay(result);
-      if(!result.success)setReplayError(result.error||"Delivery was incomplete.");
-      if(result.case_reference)setActiveCase(result.case_reference);
-      await refreshCases();
-    }catch(err){setReplayError(err instanceof Error?err.message:"Could not deliver readings.");}
-    finally{setReplaying(false);}
+    setConnection({connected:false});setAutoTick(null);setCases([]);setActiveCase(null);setKey("");
   }
   const isConnected=connection?.connected===true;
+  useEffect(()=>{
+    if(!isConnected||paused)return;
+    let cancelled=false;
+    async function tick(){
+      if(sendLock.current)return;
+      sendLock.current=true;
+      if(!cancelled){setAutoSending(true);setAutoError("");}
+      try{
+        const outcome=await request<AutoTick>("/api/auto/tick","POST");
+        if(!cancelled){
+          setAutoTick(outcome);
+          if(!outcome.success&&!outcome.finished)setAutoError(outcome.message||"Data delivery failed; retrying at next interval.");
+          if(outcome.case_reference)setActiveCase(outcome.case_reference);
+          void refreshCases();
+        }
+      }catch(error){
+        if(!cancelled)setAutoError(error instanceof Error?error.message:"Unable to reach TrustLedger.");
+      }finally{
+        sendLock.current=false;
+        if(!cancelled)setAutoSending(false);
+      }
+    }
+    void tick();
+    const handle=setInterval(()=>void tick(),60000);
+    return()=>{cancelled=true;clearInterval(handle);};
+  },[isConnected,paused,refreshCases]);
   const selectedCase=activeCase||cases[0]?.case_reference||null;
 
   return <div className="app-shell">
@@ -89,13 +108,13 @@ export default function Home(){
 
     <main className="main">
       <div className="eyebrow">BLOOD BANK INFORMATION SYSTEM · SYNTHETIC SOURCE</div>
-      <h1>Send records to TrustLedger.</h1>
-      <p className="lead">This independent sandbox represents a blood-bank system. Its data are synthetic, but the connection, delivery acknowledgements and returned case updates use TrustLedger&apos;s real APIs.</p>
+      <h1>Blood-bank records, connected automatically.</h1>
+      <p className="lead">This independent synthetic blood-bank source holds all six original datasets. Once connected, it automatically feeds verified monitoring episodes into TrustLedger and receives investigation updates.</p>
 
       <section className="workflow" aria-label="Integration workflow">
         <div className="workflow-item"><span className="bubble">1</span><div><strong>Connect</strong><small>Authorize an external system</small></div></div>
         <div className="workflow-arrow">→</div>
-        <div className="workflow-item"><span className="bubble">2</span><div><strong>Send</strong><small>Deliver actual API events</small></div></div>
+        <div className="workflow-item"><span className="bubble">2</span><div><strong>Auto-feed</strong><small>One source episode per minute</small></div></div>
         <div className="workflow-arrow">→</div>
         <div className="workflow-item"><span className="bubble">3</span><div><strong>Receive</strong><small>Read investigation updates</small></div></div>
       </section>
@@ -139,33 +158,43 @@ export default function Home(){
 
         <section className="panel">
           <div className="panel-head"><div><div className="section-label">02 · SOURCE DATA</div><h2>Facility monitoring</h2><p>Four consecutive historical source readings, extracted from the pinned hackathon dataset.</p></div></div>
-          <div className="facility"><span className="facility-icon">⌂</span><div><small>Source facility</small><strong>{source.facility_id}</strong></div><div className="fixture-tag">Synthetic records</div></div>
-          <div className="reading-grid">
-            {source.items.map((item,index)=>{
-              const delivered=replay?.items.some(ack=>ack.source_event_id===item.source_event_id);
-              return <div className={"reading "+(delivered?"delivered":"")} key={item.source_event_id}>
-                <small>HOUR {index+1}</small>
-                <strong>{item.temperature_c.toFixed(1)}°</strong>
-                <span>{delivered?"✓ Received":"Above 6°C"}</span>
-              </div>;
-            })}
+          <div className="facility">
+            <span className="facility-icon">⌂</span>
+            <div><small>Source facility connected to TrustLedger</small><strong>{source.facility_id}</strong></div>
+            <div className="fixture-tag">Synthetic source</div>
           </div>
-          <div className="send-footer">
-            <p>TrustLedger evaluates the four hourly readings, records each observation and creates an investigation candidate when its configured rule is met.</p>
-            <button className="primary-button" disabled={!isConnected||replaying} onClick={()=>void sendReadings()}>
-              {replaying?"Sending to TrustLedger…":replay?"Send again (test deduplication)":"Send four readings"} <span>→</span>
-            </button>
+          <div className="auto-monitor">
+            <div className="auto-monitor-header">
+              <div><strong>Automatic monitoring feed</strong><p>{isConnected?(paused?"Paused by operator":autoTick?.finished?"Source episodes complete":"Running while this page is open"):"Connect the adapter to start automatically"}</p></div>
+              <span className={"status-chip "+(isConnected&&!paused?"success":"neutral")}>{isConnected&&!paused?"Auto-feed ON":"Inactive"}</span>
+            </div>
+            <div className="auto-stat-grid">
+              <div><small>Verified source episodes</small><strong>{catalogView?.episode_count??"—"}</strong></div>
+              <div><small>Delivered this session</small><strong>{autoTick?.cursor??connection?.cursor??0}</strong></div>
+              <div><small>Frequency</small><strong>Every 60 sec</strong></div>
+            </div>
+            {autoSending&&<p role="status" className="muted">Sending the next verified four-reading source episode through the TrustLedger API…</p>}
+            {autoError&&<p role="alert" className="error">{autoError}</p>}
+            {autoTick?.case_reference&&<div className="receipt" role="status">
+              <strong>Incident created or verified in TrustLedger</strong>
+              <p>{autoTick.received_events??4} source readings acknowledged. Case: <code>{autoTick.case_reference}</code></p>
+            </div>}
+            {autoTick?.finished&&<p className="muted">This facility has reached the end of its verified source episodes. The sandbox will not fabricate additional incidents.</p>}
+            {isConnected&&<button className="secondary-button auto-control" onClick={()=>setPaused(x=>!x)}>{paused?"Resume automatic feed":"Pause automatic feed"}</button>}
+            <p className="auto-note">This free-tier demonstration advances while its browser page remains open. A persistent server scheduler is required for continuous delivery with every browser closed.</p>
           </div>
-          {replayError&&<p role="alert" className="error">{replayError}</p>}
-          {replay&&<div className="receipt" role="status">
-            <strong>{replay.items.length} of 4 requests acknowledged</strong>
-            <p>{replay.items.filter(x=>x.stored).length} new observations · {replay.items.filter(x=>!x.stored).length} duplicates safely ignored.</p>
-            {replay.case_reference&&<p>Investigation created or found: <code>{replay.case_reference}</code></p>}
-          </div>}
-          <details className="details"><summary>Source provenance and timestamp assumptions</summary>
-            <p>The readings were extracted from the pinned synthetic source using the actual TrustLedger dataset pipeline. Original incident: {source.upstream_incident}; source revision: <code>{source.upstream_git_revision.slice(0,12)}</code>.</p>
-            <p>{source.timezone_note}</p>
-            <p>This source app does not represent an actual ABBIS installation or a live medical device.</p>
+          <details className="details">
+            <summary>All six blood-bank datasets</summary>
+            <p>Full source files are hash-verified and prepared on the ABBIS sandbox server. Only matching, validated temperature episodes are currently transmitted to TrustLedger; the other source datasets remain available for future transfer and inventory adapters.</p>
+            <div className="source-list">
+              {(catalogView?.dataset_summaries??[]).map(dataset=><div className="source-row" key={dataset.id}>
+                <span>{dataset.id.replaceAll("_"," ")}</span>
+                <span>{dataset.count.toLocaleString("en-GB")} records</span>
+                <a href={"/api/datasets/"+encodeURIComponent(dataset.id)+"?limit=5"} target="_blank" rel="noreferrer">Preview ↗</a>
+              </div>)}
+            </div>
+            <p>{catalogView?.timestamp_note??source.timezone_note}</p>
+            <p>Source Git revision: <code>{source.upstream_git_revision.slice(0,12)}</code>. The dataset and the simulated source are not a live ABBIS installation.</p>
           </details>
         </section>
       </div>
@@ -176,7 +205,7 @@ export default function Home(){
         </div>
         {!isConnected?<div className="empty"><span>↗</span><strong>Connect an adapter to see case updates</strong><p>Once your key is verified, this sandbox will be able to read only the investigation cases belonging to its source and facility.</p></div>:
           casesError?<p role="alert" className="error">{casesError}</p>:
-          cases.length===0?<div className="empty"><span>◎</span><strong>No cases returned yet</strong><p>Send the source readings, then refresh the status here.</p></div>:
+          cases.length===0?<div className="empty"><span>◎</span><strong>No cases returned yet</strong><p>The source sends observations automatically while connected and this page is open. Cases appear here as TrustLedger accepts them.</p></div>:
           <div className="case-list">{cases.map(item=><div className={"case-row "+(selectedCase===item.case_reference?"selected":"")} key={item.case_reference}>
             <div><small>Case reference</small><code>{item.case_reference}</code></div>
             <span className="status-chip success">{item.investigation_status.replaceAll("_"," ")}</span>
