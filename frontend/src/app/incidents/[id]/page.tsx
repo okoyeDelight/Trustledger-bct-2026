@@ -93,7 +93,11 @@ function IncidentDetailContent() {
       <PageHeading
         eyebrow={incident.facility_id}
         title={incident.incident_id}
-        description={(isStaffReport || isExternal) ? `${incident.report_title ?? "Recorded observation"} · ${formatDateTime(incident.start_time)}` : `${formatDateTime(incident.start_time)} to ${formatDateTime(incident.end_time)} · ${duration}`}
+        description={isStaffReport
+          ? `${incident.report_title ?? "Worker observation"} · Received ${formatDateTime(incident.recorded_at)}`
+          : isExternal
+            ? `${incident.report_title ?? "Source observation"} · Historical synthetic readings from ${formatDateTime(incident.start_time)}`
+            : `${formatDateTime(incident.start_time)} to ${formatDateTime(incident.end_time)} · ${duration}`}
         action={
           <Badge
             variant="outline"
@@ -103,6 +107,40 @@ function IncidentDetailContent() {
           </Badge>
         }
       />
+
+      {(isStaffReport || isExternal) && (
+        <Card className="mb-5 border-0 shadow-sm ring-1 ring-border/80">
+          <CardHeader>
+            <CardTitle className="text-base">When did this happen?</CardTitle>
+            <p className="text-sm text-muted-foreground">The source event time and the time TrustLedger recorded the report are different facts.</p>
+          </CardHeader>
+          <CardContent className="grid gap-3 sm:grid-cols-2">
+            <div className="rounded-lg border p-3">
+              <p className="text-xs font-medium text-muted-foreground">
+                {isExternal ? "Original synthetic source timestamp" : "Observation date entered by worker"}
+              </p>
+              <p className="mt-1 font-semibold">{formatDateTime(incident.start_time)}</p>
+              {incident.observation_date_in_future && (
+                <p className="mt-2 text-xs font-semibold text-red-700">Future-dated entry — needs correction</p>
+              )}
+              {isExternal && <p className="mt-2 text-xs text-muted-foreground">Historic dataset time; not a live 2026 measurement</p>}
+            </div>
+            <div className="rounded-lg border p-3">
+              <p className="text-xs font-medium text-muted-foreground">
+                {isExternal ? "Case created in TrustLedger" : "Report submitted to TrustLedger"}
+              </p>
+              <p className="mt-1 font-semibold">{formatDateTime(incident.recorded_at)}</p>
+              <p className="mt-2 text-xs text-muted-foreground">Saved server timestamp · shown in your browser's local time</p>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+      {isStaffReport && incident.observation_date_in_future && (
+        <div role="alert" className="mb-5 rounded-xl border border-red-300 bg-red-50 px-4 py-3 text-sm leading-6 text-red-900">
+          <strong>Date discrepancy:</strong> The worker entered a future observation date, although TrustLedger received this report earlier.
+          The original entry has been preserved for audit purposes. Verify the actual observation date and document a correction in the case history; do not treat the future date as verified evidence.
+        </div>
+      )}
 
       <div role="note" className="mb-6 flex items-start gap-3 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm leading-6 text-amber-950">
         <CircleAlert className="mt-0.5 size-5 shrink-0" aria-hidden="true" />
