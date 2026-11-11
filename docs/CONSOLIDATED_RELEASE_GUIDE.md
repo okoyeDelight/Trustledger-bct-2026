@@ -2,7 +2,7 @@
 
 **Canonical code in this branch:** `frontend/` (Next.js worker interface), `backend/` (FastAPI + Python source-data processing), `db/migrations/` (Neon schema), and `vercel.json` (one-origin service routing).
 
-This source-code consolidation has been deployed to https://trustledger-bct-2026.vercel.app on November 11, 2026. It remains synthetic-only and not clinically authorized. Legacy root `index.html`, `src/` and `styles.css` are preserved for reference and rollback. Their original Vercel configuration is preserved in `config/legacy-vercel-static.json`. The teammate's source remains reproducible at `candidate/teammate/` (exact source commit in `docs/CONSOLIDATION_SOURCE.md`). Do not claim two different browser apps are independently maintained after adoption.
+This source-code consolidation has been deployed to https://trustledger-bct-2026.vercel.app on November 11, 2026. It remains synthetic-only and not clinically authorized. Legacy root `index.html`, `src/` and `styles.css` are preserved for reference and rollback. Their original Vercel configuration is preserved in `config/legacy-vercel-static.json`. The prior teammate source is preserved on `archive/teammate-source-snapshot-2026` with provenance at `docs/CONSOLIDATION_SOURCE.md`; the duplicate was removed from the active branch. Do not claim two different browser apps are independently maintained after adoption.
 
 ## One primary worker journey
 
