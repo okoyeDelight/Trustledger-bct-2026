@@ -1,0 +1,42 @@
+# TrustLedger — ready-to-adapt submission answers
+**Synthetic prototype, November 11, 2026. Replace any wording required by the application form.**
+
+## Name
+TrustLedger
+
+## One-line summary
+Evidence-linked blood cold-chain incident investigation with accountable worker–supervisor review.
+
+## The problem (84 words)
+Blood services rely on temperature logs, movement records and human investigations to protect a sensitive supply chain. A normal temperature reading can hide hours of missing observations, and a destination field may not prove a unit arrived. Dashboards can surface alerts, but a team still needs to establish which evidence supports each case, what remains uncertain, and who investigated and reviewed it. Unclear provenance and undocumented handoffs can make an incident harder to understand. TrustLedger focuses on that evidence-to-action gap.
+
+## The solution (135 words)
+TrustLedger processes a pinned synthetic dataset of facility temperatures, blood-unit transfers, inventory and power outages. Deterministic checks identify provisional out-of-range events, missing readings and candidate custody overlaps without inventing refrigerator-level attribution. Each incident contains an Evidence Passport: observed source records, quality flags, uncertainty, candidate-unit reasoning and the case's human investigation history. A facility worker can report an incident, record findings and submit an investigation; a separate supervisor reviews the flag, assigns follow-up and closes the administrative case after the worker's actions are complete. All transitions are recorded in append-only Neon events under a restricted database role. A Proof Lab lets judges execute three adversarial cases and compare them fairly with competent conventional rules. A small versioned JSON validator demonstrates a proposed interface boundary; it is not a live ABBIS connection.
+
+## Technical approach (87 words)
+Next.js 16 provides a mobile-responsive interface; FastAPI and Python/pandas implement deterministic source validation, incident grouping and conservative facility-level matching. Six supplied synthetic CSV sources are pinned by Git revision and byte/hash verification before processing. Neon PostgreSQL stores incident reports, investigation notes, review events and append-only case transitions. Demo identities have distinct worker and supervisor permissions. GitHub Actions checks Python tests, frontend type/lint/build and source pipeline reproduction. The current system processes batch files at build time, not live telemetry; real deployment requires managed identity, facility isolation and expert-led clinical validation.
+
+## Why this is distinct
+The differentiated hypothesis is not superior anomaly detection. A competent conventional monitor can detect gaps and invalid readings too. TrustLedger links that evidence to explicit uncertainty, documented human decisions and a case history in one investigation workflow. Whether that improves speed, accountability or patient outcomes requires independent measurement.
+
+## Real-world relevance and future integration
+Designed as a practical precursor for connected blood-bank infrastructure in settings with variable data quality and connectivity. A proposed `trustledger.observation.v1` JSON validation contract demonstrates the failure boundary for incomplete events, including missing timezone-aware timestamps. It currently does not ingest, authenticate or exchange data with ABBIS, HL7 or FHIR systems. Before piloting: negotiate data agreements, validate site SOPs and temperature rules, add real sensor identifiers, confirm custody and unit association, implement scoped institutional accounts and independently evaluate results.
+
+## Reproducible evidence
+- Three executable Proof Lab fixtures: 57-hour gap, missing receipt, sensor sentinel.
+- Both TrustLedger rules and a competent comparator flag all three hand-designed fixtures; this is not a sensitivity estimate.
+- Incident Evidence Passport shows source rows and handoff log.
+- Two independent authenticated HTTP sessions have been exercised by automated tests; the restricted Neon role has been tested separately.
+- No blood product is automatically released, discarded, declared safe or approved for transfusion.
+
+## Links
+Website: https://trustledger-bct-2026.vercel.app
+Proof Lab: https://trustledger-bct-2026.vercel.app/proof-lab (after deployment of this feature branch)
+GitHub: https://github.com/okoyeDelight/Trustledger-bct-2026
+Demo script: `submission/DEMO_SCRIPT_FINAL_2026.md`
+
+## Submission honesty checklist
+- No unsupported "AI accuracy", "blood units saved", "clinical approval", "live sensor", "ABBIS integration" or "offline writes" claims.
+- Do not describe the three scripted fixture cases as representative outcomes.
+- Do not submit patient, donor or real operational data.
+- Confirm collaborator permission for any unlicensed upstream material reused in submission materials.

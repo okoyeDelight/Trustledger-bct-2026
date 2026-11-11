@@ -50,6 +50,7 @@ export function EvidencePassport({ detail, notes, workflow }: Props) {
             <div className="mt-3 space-y-4 border-t pt-3 text-sm">
               <p><strong>Case:</strong> {incident.incident_id} · <strong>Facility:</strong> {incident.facility_id}</p>
               <p><strong>Source type:</strong> {evidenceSource}</p>
+              {!manual && <p><strong>Pinned upstream source revision:</strong> <code className="break-all text-xs">da2862ff9db262f40cd1776fd7962ed47d8942ec</code> (build-time input provenance, not a signature on this case)</p>}
               {manual ? <p>Original description: {incident.report_description ?? "Not provided"}</p> : (
                 <>
                   <p><strong>Incident interval:</strong> {formatDateTime(incident.start_time)} to {formatDateTime(incident.end_time)}</p>
