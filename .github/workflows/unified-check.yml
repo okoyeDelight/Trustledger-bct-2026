@@ -55,6 +55,8 @@ jobs:
           assert all(b-a==timedelta(hours=1) for a,b in zip(dates,dates[1:]))
           assert result['timestamp_note']
           print('Pinned source replay verified:',result['source_incident_id'])
+          import json
+          print('SANDBOX_SOURCE_FIXTURE='+json.dumps({'items':result['items'],'source_incident_id':result['source_incident_id'],'source_revision':result['source_revision'],'timestamp_note':result['timestamp_note']},separators=(',',':')))
           PY
   frontend:
     runs-on: ubuntu-latest
