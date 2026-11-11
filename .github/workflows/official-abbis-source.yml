@@ -1,0 +1,17 @@
+name: Verify full official ABBIS archive access
+on:
+  pull_request:
+    paths:
+      - 'abbis-sandbox/scripts/probe-official-archive.mjs'
+      - '.github/workflows/official-abbis-source.yml'
+  workflow_dispatch:
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Verify official starter archive is accessible without credentials
+        run: node abbis-sandbox/scripts/probe-official-archive.mjs
