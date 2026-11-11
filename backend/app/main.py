@@ -10,7 +10,7 @@ from contextlib import closing
 from typing import Any, Literal
 from uuid import UUID
 
-from app import workflow_store, case_flow, proof_lab
+from app import workflow_store, case_flow, proof_lab, external_bridge
 
 import pandas as pd
 from fastapi import Cookie, Depends, FastAPI, HTTPException, Query, Response
@@ -355,6 +355,66 @@ def validate_proposed_import(
     }
 
 
+
+@app.post("/api/integrations/demo/observations")
+def demo_observation_ingest(
+    observation: ImportContractObservation,
+    response: Response,
+    user: DemoUser = Depends(require_authenticated_user),
+):
+    """Authenticated synthetic adapter simulation, not an open machine-to-machine API."""
+    if user.role != "facility_staff":
+        raise HTTPException(status_code=403, detail="Only the facility operator may simulate source ingestion.")
+    reading = observation.temperature_c
+    if reading in {-99.0, 99.9, 0.0}:
+        raise HTTPException(status_code=422, detail="Known sentinel readings must be investigated as data-quality events, not temperature incidents.")
+    if SAFE_MIN_C <= reading <= SAFE_MAX_C:
+        return {
+            "status": "in_range_not_recorded",
+            "case_reference": None,
+            "persisted": False,
+            "notice": "Within the prototype temperature band; no incident raised. This demo does not retain routine in-range telemetry.",
+        }
+    report, created = external_bridge.persist_incident(
+        observation.model_dump(mode="json"), _connect_audit_db
+    )
+    response.status_code = 201 if created else 200
+    return {
+        "status": "incident_created" if created else "already_imported",
+        "case_reference": report["report_ref"],
+        "persisted": True,
+        "source_event_id": observation.source_event_id,
+        "incident": _staff_incident(report),
+        "notice": "Synthetic external observation stored as a provisional case. No clinical exposure or disposition has been verified.",
+    }
+
+
+@app.get("/api/integrations/demo/cases/{case_reference}")
+def demo_connection_status(
+    case_reference: str,
+    user: DemoUser = Depends(require_authenticated_user),
+):
+    if not case_reference.startswith("EXT-"):
+        raise HTTPException(status_code=404, detail="Simulated external incident not found.")
+    report = external_bridge.lookup(case_reference, _connect_audit_db)
+    if report is None:
+        raise HTTPException(status_code=404, detail="Simulated external incident not found.")
+    case = case_flow.get_case(case_reference, _connect_audit_db)
+    return {
+        "case_reference": case_reference,
+        "source": "simulated_external_blood_bank",
+        "source_system": external_bridge.unpack(report["description"])["source_system"],
+        "source_event_id": external_bridge.unpack(report["description"])["source_event_id"],
+        "investigation_status": case["status"],
+        "review_events": [
+            {"event_kind": event["event_kind"], "created_at": event["created_at"]}
+            for event in case["events"]
+        ],
+        "clinical_clearance": None,
+        "notice": "Read-only prototype status endpoint for a simulated partner; not a live ABBIS callback or patient-safety decision.",
+    }
+
+
 @app.get("/health")
 def health():
     return {"status": "ok", "service": "trustledger-api"}
@@ -409,26 +469,31 @@ def dashboard(user: DemoUser = Depends(require_authenticated_user)):
 
 
 def _staff_incident(report: dict) -> dict:
+    external = report["report_ref"].startswith("EXT-")
+    payload = external_bridge.unpack(report["description"]) if external else None
     return {
         "incident_id": report["report_ref"],
         "facility_id": report["facility_code"],
         "start_time": report["observed_at"],
         "end_time": report["observed_at"],
         "duration_hours": None,
-        "reading_count": None,
-        "peak_temp_c": None,
-        "minimum_temp_c": None,
-        "direction": "staff_report",
-        "severity": "needs_review",
-        "sustained_rule": "Reported by staff. No automatic temperature evidence established.",
+        "reading_count": 1 if external else None,
+        "peak_temp_c": payload["temperature_c"] if external else None,
+        "minimum_temp_c": payload["temperature_c"] if external else None,
+        "direction": ("above_range" if payload["temperature_c"] > SAFE_MAX_C else "below_range") if external else "staff_report",
+        "severity": "warning" if external else "needs_review",
+        "sustained_rule": "One simulated external observation; sustained exposure has not been established." if external else "Reported by staff. No automatic temperature evidence established.",
         "report_title": report["title"],
-        "report_description": report["description"],
-        "source_type": "staff_report",
+        "report_description": ("Synthetic external monitoring observation; original source metadata preserved." if external else report["description"]),
+        "source_type": "external_observation" if external else "staff_report",
+        "source_system": payload["source_system"] if external else None,
+        "source_event_id": payload["source_event_id"] if external else None,
+        "source_payload": payload if external else None,
     }
 
 
 def _case_exists(case_reference: str) -> bool:
-    if case_reference.startswith("REP-"):
+    if case_reference.startswith(("REP-", "EXT-")):
         return any(row["report_ref"] == case_reference for row in workflow_store.list_staff_reports(_connect_audit_db))
     incidents_path = OUTPUT_DIR / "incidents.csv"
     if not incidents_path.exists():
@@ -803,7 +868,7 @@ def incident_detail(
     incident_id: str,
     user: DemoUser = Depends(require_authenticated_user),
 ):
-    if incident_id.startswith("REP-"):
+    if incident_id.startswith(("REP-", "EXT-")):
         found = next(
             (report for report in workflow_store.list_staff_reports(_connect_audit_db)
              if report["report_ref"] == incident_id),
@@ -817,7 +882,11 @@ def incident_detail(
             "temperature_history": [],
             "power_correlations": [],
             "decision_required": True,
-            "notice": "Staff-reported issue only. No temperature measurement, cause, unit exposure or clinical safety claim established.",
+            "notice": (
+                "A simulated external observation created this investigation candidate. It is not confirmed sensor telemetry or evidence of blood-unit exposure."
+                if incident_id.startswith("EXT-")
+                else "Staff-reported issue only. No temperature measurement, cause, unit exposure or clinical safety claim established."
+            ),
             "temperature_policy": {"minimum_c": SAFE_MIN_C, "maximum_c": SAFE_MAX_C},
         }
     import pandas as pd
