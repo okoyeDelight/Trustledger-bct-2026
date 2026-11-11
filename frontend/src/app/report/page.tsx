@@ -1,6 +1,6 @@
 "use client";
 
-import {useState, type FormEvent} from "react";
+import {useEffect, useState, type FormEvent} from "react";
 import {useMutation, useQuery, useQueryClient} from "@tanstack/react-query";
 import {useRouter} from "next/navigation";
 import {ClipboardPenLine, ShieldAlert} from "lucide-react";
@@ -19,6 +19,11 @@ const categories: {value: StaffReportRequest["category"]; title: string}[] = [
   {value:"other",title:"Other observation"},
 ];
 
+function localDateMinute(value: Date) {
+  return new Date(value.getTime() - value.getTimezoneOffset() * 60_000)
+    .toISOString().slice(0, 16);
+}
+
 export default function ReportIncidentPage(){
   const router=useRouter();
   const client=useQueryClient();
@@ -28,7 +33,13 @@ export default function ReportIncidentPage(){
   const [title,setTitle]=useState("");
   const [description,setDescription]=useState("");
   const [observed,setObserved]=useState("");
+  const [maxObserved,setMaxObserved]=useState("");
   const [notice,setNotice]=useState("");
+  useEffect(() => {
+    const now = localDateMinute(new Date());
+    setMaxObserved(now);
+    setObserved(value => value || now);
+  }, []);
   const create=useMutation({
     mutationFn:createStaffIncident,
     onSuccess:async(result)=>{
@@ -43,6 +54,10 @@ export default function ReportIncidentPage(){
     const parsed=new Date(observed);
     if(!Number.isFinite(parsed.getTime())){
       setNotice("Enter a valid date and time for the observation.");
+      return;
+    }
+    if(parsed.getTime() > Date.now() + 5 * 60_000){
+      setNotice("The observation date is in the future. Please check the day, month and year.");
       return;
     }
     create.mutate({
@@ -87,7 +102,12 @@ export default function ReportIncidentPage(){
             </label>
             <label className="block space-y-2 text-sm font-medium">
               Date and time observed (your local time)
-              <Input type="datetime-local" required value={observed} onChange={e=>setObserved(e.target.value)}/>
+              <Input type="datetime-local" required value={observed} max={maxObserved || undefined}
+                onFocus={()=>setMaxObserved(localDateMinute(new Date()))}
+                onChange={e=>setObserved(e.target.value)}/>
+              <span className="block text-xs font-normal text-muted-foreground">
+                Defaults to your local time. Only past or current observations can be submitted.
+              </span>
             </label>
             <label className="block space-y-2 text-sm font-medium">
               What happened? What is still unknown?
