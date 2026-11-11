@@ -10,6 +10,9 @@ import type {
   SiteConfig,
   TransportAlert,
   AuthenticatedUser,
+  StaffReportRequest,
+  Incident,
+  InvestigationNote,
 } from "@/lib/types";
 
 const API_BASE_URL = (
@@ -341,4 +344,29 @@ async function syncPendingReviewsOnce(user: AuthenticatedUser): Promise<number> 
   );
   announceConnection("online");
   return synced;
+}
+
+/** Live online-only staff report. Unlike reviews, never queue a report invisibly. */
+export async function createStaffIncident(report: StaffReportRequest): Promise<{incident: Incident}> {
+  const response = await fetch(`${API_BASE_URL}/api/incidents/report`, {
+    method: "POST", credentials: "include",
+    headers: {"Content-Type":"application/json"},
+    body: JSON.stringify(report),
+  });
+  if (!response.ok) throw await responseError(response);
+  return (await response.json()) as {incident: Incident};
+}
+
+export function fetchInvestigationNotes(reference: string) {
+  return request<{items: InvestigationNote[]}>(`/api/incidents/${encodeURIComponent(reference)}/notes`);
+}
+
+export async function saveInvestigationNote(reference: string, finding: string) {
+  const response = await fetch(`${API_BASE_URL}/api/incidents/${encodeURIComponent(reference)}/notes`, {
+    method: "POST", credentials: "include",
+    headers: {"Content-Type":"application/json"},
+    body: JSON.stringify({finding}),
+  });
+  if (!response.ok) throw await responseError(response);
+  return (await response.json()) as {note: InvestigationNote};
 }
