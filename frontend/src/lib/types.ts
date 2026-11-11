@@ -84,6 +84,7 @@ export interface Incident {
   recorded_at?: string | null;
   observation_date_in_future?: boolean;
   duration_hours: number | null;
+  observation_span_hours?: number | null;
   reading_count: number | null;
   peak_temp_c: number | null;
   minimum_temp_c: number | null;
