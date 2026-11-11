@@ -3,7 +3,7 @@ import { cookies } from "next/headers";
 import { createCipheriv, createDecipheriv, createHash, randomBytes } from "node:crypto";
 
 const COOKIE_NAME = "abbis_sandbox_connection";
-export type Connection = { key: string; source_system: string; facility_code: string; saved_at: number };
+export type Connection = { key: string; source_system: string; facility_code: string; saved_at: number; cursor?: number };
 export type PartnerStatus = { connected: boolean; source_system: string; facility_code: string; authenticated: boolean };
 
 function keyBytes(): Buffer {
@@ -29,6 +29,7 @@ function unseal(token: string): Connection | null {
     const c = obj as Connection;
     if (!c.key?.startsWith("tlc_") || !c.source_system || !c.facility_code || !Number.isFinite(c.saved_at)) return null;
     if (Date.now()-c.saved_at>24*60*60*1000) return null;
+    if (c.cursor !== undefined && (!Number.isSafeInteger(c.cursor) || c.cursor < 0)) return null;
     return c;
   } catch { return null; }
 }
