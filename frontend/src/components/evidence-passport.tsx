@@ -42,7 +42,7 @@ export function EvidencePassport({ detail, notes, workflow }: Props) {
           </div>
 
           <div className="rounded-xl border border-amber-200 bg-amber-50 p-3 text-sm text-amber-950">
-            <strong>Evidence boundary:</strong> `+"`"+`No records here establish a specific refrigerator, confirmed blood-unit exposure, or product safety. ${outages.length ? `${outages.length} outage overlap(s) provide context, not a proven cause.` : "No overlapping outage record is evidence of neither safety nor exposure."}`+"`"+`
+            <strong>Evidence boundary:</strong> No records here establish a specific refrigerator, confirmed blood-unit exposure, or product safety. {outages.length > 0 ? `${outages.length} outage overlap(s) provide context, not a proven cause.` : "No overlapping outage record was returned; this does not establish safety."}
           </div>
 
           <details className="group rounded-lg border bg-white px-4 py-3">
