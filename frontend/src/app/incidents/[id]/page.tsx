@@ -80,6 +80,7 @@ function IncidentDetailContent() {
   }));
   const noticeDetails = notice.replace(/^Investigation candidates only\.\s*/i, "");
   const isStaffReport=incident.source_type==="staff_report";
+  const isExternal=incident.source_type==="external_observation";
   const duration=typeof incident.duration_hours==="number"?incident.duration_hours+" hours":"duration unverified";
 
   return (
@@ -92,7 +93,7 @@ function IncidentDetailContent() {
       <PageHeading
         eyebrow={incident.facility_id}
         title={incident.incident_id}
-        description={isStaffReport ? `${incident.report_title ?? "Staff observation"} · ${formatDateTime(incident.start_time)}` : `${formatDateTime(incident.start_time)} to ${formatDateTime(incident.end_time)} · ${duration}`}
+        description={(isStaffReport || isExternal) ? `${incident.report_title ?? "Recorded observation"} · ${formatDateTime(incident.start_time)}` : `${formatDateTime(incident.start_time)} to ${formatDateTime(incident.end_time)} · ${duration}`}
         action={
           <Badge
             variant="outline"
@@ -108,7 +109,7 @@ function IncidentDetailContent() {
         <p><strong>Investigation candidates only.</strong> {noticeDetails} No release, discard, quarantine-removal, compatibility or transfusion action is available here.</p>
       </div>
       <div role="note" className="mb-6 rounded-xl border border-sky-200 bg-sky-50 px-4 py-3 text-sm leading-6 text-sky-950">
-        <strong>Evidence boundary:</strong> {isStaffReport ? "This case began as a staff observation, not an automatic temperature measurement. The reported information requires corroboration." : "Source temperature records identify a facility, not an individual refrigerator or sensor. This incident cannot be attributed to a specific appliance."}
+        <strong>Evidence boundary:</strong> {isExternal ? "A simulated external data record started this case. Its stated temperature is not independently confirmed by a real sensor; duration, device and blood-unit exposure are unknown." : isStaffReport ? "This case began as a staff observation, not an automatic temperature measurement. The reported information requires corroboration." : "Source temperature records identify a facility, not an individual refrigerator or sensor. This incident cannot be attributed to a specific appliance."}
       </div>
 
       <EvidencePassport detail={detail.data} notes={notes.data?.items ?? []} workflow={lifecycle.data} />

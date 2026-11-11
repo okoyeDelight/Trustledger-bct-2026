@@ -14,8 +14,9 @@ interface Props {
 
 export function EvidencePassport({ detail, notes, workflow }: Props) {
   const { incident, temperature_history: readings, potentially_affected_units: units, power_correlations: outages } = detail;
+  const external = incident.source_type === "external_observation";
   const manual = incident.source_type === "staff_report";
-  const evidenceSource = manual ? "Authenticated staff report" : "Pinned organizer synthetic CSV: temperature_logs.csv";
+  const evidenceSource = external ? "Simulated external blood-bank observation" : manual ? "Authenticated staff report" : "Pinned organizer synthetic CSV: temperature_logs.csv";
   const invalid = readings.filter((r) => r.quality_status !== "valid").length;
   const observed = readings.filter((r) => r.quality_status === "valid").length;
   const events = workflow?.events ?? [];
@@ -35,8 +36,8 @@ export function EvidencePassport({ detail, notes, workflow }: Props) {
         </CardHeader>
         <CardContent className="space-y-5">
           <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
-            <PassportItem icon={Database} title="Source" value={evidenceSource} note={manual ? "Observation not corroborated by a device" : "Facility-level time series; no device identity"} />
-            <PassportItem icon={FileCheck2} title="Observed" value={manual ? "Staff-reported observation" : `${observed} usable samples in this incident context`} note={manual ? "No automatically measured exposure" : `${invalid} excluded or flagged readings`} />
+            <PassportItem icon={Database} title="Source" value={evidenceSource} note={external ? `Source event: ${incident.source_event_id ?? "unverified"}` : manual ? "Observation not corroborated by a device" : "Facility-level time series; no device identity"} />
+            <PassportItem icon={FileCheck2} title="Observed" value={external ? "One simulated observation" : manual ? "Staff-reported observation" : `${observed} usable samples in this incident context`} note={external ? "Single point, no verified duration or device" : manual ? "No automatically measured exposure" : `${invalid} excluded or flagged readings`} />
             <PassportItem icon={HelpCircle} title="Unknown" value="Fridge-level exposure not established" note={`${units.length} unit-matching candidate(s), not confirmed affected units`} />
             <PassportItem icon={ShieldCheck} title="Accountability" value={workflow ? workflow.status.replaceAll("_", " ") : "Loading case status"} note={`${notes.length} worker finding(s) · ${events.length} logged action(s)`} />
           </div>
@@ -50,8 +51,8 @@ export function EvidencePassport({ detail, notes, workflow }: Props) {
             <div className="mt-3 space-y-4 border-t pt-3 text-sm">
               <p><strong>Case:</strong> {incident.incident_id} · <strong>Facility:</strong> {incident.facility_id}</p>
               <p><strong>Source type:</strong> {evidenceSource}</p>
-              {!manual && <p><strong>Pinned upstream source revision:</strong> <code className="break-all text-xs">da2862ff9db262f40cd1776fd7962ed47d8942ec</code> (build-time input provenance, not a signature on this case)</p>}
-              {manual ? <p>Original description: {incident.report_description ?? "Not provided"}</p> : (
+              {!manual && !external && <p><strong>Pinned upstream source revision:</strong> <code className="break-all text-xs">da2862ff9db262f40cd1776fd7962ed47d8942ec</code> (build-time input provenance, not a signature on this case)</p>}
+              {manual ? <p>Original description: {incident.report_description ?? "Not provided"}</p> : external ? <pre className="overflow-auto rounded-lg bg-slate-50 p-3 text-xs">{JSON.stringify(incident.source_payload ?? {}, null, 2)}</pre> : (
                 <>
                   <p><strong>Incident interval:</strong> {formatDateTime(incident.start_time)} to {formatDateTime(incident.end_time)}</p>
                   <p><strong>Detection rule:</strong> {incident.sustained_rule}</p>

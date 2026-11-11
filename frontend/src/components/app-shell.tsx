@@ -7,7 +7,7 @@ import { useEffect } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   Activity,
-  FlaskConical,
+  Cable,
   AlertTriangle,
   ClipboardCheck,
   ClipboardPenLine,
@@ -32,8 +32,10 @@ const navigation = [
   { label: "Incidents", href: "/incidents", icon: AlertTriangle },
   { label: "Report incident", href: "/report", icon: ClipboardPenLine },
   { label: "Review centre", href: "/review", icon: ClipboardCheck },
+  { label: "Connections", href: "/connections", icon: Cable },
   { label: "History", href: "/audit-log", icon: ShieldCheck },
-  { label: "Proof Lab", href: "/proof-lab", icon: FlaskConical },
+];
+const evidenceNavigation = [
   { label: "Evidence overview", href: "/dashboard", icon: LayoutDashboard },
   { label: "Transport alerts", href: "/transport-alerts", icon: Truck },
   { label: "Inventory", href: "/inventory", icon: PackageSearch },
@@ -249,6 +251,18 @@ function NavigationLinks({
           </Link>
         );
       })}
+      <details className="mt-4 border-t pt-3" open={evidenceNavigation.some(x => pathname === x.href)}>
+        <summary className="cursor-pointer rounded-md px-3 py-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground">Supporting evidence</summary>
+        <div className="mt-2 space-y-1">
+          {evidenceNavigation.map(({label,href,icon:Icon}) => {
+            const active = pathname === href;
+            return <Link key={href} href={href} onClick={onNavigate} aria-current={active ? "page" : undefined}
+              className={cn("flex items-center gap-3 rounded-lg px-3 py-2 text-sm",active ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:bg-muted")}>
+              <Icon className="size-4" aria-hidden="true"/>{label}
+            </Link>;
+          })}
+        </div>
+      </details>
     </nav>
   );
 }
