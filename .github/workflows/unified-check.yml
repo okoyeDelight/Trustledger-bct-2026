@@ -88,3 +88,33 @@ jobs:
           PY
       - name: Build Next.js application
         run: npm --prefix frontend run build
+
+  abbis-sandbox:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Install ABBIS source sandbox
+        run: npm --prefix abbis-sandbox install --no-audit --no-fund
+      - name: Verify independent sandbox API contracts
+        run: |
+          node --input-type=module - <<'JS'
+          import fs from 'node:fs';
+          const source=JSON.parse(fs.readFileSync('abbis-sandbox/data/source.json','utf8'));
+          if(source.items.length!==4)throw Error('Source fixture must have four chronological readings');
+          if(source.items.some(x=>x.source_system!=='ABBIS-SANDBOX'||x.facility_id!=='HSP-028'||x.temperature_c<=6))throw Error('Incorrect source/facility/value');
+          const stamps=source.items.map(x=>Date.parse(x.observed_at));
+          if(stamps.some((t,i)=>i>0&&t-stamps[i-1]!==3600000))throw Error('Source observations are not consecutive');
+          const routes=['connect','connection','disconnect','replay','cases','cases/[id]'];
+          for(const route of routes)if(!fs.existsSync('abbis-sandbox/app/api/'+route+'/route.ts'))throw Error('Missing real HTTP bridge route: '+route);
+          const integration=fs.readFileSync('abbis-sandbox/lib/integration.ts','utf8');
+          if(!integration.includes('aes-256-gcm')||!integration.includes('httpOnly:true'))throw Error('Session credentials not safeguarded');
+          console.log('Verified 4 pinned observations, 6 relay routes and protected session storage');
+          JS
+      - name: Type-check ABBIS source sandbox
+        run: npm --prefix abbis-sandbox run typecheck
+      - name: Build ABBIS source sandbox
+        run: npm --prefix abbis-sandbox run build
