@@ -1,5 +1,5 @@
 -- 004: durable, append-only source observations for connector MVP.
--- Real observation storage; no production clinical claims. Apply only after approval.
+-- Real observation storage. No production clinical claims. Apply only after approval.
 CREATE TABLE IF NOT EXISTS tl_connector_observations (
   id bigint GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
   source_system text NOT NULL CHECK (char_length(source_system) BETWEEN 2 AND 100),
