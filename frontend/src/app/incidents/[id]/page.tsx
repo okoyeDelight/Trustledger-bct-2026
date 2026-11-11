@@ -155,6 +155,7 @@ function IncidentDetailContent() {
       <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
         <EvidenceMetric label="Peak temperature" value={typeof incident.peak_temp_c==="number"?incident.peak_temp_c.toFixed(1)+"°C":"Not measured"} icon={Thermometer} />
         <EvidenceMetric label="Lowest temperature" value={typeof incident.minimum_temp_c==="number"?incident.minimum_temp_c.toFixed(1)+"°C":"Not measured"} icon={Thermometer} />
+        {isExternal && <EvidenceMetric label="Observed reading span" value={typeof incident.observation_span_hours==="number" ? incident.observation_span_hours+" hours" : "Not established"} icon={CircleAlert} />}
         <EvidenceMetric label="Hourly readings" value={typeof incident.reading_count==="number"?incident.reading_count.toLocaleString("en-GB"):"Not available"} icon={CircleAlert} />
         <EvidenceMetric label="Candidate units" value={units.length.toLocaleString("en-GB")} icon={PlugZap} />
       </div>

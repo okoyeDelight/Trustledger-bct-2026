@@ -84,6 +84,7 @@ export interface Incident {
   recorded_at?: string | null;
   observation_date_in_future?: boolean;
   duration_hours: number | null;
+  observation_span_hours?: number | null;
   reading_count: number | null;
   peak_temp_c: number | null;
   minimum_temp_c: number | null;
@@ -186,6 +187,9 @@ export interface StaffReportRequest {
   title: string;
   description: string;
   observed_at: string;
+  source_dataset?: string;
+  source_record_id?: string;
+  source_record_sha256?: string;
 }
 
 export interface InvestigationNote {

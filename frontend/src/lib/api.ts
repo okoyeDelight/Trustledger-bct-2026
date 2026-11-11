@@ -377,3 +377,31 @@ export function fetchReceivedObservations() {
     "/api/connectors/received-observations?limit=12",
   );
 }
+
+
+export interface ABBISSourceRecord {
+  dataset: string;
+  record_id: string;
+  facility_id: string | null;
+  summary: string;
+  observed_at: string | null;
+  record_sha256: string;
+  source_system: "ABBIS-SANDBOX";
+  source_revision: string;
+}
+
+export function fetchABBISCatalog() {
+  return request<{
+    datasets: { id: string; count: number }[];
+    source_revision: string;
+  }>("/api/abbis/catalog");
+}
+
+export function searchABBISSource(dataset: string, query: string) {
+  return request<{
+    dataset: string;
+    total: number;
+    items: ABBISSourceRecord[];
+  }>("/api/abbis/records/search?dataset=" + encodeURIComponent(dataset)
+     + "&q=" + encodeURIComponent(query.trim()));
+}

@@ -1,4 +1,7 @@
 from pathlib import Path
+from urllib.parse import urlencode
+from urllib.request import Request, urlopen
+from urllib.error import HTTPError, URLError
 import base64
 from datetime import datetime, timedelta, timezone
 import hmac
@@ -76,6 +79,9 @@ class StaffReportRequest(BaseModel):
     title: str = Field(min_length=5, max_length=160)
     description: str = Field(min_length=10, max_length=3000)
     observed_at: datetime
+    source_dataset: str | None = Field(default=None, max_length=40)
+    source_record_id: str | None = Field(default=None, max_length=180)
+    source_record_sha256: str | None = Field(default=None, min_length=64, max_length=64)
 
     @field_validator("title", "description", mode="before")
     @classmethod
@@ -779,6 +785,11 @@ def _staff_incident(report: dict) -> dict:
     values = [item["temp_c"] for item in observations]
     first = observations[0]["recorded_at"] if observations else report["observed_at"]
     last = observations[-1]["recorded_at"] if observations else report["observed_at"]
+    observed_span_hours = None
+    if external and len(observations) >= 2:
+        earliest = datetime.fromisoformat(observations[0]["recorded_at"])
+        latest = datetime.fromisoformat(observations[-1]["recorded_at"])
+        observed_span_hours = round((latest - earliest).total_seconds() / 3600, 2)
     return {
         "incident_id": report["report_ref"],
         "facility_id": report["facility_code"],
@@ -786,8 +797,10 @@ def _staff_incident(report: dict) -> dict:
         "observation_date_in_future": _staff_observation_is_future(report),
         "start_time": first if external else report["observed_at"],
         "end_time": last if external else report["observed_at"],
-        # An observed time span is not proof of product exposure duration.
+        # The span between first and last observed readings is measurable.
+        # It is NOT the duration of exposure or the duration of a clinical incident.
         "duration_hours": None,
+        "observation_span_hours": observed_span_hours,
         "reading_count": len(observations) if external else None,
         "peak_temp_c": max(values) if values else None,
         "minimum_temp_c": min(values) if values else None,
@@ -814,6 +827,65 @@ def _case_exists(case_reference: str) -> bool:
     return case_reference in set(pd.read_csv(incidents_path, usecols=["incident_id"])["incident_id"].astype(str))
 
 
+
+ABBIS_DATASETS = frozenset({
+    "facilities","routes","donors","drives","donations","units",
+    "transfers","requests","daily_stock","power_outages","temperature_logs",
+})
+
+
+def _abbis_request(endpoint: str, params: dict[str, str]) -> dict:
+    """Read-only, bounded request to the fixed ABBIS source hostname."""
+    url = "https://abbis-source-sandbox.vercel.app" + endpoint
+    if params:
+        url += "?" + urlencode(params)
+    try:
+        with urlopen(Request(url, headers={"Accept": "application/json"}), timeout=12) as response:
+            payload = response.read(200001)
+        if len(payload)>200000:
+            raise ValueError("Source response too large")
+        result=json.loads(payload)
+        if not isinstance(result,dict):
+            raise ValueError("Invalid source result")
+        return result
+    except (HTTPError, URLError, TimeoutError, ValueError, json.JSONDecodeError) as error:
+        raise HTTPException(status_code=503, detail="ABBIS source unavailable. No changes saved.") from error
+
+
+@app.get("/api/abbis/catalog")
+def abbis_catalog(user: DemoUser = Depends(require_authenticated_user)):
+    result=_abbis_request("/api/catalog",{})
+    datasets=result.get("dataset_summaries")
+    if not isinstance(datasets,list) or len(datasets)!=11:
+        raise HTTPException(status_code=503,detail="The complete ABBIS dataset is not yet available.")
+    return {"datasets":[{"id":item["id"],"count":item["count"]} for item in datasets
+                        if item.get("id") in ABBIS_DATASETS],
+            "source_revision":result.get("organizer_archive_sha256")}
+
+
+@app.get("/api/abbis/records/search")
+def abbis_records_search(dataset: str=Query(min_length=2,max_length=40),
+                         q: str=Query(min_length=2,max_length=180),
+                         user: DemoUser=Depends(require_authenticated_user)):
+    if dataset not in ABBIS_DATASETS:
+        raise HTTPException(status_code=422,detail="Unknown source dataset")
+    result=_abbis_request("/api/records/search",{"dataset":dataset,"q":q,"limit":"15"})
+    if result.get("dataset")!=dataset or not isinstance(result.get("items"),list):
+        raise HTTPException(status_code=503,detail="ABBIS returned invalid source search")
+    return result
+
+
+def _verified_abbis_record(dataset: str, record_id: str, digest: str) -> dict:
+    if dataset not in ABBIS_DATASETS or len(record_id)>180 or len(digest)!=64:
+        raise HTTPException(status_code=422, detail="Invalid ABBIS source reference")
+    result=_abbis_request("/api/records/lookup",{"dataset":dataset,"record_id":record_id})
+    if (result.get("dataset")!=dataset or result.get("record_id")!=record_id
+        or result.get("record_sha256")!=digest or
+        result.get("source_system")!="ABBIS-SANDBOX"):
+        raise HTTPException(status_code=409,detail="Selected ABBIS record does not match the verified source")
+    return result
+
+
 @app.post("/api/incidents/report", status_code=201)
 def report_incident(
     report: StaffReportRequest,
@@ -821,8 +893,24 @@ def report_incident(
 ):
     if user.role != "facility_staff":
         raise HTTPException(status_code=403, detail="Only facility staff may create an incident report.")
+    source_fields = ("source_dataset","source_record_id","source_record_sha256")
+    supplied = [bool(getattr(report, key)) for key in source_fields]
+    if any(supplied) and not all(supplied):
+        raise HTTPException(status_code=422, detail="Select a complete ABBIS source record or report independently.")
+    data = report.model_dump(exclude={"observed_at", *source_fields})
+    if all(supplied):
+        original = _verified_abbis_record(
+            report.source_dataset, report.source_record_id, report.source_record_sha256
+        )
+        if original.get("facility_id") != report.facility_code:
+            raise HTTPException(status_code=422, detail="Facility must match the selected ABBIS source record.")
+        data["description"] += (
+            "\n\nVerified ABBIS source record: " + report.source_dataset + " / " + report.source_record_id
+            + "\nOriginal source SHA256: " + report.source_record_sha256
+            + "\nOrganizer dataset revision: " + str(original.get("source_revision"))
+        )
     saved = workflow_store.create_staff_report(
-        {**report.model_dump(exclude={"observed_at"}), "observed_at": report.observed_at.isoformat()},
+        {**data, "observed_at": report.observed_at.isoformat()},
         user.username,
         _connect_audit_db,
     )

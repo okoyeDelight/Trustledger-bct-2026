@@ -44,6 +44,7 @@ export function IncidentTable({ incidents }: { incidents: Incident[] }) {
               <div><span className="text-muted-foreground">Source readings</span><p className="font-medium">{incident.reading_count ?? "Worker reported"}</p></div>
               <div><span className="text-muted-foreground">Start</span><p className="font-medium">{formatDateTime(incident.start_time)}</p></div>
               <div><span className="text-muted-foreground">Peak recorded</span><p className="font-medium">{typeof incident.peak_temp_c === "number" ? incident.peak_temp_c.toFixed(1) + "°C" : "Not measured"}</p></div>
+              <div><span className="text-muted-foreground">Observation span</span><p className="font-medium">{typeof incident.observation_span_hours === "number" ? incident.observation_span_hours + "h" : "Not established"}</p></div>
             </div>
             <span className="inline-flex rounded-full border px-2 py-0.5 text-xs font-medium">{incident.severity.replaceAll("_"," ")}</span>
           </Link>
@@ -57,7 +58,7 @@ export function IncidentTable({ incidents }: { incidents: Incident[] }) {
           <TableHead>Facility</TableHead>
           <TableHead>Started</TableHead>
           <TableHead>Peak</TableHead>
-          <TableHead>Duration</TableHead>
+          <TableHead>Observed span</TableHead>
           <TableHead>Classification</TableHead>
           <TableHead className="w-10"><span className="sr-only">Open</span></TableHead>
         </TableRow>
@@ -78,7 +79,10 @@ export function IncidentTable({ incidents }: { incidents: Incident[] }) {
               {formatDateTime(incident.start_time)}
             </TableCell>
             <TableCell>{typeof incident.peak_temp_c === "number" ? incident.peak_temp_c.toFixed(1) + "°C" : "Not measured"}</TableCell>
-            <TableCell>{typeof incident.duration_hours === "number" ? incident.duration_hours + "h" : "Unknown"}</TableCell>
+            <TableCell>{incident.source_type === "external_observation" && typeof incident.observation_span_hours === "number"
+              ? incident.observation_span_hours + "h (" + incident.reading_count + " readings)"
+              : typeof incident.duration_hours === "number" ? incident.duration_hours + "h"
+              : "Not established"}</TableCell>
             <TableCell>
               <Badge
                 variant="outline"
