@@ -81,13 +81,16 @@ export interface Incident {
   facility_id: string;
   start_time: string;
   end_time: string;
-  duration_hours: number;
-  reading_count: number;
-  peak_temp_c: number;
-  minimum_temp_c: number;
+  duration_hours: number | null;
+  reading_count: number | null;
+  peak_temp_c: number | null;
+  minimum_temp_c: number | null;
   direction: string;
   severity: "warning" | "sustained" | string;
   sustained_rule: string;
+  source_type?: "staff_report" | "temperature_csv";
+  report_title?: string;
+  report_description?: string;
 }
 
 export interface AffectedUnit {
@@ -170,3 +173,20 @@ export interface ListResponse<T> {
 }
 
 export type DataQuality = TemperatureQuality;
+
+export interface StaffReportRequest {
+  facility_code: string;
+  category: "equipment_problem" | "monitoring_gap" | "temperature_excursion" | "sensor_anomaly" | "other";
+  title: string;
+  description: string;
+  observed_at: string;
+}
+
+export interface InvestigationNote {
+  note_id: string;
+  case_reference: string;
+  actor_name: string;
+  actor_role: ReviewRole;
+  finding: string;
+  created_at: string;
+}
