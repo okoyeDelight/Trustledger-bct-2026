@@ -1,6 +1,3 @@
--- TrustLedger consolidated product: append-only reports, investigation notes and reviews.
--- Separate synthetic sandbox schema; NOT clinical authorization or device integration.
--- Prepared on a temporary Neon branch; apply to production only after user approval.
 CREATE TABLE IF NOT EXISTS tl_staff_reports (
     report_id uuid PRIMARY KEY,
     report_ref text NOT NULL UNIQUE,
