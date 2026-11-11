@@ -10,10 +10,10 @@ from contextlib import closing
 from typing import Any, Literal
 from uuid import UUID
 
-from app import workflow_store, case_flow
+from app import workflow_store, case_flow, automatic_feed
 
 import pandas as pd
-from fastapi import Cookie, Depends, FastAPI, HTTPException, Query, Response
+from fastapi import Cookie, Depends, FastAPI, HTTPException, Query, Response, Header
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
 
@@ -292,6 +292,106 @@ def read_json(name: str):
     return json.loads(path.read_text(encoding="utf-8"))
 
 
+
+class ConnectorKeyRequest(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+    label: str = Field(min_length=3, max_length=80)
+
+
+class SourceEventRequest(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+    source_event_id: str = Field(min_length=1, max_length=160)
+    dataset: Literal["donations", "facilities", "power_outages",
+                     "temperature_logs", "transfers", "units"]
+    source_record: dict[str, Any]
+
+
+def _supervisor(user: "DemoUser"):
+    if user.role != "blood_service_supervisor":
+        raise HTTPException(status_code=403, detail="Supervisor permission required.")
+
+
+@app.get("/api/bloodbank/catalog")
+def bloodbank_catalog(user: DemoUser = Depends(require_authenticated_user)):
+    return {
+        "datasets": automatic_feed.catalog(RAW_DIR),
+        "mode": "pinned_synthetic_data",
+        "notice": "Six organizer synthetic datasets are the source. This is not a hospital/LIMS connection.",
+        "demo_enabled": os.environ.get("TRUSTLEDGER_DEMO_FEED_ENABLED", "").lower() == "true",
+    }
+
+
+@app.get("/api/bloodbank/datasets/{dataset}")
+def bloodbank_dataset(
+    dataset: str, offset: int = Query(default=0, ge=0, le=10000),
+    limit: int = Query(default=20, ge=1, le=50),
+    user: DemoUser = Depends(require_authenticated_user),
+):
+    import csv
+    if dataset not in automatic_feed.DATASET_FILES:
+        raise HTTPException(status_code=404, detail="Unknown source dataset")
+    path = RAW_DIR / automatic_feed.DATASET_FILES[dataset]
+    if not path.is_file():
+        raise HTTPException(status_code=503, detail="Verified synthetic source file unavailable.")
+    with path.open(newline="", encoding="utf-8-sig") as handle:
+        reader = csv.DictReader(handle)
+        rows = []
+        for index, record in enumerate(reader):
+            if index < offset:
+                continue
+            rows.append(record)
+            if len(rows) >= limit:
+                break
+    return {"dataset": dataset, "items": rows, "offset": offset, "limit": limit,
+            "notice": "Original synthetic source rows, not clinical records."}
+
+
+@app.get("/api/bloodbank/feed")
+def bloodbank_feed(user: DemoUser = Depends(require_authenticated_user)):
+    return {"items": automatic_feed.feed_events(_connect_audit_db)}
+
+
+@app.get("/api/bloodbank/connectors")
+def bloodbank_keys(user: DemoUser = Depends(require_authenticated_user)):
+    _supervisor(user)
+    return {"items": automatic_feed.list_keys(_connect_audit_db)}
+
+
+@app.post("/api/bloodbank/connectors", status_code=201)
+def create_bloodbank_key(
+    data: ConnectorKeyRequest, user: DemoUser = Depends(require_authenticated_user),
+):
+    _supervisor(user)
+    return automatic_feed.generate_key(data.label, user.username, _connect_audit_db)
+
+
+@app.post("/api/bloodbank/connectors/{key_id}/revoke")
+def revoke_bloodbank_key(
+    key_id: UUID, user: DemoUser = Depends(require_authenticated_user),
+):
+    _supervisor(user)
+    return automatic_feed.revoke_key(str(key_id), user.username, _connect_audit_db)
+
+
+@app.post("/api/bloodbank/ingest")
+def ingest_bloodbank_event(
+    data: SourceEventRequest, authorization: str | None = Header(default=None),
+):
+    connector = automatic_feed.authenticate_key(authorization, _connect_audit_db)
+    return automatic_feed.ingest(
+        str(connector["key_id"]), data.source_event_id,
+        data.dataset, data.source_record, _connect_audit_db,
+    )
+
+
+@app.post("/api/bloodbank/demo/tick")
+def bloodbank_demo_tick(user: DemoUser = Depends(require_authenticated_user)):
+    _supervisor(user)
+    if os.environ.get("TRUSTLEDGER_DEMO_FEED_ENABLED", "").lower() != "true":
+        raise HTTPException(status_code=403, detail="Synthetic demo replay is disabled.")
+    return automatic_feed.demo_next(RAW_DIR, _connect_audit_db)
+
+
 @app.get("/health")
 def health():
     return {"status": "ok", "service": "trustledger-api"}
@@ -365,6 +465,8 @@ def _staff_incident(report: dict) -> dict:
 
 
 def _case_exists(case_reference: str) -> bool:
+    if case_reference.startswith("SRC-"):
+        return bool(automatic_feed.source_incidents(_connect_audit_db, incident_ref=case_reference))
     if case_reference.startswith("REP-"):
         return any(row["report_ref"] == case_reference for row in workflow_store.list_staff_reports(_connect_audit_db))
     incidents_path = OUTPUT_DIR / "incidents.csv"
@@ -510,8 +612,10 @@ def incidents(
     offset = max(0, offset)
     df = pd.read_csv(path)
     manual = [_staff_incident(r) for r in workflow_store.list_staff_reports(_connect_audit_db)]
-    if manual:
-        df = pd.concat([pd.DataFrame(manual), df], ignore_index=True)
+    incoming = automatic_feed.source_incidents(_connect_audit_db)
+    additions = manual + incoming
+    if additions:
+        df = pd.concat([pd.DataFrame(additions), df], ignore_index=True)
     if search:
         searchable = [column for column in ["incident_id", "facility_id", "severity", "direction", "report_title"] if column in df]
         matched = df[searchable].fillna("").astype(str).apply(
@@ -740,6 +844,32 @@ def incident_detail(
     incident_id: str,
     user: DemoUser = Depends(require_authenticated_user),
 ):
+    if incident_id.startswith("SRC-"):
+        incoming = automatic_feed.source_incidents(_connect_audit_db, incident_ref=incident_id)
+        if not incoming:
+            raise HTTPException(status_code=404, detail="Source event incident not found")
+        incident = incoming[0]
+        raw = incident.pop("source_record", {})
+        temperature_history = []
+        if incident["direction"] in ("temperature_excursion", "sensor_anomaly") and (
+            raw.get("recorded_at") and raw.get("temp_c") is not None
+        ):
+            temp = incident.get("peak_temp_c")
+            temperature_history = [{
+                "recorded_at": str(raw["recorded_at"]),
+                "temp_c": temp if temp not in (-99.0, 99.9, 0.0) else None,
+                "quality_status": "valid" if temp not in (-99.0, 99.9, 0.0) else "known_sensor_glitch",
+            }]
+        return {
+            "incident": incident,
+            "potentially_affected_units": [],
+            "temperature_history": temperature_history,
+            "power_correlations": [],
+            "decision_required": True,
+            "notice": "Unverified source observation. No individual unit exposure or clinical release decision is inferred.",
+            "temperature_policy": {"minimum_c": SAFE_MIN_C, "maximum_c": SAFE_MAX_C},
+            "source_evidence": {"dataset": incident["source_type"], "record": raw},
+        }
     if incident_id.startswith("REP-"):
         found = next(
             (report for report in workflow_store.list_staff_reports(_connect_audit_db)
