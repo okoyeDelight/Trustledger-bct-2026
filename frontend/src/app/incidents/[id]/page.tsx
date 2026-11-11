@@ -2,7 +2,8 @@
 
 import Link from "next/link";
 import { useParams } from "next/navigation";
-import { useQuery } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useState } from "react";
 import { Suspense } from "react";
 import { ArrowLeft, CircleAlert, PlugZap, Thermometer, type LucideIcon } from "lucide-react";
 import {
@@ -27,7 +28,8 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { fetchIncidentDetail } from "@/lib/api";
+import { fetchIncidentDetail, fetchCurrentUser, fetchInvestigationNotes, saveInvestigationNote } from "@/lib/api";
+import { Button } from "@/components/ui/button";
 import { formatChartTime, formatDateTime } from "@/lib/date";
 
 export default function IncidentDetailPage() {
@@ -40,6 +42,16 @@ export default function IncidentDetailPage() {
 
 function IncidentDetailContent() {
   const { id } = useParams<{ id: string }>();
+  const queryClient=useQueryClient();
+  const [finding,setFinding]=useState("");
+  const staff=useQuery({queryKey:["current-user"],queryFn:fetchCurrentUser});
+  const notes=useQuery({
+    queryKey:["case-notes",id],queryFn:()=>fetchInvestigationNotes(id),enabled:Boolean(id),
+  });
+  const addFinding=useMutation({
+    mutationFn:()=>saveInvestigationNote(id,finding.trim()),
+    onSuccess:async()=>{setFinding("");await queryClient.invalidateQueries({queryKey:["case-notes",id]});},
+  });
   const detail = useQuery({
     queryKey: ["incident-detail", id],
     queryFn: () => fetchIncidentDetail(id),
@@ -62,6 +74,8 @@ function IncidentDetailContent() {
     chart_time: formatChartTime(point.recorded_at),
   }));
   const noticeDetails = notice.replace(/^Investigation candidates only\.\s*/i, "");
+  const isStaffReport=incident.source_type==="staff_report";
+  const duration=typeof incident.duration_hours==="number"?incident.duration_hours+" hours":"duration unverified";
 
   return (
     <>
@@ -73,7 +87,7 @@ function IncidentDetailContent() {
       <PageHeading
         eyebrow={incident.facility_id}
         title={incident.incident_id}
-        description={`${formatDateTime(incident.start_time)} to ${formatDateTime(incident.end_time)} · ${incident.duration_hours} hours`}
+        description={isStaffReport ? `${incident.report_title ?? "Staff observation"} · ${formatDateTime(incident.start_time)}` : `${formatDateTime(incident.start_time)} to ${formatDateTime(incident.end_time)} · ${duration}`}
         action={
           <Badge
             variant="outline"
@@ -89,13 +103,13 @@ function IncidentDetailContent() {
         <p><strong>Investigation candidates only.</strong> {noticeDetails} No release, discard, quarantine-removal, compatibility or transfusion action is available here.</p>
       </div>
       <div role="note" className="mb-6 rounded-xl border border-sky-200 bg-sky-50 px-4 py-3 text-sm leading-6 text-sky-950">
-        <strong>Facility-level evidence:</strong> temperature records identify a facility, not an individual refrigerator or sensor. This incident cannot be attributed to a specific appliance from the supplied dataset.
+        <strong>Evidence boundary:</strong> {isStaffReport ? "This case began as a staff observation, not an automatic temperature measurement. The reported information requires corroboration." : "Source temperature records identify a facility, not an individual refrigerator or sensor. This incident cannot be attributed to a specific appliance."}
       </div>
 
       <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-        <EvidenceMetric label="Peak temperature" value={`${incident.peak_temp_c.toFixed(1)}°C`} icon={Thermometer} />
-        <EvidenceMetric label="Lowest temperature" value={`${incident.minimum_temp_c.toFixed(1)}°C`} icon={Thermometer} />
-        <EvidenceMetric label="Hourly readings" value={incident.reading_count.toLocaleString("en-GB")} icon={CircleAlert} />
+        <EvidenceMetric label="Peak temperature" value={typeof incident.peak_temp_c==="number"?incident.peak_temp_c.toFixed(1)+"°C":"Not measured"} icon={Thermometer} />
+        <EvidenceMetric label="Lowest temperature" value={typeof incident.minimum_temp_c==="number"?incident.minimum_temp_c.toFixed(1)+"°C":"Not measured"} icon={Thermometer} />
+        <EvidenceMetric label="Hourly readings" value={typeof incident.reading_count==="number"?incident.reading_count.toLocaleString("en-GB"):"Not available"} icon={CircleAlert} />
         <EvidenceMetric label="Candidate units" value={units.length.toLocaleString("en-GB")} icon={PlugZap} />
       </div>
 
@@ -174,6 +188,35 @@ function IncidentDetailContent() {
           </CardContent>
         </Card>
       </div>
+      <Card className="mt-6 border-0 shadow-sm ring-1 ring-border/80">
+        <CardHeader>
+          <CardTitle>Investigation findings</CardTitle>
+          <p className="text-sm text-muted-foreground">Each finding is stored with the authenticated demo actor and timestamp. This is an investigation note, not a clinical disposition.</p>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          {notes.isPending && <LoadingState label="Loading investigation history…" />}
+          {notes.isError && <ErrorState message={notes.error.message} onRetry={()=>void notes.refetch()}/>}
+          {notes.data?.items.length===0 && <p className="text-sm text-muted-foreground">No worker findings have been recorded for this incident.</p>}
+          {notes.data?.items.map(n=><div key={n.note_id} className="rounded-lg border bg-muted/30 p-4 text-sm">
+            <p className="font-semibold">{n.actor_name} <span className="font-normal text-muted-foreground">· {formatDateTime(n.created_at)}</span></p>
+            <p className="mt-2 whitespace-pre-wrap">{n.finding}</p>
+          </div>)}
+          {staff.data?.role==="facility_staff"&&<form onSubmit={e=>{e.preventDefault();addFinding.mutate();}} className="space-y-3">
+            <label htmlFor="finding" className="block text-sm font-medium">What did you verify? What remains unknown?</label>
+            <textarea id="finding" required minLength={10} maxLength={2000}
+              value={finding} onChange={e=>setFinding(e.target.value)}
+              className="min-h-24 w-full rounded-lg border bg-background px-3 py-2 text-sm"
+              placeholder="Document a specific observation and cite the original evidence where possible."/>
+            {addFinding.isError && <p role="alert" className="text-sm text-destructive">{addFinding.error.message}</p>}
+            <Button type="submit" disabled={addFinding.isPending||finding.trim().length<10}>
+              {addFinding.isPending?"Saving finding…":"Save investigation finding"}
+            </Button>
+          </form>}
+          {staff.data?.role==="blood_service_supervisor"&&
+            <p className="text-sm text-muted-foreground">Supervisors can read worker findings and record a separate decision in the Review centre.</p>}
+        </CardContent>
+      </Card>
+
       <p className="mt-5 text-xs leading-5 text-muted-foreground">{incident.sustained_rule}</p>
     </>
   );
