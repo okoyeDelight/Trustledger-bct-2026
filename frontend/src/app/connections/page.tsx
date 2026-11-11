@@ -2,156 +2,186 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { ArrowRight, CheckCircle2, CircleHelp, PlugZap, RefreshCw, Send, ShieldCheck } from "lucide-react";
 import { useMutation, useQuery } from "@tanstack/react-query";
+import { ArrowRight, CheckCircle2, Database, RefreshCw, Send, ShieldCheck, Thermometer } from "lucide-react";
 import { PageHeading } from "@/components/page-heading";
-import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
 import { fetchCurrentUser } from "@/lib/api";
 
-const DEMO_ALERT = {
-  schema_version: "trustledger.observation.v1",
-  source_system: "Simulated ABBIS connector",
-  source_event_id: "SYN-ABBIS-ALERT-001",
-  facility_id: "SYN-HOSP-01",
-  observed_at: "2026-10-01T09:00:00+01:00",
-  temperature_c: 7.2,
+type SourceObservation = {
+  schema_version: "trustledger.observation.v1";
+  source_system: string;
+  source_event_id: string;
+  facility_id: string;
+  observed_at: string;
+  temperature_c: number;
 };
-
-type ReceivedCase = {
-  status: "incident_created" | "already_imported" | "in_range_not_recorded";
+type SourceSample = {
+  items: SourceObservation[];
+  source_incident_id: string;
+  mode: string;
+  source_revision: string;
+  timestamp_note: string;
+};
+type Acknowledgement = {
+  status: "received" | "duplicate_acknowledged";
+  source_event_id: string;
+  observation_stored: boolean;
   case_reference: string | null;
-  persisted: boolean;
-  notice: string;
+  case_created: boolean;
 };
-
 type ReturnedStatus = {
   case_reference: string;
   investigation_status: string;
-  source_system: string;
-  source_event_id: string;
-  review_events: Array<{ event_kind: string; created_at: string }>;
+  review_events: {event_kind: string; actor_role: string; created_at: string}[];
   clinical_clearance: null;
+  delivery_mode: string;
 };
-
-async function callApi<T>(path: string, body?: unknown): Promise<T> {
+async function api<T>(path: string, body?: unknown): Promise<T> {
   const response = await fetch(path, {
     method: body === undefined ? "GET" : "POST",
     credentials: "include",
     cache: "no-store",
-    headers: body === undefined ? undefined : { "Content-Type": "application/json" },
+    headers: body === undefined ? undefined : {"Content-Type": "application/json"},
     body: body === undefined ? undefined : JSON.stringify(body),
   });
   const result: unknown = await response.json().catch(() => ({}));
   if (!response.ok) {
-    const obj = result as { detail?: unknown };
-    throw new Error(typeof obj.detail === "string" ? obj.detail : `Request failed (${response.status})`);
+    const detail = (result as {detail?:unknown}).detail;
+    throw new Error(typeof detail === "string" ? detail : `Request failed (${response.status})`);
   }
   return result as T;
 }
 
 export default function ConnectionsPage() {
   const router = useRouter();
-  const [caseId, setCaseId] = useState<string | null>(null);
-  const [received, setReceived] = useState<ReceivedCase | null>(null);
-  const [showRejected, setShowRejected] = useState(false);
-  const user = useQuery({ queryKey: ["current-user"], queryFn: fetchCurrentUser, retry: false });
+  const user = useQuery({queryKey:["current-user"],queryFn:fetchCurrentUser,retry:false});
+  const source = useQuery({queryKey:["sandbox-pinned-source"],queryFn:()=>api<SourceSample>("/api/integrations/sandbox/sample"),retry:false});
+  const [acknowledgements,setAcknowledgements] = useState<Acknowledgement[]>([]);
+  const [caseId,setCaseId] = useState<string | null>(null);
 
   useEffect(() => {
     try {
-      const stored = window.sessionStorage.getItem("trustledger-demo-connection-case");
-      if (stored && /^EXT-[0-9a-f-]{36}$/.test(stored)) queueMicrotask(() => setCaseId(stored));
-    } catch { /* Storage may be unavailable in a protected browser. */ }
+      const last = window.sessionStorage.getItem("trustledger-replay-case-id");
+      if (last && /^EXT-[a-f0-9-]{36}$/.test(last)) queueMicrotask(() => setCaseId(last));
+    } catch { /* Session storage can be blocked. */ }
   }, []);
 
-  const ingest = useMutation({
-    mutationFn: () => callApi<ReceivedCase>("/api/integrations/demo/observations", DEMO_ALERT),
-    onSuccess: result => {
-      setReceived(result);
-      if (result.case_reference) {
-        setCaseId(result.case_reference);
-        try { window.sessionStorage.setItem("trustledger-demo-connection-case", result.case_reference); } catch {}
+  const replay = useMutation({
+    mutationFn: async (events: SourceObservation[]) => {
+      setAcknowledgements([]);
+      let current: string | null = null;
+      for (const observation of events) {
+        const acknowledgement = await api<Acknowledgement>("/api/connectors/v1/observations",observation);
+        setAcknowledgements(previous => [...previous, acknowledgement]);
+        if (acknowledgement.case_reference) {
+          current = acknowledgement.case_reference;
+          setCaseId(current);
+          try {window.sessionStorage.setItem("trustledger-replay-case-id",current);} catch {}
+        }
       }
+      return current;
     },
   });
-
-  const status = useQuery({
-    queryKey: ["demo-integration-case", caseId],
-    queryFn: () => callApi<ReturnedStatus>(`/api/integrations/demo/cases/${encodeURIComponent(caseId || "")}`),
-    enabled: Boolean(caseId),
-    retry: false,
+  const status=useQuery({
+    queryKey:["connector-return-status",caseId],
+    queryFn:()=>api<ReturnedStatus>(`/api/connectors/v1/cases/${encodeURIComponent(caseId || "")}`),
+    enabled:Boolean(caseId),
+    retry:false,
   });
+  const observations=source.data?.items ?? [];
+  const canReplay=user.data?.role === "facility_staff";
 
   return <div className="mx-auto max-w-3xl space-y-5">
     <PageHeading
-      eyebrow="Blood-bank system connection · demonstration"
-      title="Connect an external blood-bank record"
-      description="See one synthetic monitoring alert enter TrustLedger, become an investigation, and return its latest case status."
+      eyebrow="Connected blood-bank workflow"
+      title="ABBIS Sandbox → TrustLedger"
+      description="See historical synthetic blood-bank readings travel through a real API into an investigation, then retrieve the review status."
     />
-    <div className="rounded-xl border border-sky-200 bg-sky-50 px-4 py-3 text-sm leading-relaxed text-sky-950">
-      <strong>Simulated ABBIS connection.</strong> No real ABBIS, hospital system or temperature device is connected. This preview uses a controlled synthetic sample with an authenticated demo operator.
+    <div className="rounded-xl border border-blue-200 bg-blue-50 px-4 py-3 text-sm leading-relaxed text-blue-950">
+      <strong>Source is simulated. Connection is functional.</strong> We replay verified synthetic records, not live ABBIS records or medical-device telemetry. TrustLedger validates and stores each reading.
     </div>
 
-    <div className="grid gap-2 sm:grid-cols-3">
+    <div className="grid grid-cols-3 gap-2">
       {[
-        { title: "1. Receive", detail: "Accept a sample alert" },
-        { title: "2. Investigate", detail: "Open the real case workflow" },
-        { title: "3. Return", detail: "Read the latest review status" },
-      ].map((step) => (
-        <div key={step.title} className="rounded-xl border bg-card p-3">
-          <p className="text-sm font-semibold">{step.title}</p>
-          <p className="mt-1 text-xs text-muted-foreground">{step.detail}</p>
-        </div>
-      ))}
+        ["1","Receive","4 readings"],
+        ["2","Investigate","Real case"],
+        ["3","Return","Live status"],
+      ].map(([number,name,detail]) => <div key={number} className="rounded-xl border bg-card p-3">
+        <p className="text-xs font-semibold uppercase text-primary">Step {number}</p>
+        <p className="mt-1 text-sm font-semibold">{name}</p>
+        <p className="text-xs text-muted-foreground">{detail}</p>
+      </div>)}
     </div>
 
     <Card className="shadow-sm">
-      <CardHeader>
-        <div className="flex items-center gap-2 text-sm font-semibold text-primary">
-          <PlugZap className="size-4"/> Source: Simulated blood-bank monitoring feed
+      <CardHeader className="space-y-2">
+        <div className="flex items-center gap-2 text-xs font-semibold uppercase tracking-wide text-primary">
+          <Database className="size-4"/> Source: ABBIS-like sandbox
         </div>
-        <CardTitle className="text-lg">A temperature alert needs attention</CardTitle>
-        <p className="text-sm text-muted-foreground">A synthetic facility reports a single 7.2°C observation, above the prototype 6°C upper band. That warrants investigation, not automatic confirmation of blood-unit exposure.</p>
+        <CardTitle className="text-lg">A refrigerator monitoring sequence</CardTitle>
+        <p className="text-sm leading-relaxed text-muted-foreground">
+          Four consecutive hourly readings from the pinned hackathon dataset. Send them one at a time and watch whether TrustLedger opens a case.
+        </p>
       </CardHeader>
       <CardContent className="space-y-4">
-        <div className="grid gap-3 rounded-xl bg-muted/60 p-4 text-sm sm:grid-cols-3">
-          <div><p className="text-xs text-muted-foreground">Facility</p><p className="font-semibold">SYN-HOSP-01</p></div>
-          <div><p className="text-xs text-muted-foreground">Observation</p><p className="font-semibold">7.2°C</p></div>
-          <div><p className="text-xs text-muted-foreground">Source event</p><p className="font-semibold">SYN-ABBIS-ALERT-001</p></div>
-        </div>
-        {user.data?.role === "facility_staff" ? (
-          <Button className="w-full" disabled={ingest.isPending} onClick={() => ingest.mutate()}>
-            <Send className="mr-2 size-4"/> {ingest.isPending ? "Receiving observation…" : received ? "Send again (check for duplicates)" : "Receive sample alert"}
-          </Button>
-        ) : <p className="rounded-lg border p-3 text-sm text-muted-foreground">Sign in as the Facility Operator to receive the synthetic observation. Supervisors can inspect its existing case status below.</p>}
-        {ingest.isError && <p role="alert" className="text-sm text-destructive">{ingest.error.message}</p>}
-        {received && <div className="flex items-start gap-2 rounded-xl border border-green-200 bg-green-50 p-3 text-sm text-green-950">
-          <CheckCircle2 className="mt-0.5 size-4 shrink-0"/>
-          <span>{received.status === "already_imported" ? "Already received — no duplicate created." : "Observation received and saved as an investigation candidate."}</span>
-        </div>}
+        {source.isPending && <p role="status" className="text-sm text-muted-foreground">Loading verified synthetic readings…</p>}
+        {source.isError && <p role="alert" className="text-sm text-destructive">{source.error.message}</p>}
+        {source.data && <>
+          <div className="rounded-lg border bg-muted/40 p-3">
+            <p className="text-xs text-muted-foreground">Source facility</p>
+            <p className="text-sm font-semibold">{observations[0]?.facility_id}</p>
+            <div className="mt-3 grid grid-cols-4 gap-2">
+              {observations.map((item,i) => {
+                const ack=acknowledgements.some(x=>x.source_event_id===item.source_event_id);
+                return <div key={item.source_event_id} className="rounded-lg border bg-background p-2 text-center">
+                  <Thermometer className="mx-auto size-4 text-muted-foreground" aria-hidden="true"/>
+                  <p className="mt-1 text-sm font-semibold tabular-nums">{item.temperature_c.toFixed(1)}°</p>
+                  <p className="mt-1 text-[10px] text-muted-foreground">{ack ? "Received" : `Hour ${i+1}`}</p>
+                  {ack && <CheckCircle2 className="mx-auto mt-1 size-3.5 text-green-700" aria-label="Acknowledged"/>}
+                </div>;
+              })}
+            </div>
+          </div>
+          {canReplay
+            ? <Button className="w-full" disabled={replay.isPending||observations.length!==4} onClick={()=>replay.mutate(observations)}>
+                <Send className="mr-2 size-4"/>
+                {replay.isPending ? `Delivering ${acknowledgements.length} of 4 readings…` : acknowledgements.length ? "Send again — verify no duplicates" : "Send readings to TrustLedger"}
+              </Button>
+            : <p className="rounded-lg border p-3 text-sm text-muted-foreground">The Facility Operator sends the source feed. Supervisors can inspect the shared incident after it arrives.</p>
+          }
+          {replay.isError && <p role="alert" className="rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-800">Delivery stopped: {replay.error.message}. Retrying is safe because events are idempotent.</p>}
+          {acknowledgements.length>0 && <div className="rounded-lg border border-green-200 bg-green-50 p-3 text-sm text-green-900">
+            <CheckCircle2 className="mr-2 inline size-4"/>
+            {acknowledgements.length} of {observations.length} observations acknowledged.
+            {acknowledgements.some(x=>x.status==="duplicate_acknowledged") && " Duplicates were not stored again."}
+            {caseId ? " A sustained candidate is available for investigation." : " No sustained candidate yet."}
+          </div>}
+        </>}
       </CardContent>
     </Card>
 
-    {caseId && <Card className="border-primary/30 shadow-sm">
+    {caseId && <Card className="border-primary/25 shadow-sm">
       <CardHeader>
-        <div className="flex items-center gap-2 text-sm font-semibold text-primary"><ShieldCheck className="size-4"/> Connected to the real incident workflow</div>
-        <CardTitle className="break-all text-lg">{caseId}</CardTitle>
-        <p className="text-sm text-muted-foreground">This case is in the same Incidents and Review workflow as every other TrustLedger case.</p>
+        <div className="flex items-center gap-2 text-sm font-semibold text-primary"><ShieldCheck className="size-4"/> Real investigation created</div>
+        <CardTitle className="break-all text-base">{caseId}</CardTitle>
+        <p className="text-sm text-muted-foreground">A sustained evidence candidate is now part of the ordinary Incidents → Worker → Supervisor workflow.</p>
       </CardHeader>
       <CardContent className="space-y-4">
-        <Button className="w-full" onClick={() => router.push("/incidents/" + encodeURIComponent(caseId))}>
+        <Button className="w-full" onClick={()=>router.push("/incidents/"+encodeURIComponent(caseId))}>
           Open investigation <ArrowRight className="ml-2 size-4"/>
         </Button>
         <div className="rounded-lg border bg-muted/40 p-4">
-          <div className="flex flex-wrap items-center justify-between gap-3">
-            <p className="text-sm font-semibold">Status returned to external system</p>
-            <Button size="sm" variant="outline" onClick={() => void status.refetch()} disabled={status.isFetching}>
-              <RefreshCw className="mr-2 size-3.5"/> Refresh
+          <div className="flex items-center justify-between gap-2">
+            <p className="text-sm font-semibold">Status returned to source</p>
+            <Button size="sm" variant="outline" onClick={()=>void status.refetch()} disabled={status.isFetching}>
+              <RefreshCw className="mr-1 size-3.5"/> Refresh
             </Button>
           </div>
-          {status.isLoading && <p className="mt-2 text-sm text-muted-foreground">Reading the shared case status…</p>}
+          {status.isPending && <p className="mt-2 text-sm text-muted-foreground">Retrieving the shared status…</p>}
           {status.isError && <p role="alert" className="mt-2 text-sm text-destructive">{status.error.message}</p>}
-          {status.data && <div className="mt-2 space-y-1 text-sm">
+          {status.data && <div className="mt-3 space-y-2 text-sm">
             <p><span className="text-muted-foreground">Investigation:</span> <strong className="capitalize">{status.data.investigation_status.replaceAll("_"," ")}</strong></p>
             <p><span className="text-muted-foreground">Recorded handoffs:</span> {status.data.review_events.length}</p>
             <p><span className="text-muted-foreground">Clinical clearance:</span> Not provided</p>
@@ -160,16 +190,15 @@ export default function ConnectionsPage() {
       </CardContent>
     </Card>}
 
-    <details className="rounded-xl border bg-card px-4 py-3 text-sm">
-      <summary className="flex cursor-pointer items-center gap-2 font-medium"><CircleHelp className="size-4"/> What does this prove—and what doesn&apos;t it?</summary>
+    <details className="rounded-xl border bg-card p-4 text-sm">
+      <summary className="cursor-pointer font-semibold">Connection details and limitations</summary>
       <div className="mt-3 space-y-2 border-t pt-3 text-muted-foreground">
-        <p>The signed-in operator sends a versioned JSON observation to a FastAPI endpoint. The adapter checks its fields and temperature, stores a provisional incident in the append-only report ledger, and makes it available to our existing worker and supervisor workflow. A separate GET endpoint returns the case&apos;s latest status.</p>
-        <p>Repeated identical source events are idempotent; reusing an event ID with different evidence is rejected. Incomplete timestamps are rejected rather than silently assumed.</p>
-        <p>It does not implement external machine credentials, a real ABBIS interface, sensor connectivity, FHIR/HL7 interoperability, clinical authorization or routine telemetry storage. The source is a simulated fixture.</p>
-        <Button size="sm" variant="outline" onClick={() => setShowRejected(x => !x)}>
-          {showRejected ? "Hide example rejection" : "Show missing-timestamp example"}
-        </Button>
-        {showRejected && <p className="rounded-lg bg-amber-50 p-3 text-amber-950">A message without an observation timestamp is rejected by the API schema with HTTP 422. No case is written. This is covered by the automated integration test.</p>}
+        <p>{source.data?.mode ?? "Synthetic source replay."}</p>
+        <p>{source.data?.timestamp_note}</p>
+        <p>Incoming API: POST /api/connectors/v1/observations. Returned status API: GET /api/connectors/v1/cases/[reference]. Both are authenticated. The sandbox sends four requests, receives genuine acknowledgements, and keeps a case reference.</p>
+        <p>Four consecutive hourly readings above the prototype 6°C threshold establish an investigation candidate, not confirmed blood-unit exposure or a clinical disposition.</p>
+        <p>Outgoing delivery currently uses a pull API. Webhooks, facility-scoped partner identity and a live ABBIS connection are future integrations.</p>
+        <p>Raw synthetic source Git revision: <span className="break-all font-mono text-xs">{source.data?.source_revision}</span></p>
       </div>
     </details>
   </div>;
