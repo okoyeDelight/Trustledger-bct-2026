@@ -121,6 +121,8 @@ def test_source_only_ingestion_to_worker_supervisor_and_status(configured):
         assert detail_response.status_code == 200
         detail = detail_response.json()
         assert detail["incident"]["reading_count"] == 4
+        assert detail["incident"]["observation_span_hours"] == 3.0
+        assert detail["incident"]["duration_hours"] is None
         assert detail["incident"]["peak_temp_c"] == 10.1
         assert detail["incident"]["minimum_temp_c"] == 7.4
         assert detail["incident"]["source_system"] == "ABBIS-SANDBOX"
