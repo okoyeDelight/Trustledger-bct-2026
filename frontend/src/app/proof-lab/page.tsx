@@ -167,7 +167,7 @@ export default function ProofLabPage() {
       </CardContent>
     </Card>
     <div className="rounded-lg border border-amber-200 bg-amber-50 p-4 text-sm text-amber-950">
-      <strong>Honest benchmark:</strong> On these three hand-built test fixtures, a competent gap-aware, receipt-aware and sensor-quality-aware system can flag the same issues. TrustLedger's proposed incremental value is preserving the original evidence and the separate human investigation workflow; that value still requires independent user studies.
+      <strong>Honest benchmark:</strong> On these three hand-built test fixtures, a competent gap-aware, receipt-aware and sensor-quality-aware system can flag the same issues. TrustLedger&apos;s proposed incremental value is preserving the original evidence and the separate human investigation workflow; that value still requires independent user studies.
     </div>
   </div>;
 }
