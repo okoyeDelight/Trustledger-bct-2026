@@ -49,8 +49,8 @@ export function IncidentTable({ incidents }: { incidents: Incident[] }) {
             <TableCell className="text-muted-foreground">
               {formatDateTime(incident.start_time)}
             </TableCell>
-            <TableCell>{incident.peak_temp_c.toFixed(1)}°C</TableCell>
-            <TableCell>{incident.duration_hours}h</TableCell>
+            <TableCell>{typeof incident.peak_temp_c === "number" ? incident.peak_temp_c.toFixed(1) + "°C" : "Not measured"}</TableCell>
+            <TableCell>{typeof incident.duration_hours === "number" ? incident.duration_hours + "h" : "Unknown"}</TableCell>
             <TableCell>
               <Badge
                 variant="outline"
